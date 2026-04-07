@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../atoms/sessionAtom'
-import { activeTournamentAtom, currentViewAtom } from '../atoms/tournamentAtoms'
+import { activeTournamentAtom, currentViewAtom, showConfigModalAtom } from '../atoms/tournamentAtoms'
 import { getTournamentParticipants } from '../lib/tournamentService'
 import type { Participant } from '../atoms/tournamentAtoms'
+import TournamentConfig from './TournamentConfig'
 import styles from './TournamentView.module.css'
 
 interface ParticipantWithProfile extends Participant {
@@ -22,6 +23,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
   const setCurrentView = useSetAtom(currentViewAtom)
+  const setShowConfigModal = useSetAtom(showConfigModalAtom)
 
   const [participants, setParticipants] = useState<ParticipantWithProfile[]>([])
   const [loading, setLoading] = useState(true)
@@ -59,9 +61,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   const participantCount = participants.length
 
   const handleSetupMatches = () => {
-    console.log('Setup matches para torneio:', tournament.id)
-    // Sprint 3: Implementar configuração de partidas
-    alert('Sprint 3: Configuração de partidas virá aqui')
+    setShowConfigModal(true)
   }
 
   return (
@@ -155,6 +155,11 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
           )}
         </section>
       </main>
+
+      <TournamentConfig 
+        participantCount={participantCount} 
+        onClose={() => setShowConfigModal(false)}
+      />
     </div>
   )
 }

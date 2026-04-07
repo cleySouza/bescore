@@ -28,5 +28,8 @@ export const showCreateModalAtom = atom<boolean>(false)
 // Modal de entrar por código
 export const showJoinModalAtom = atom<boolean>(false)
 
+// Modal de configuração de partidas
+export const showConfigModalAtom = atom<boolean>(false)
+
 // View atual: 'dashboard' ou 'tournament'
 export const currentViewAtom = atom<'dashboard' | 'tournament'>('dashboard')
