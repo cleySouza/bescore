@@ -1,0 +1,160 @@
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  color: #1a1a1a;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.joinBtn,
+.createBtn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.joinBtn {
+  background: #f5f5f5;
+  color: #1a1a1a;
+  border: 1px solid #ddd;
+}
+
+.joinBtn:hover {
+  background: #e8e8e8;
+  border-color: #999;
+}
+
+.createBtn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.createBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.6);
+}
+
+.createBtn:active {
+  transform: translateY(0);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .header {
+    margin-bottom: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 12px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .title {
+    font-size: 20px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 16px;
+  }
+
+  .createBtn {
+    width: 100%;
+  }
+}
+
+.loadingMessage,
+.errorMessage {
+  text-align: center;
+  padding: 32px 16px;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.loadingMessage {
+  background: #f0f4ff;
+  color: #667eea;
+}
+
+.errorMessage {
+  background: #fee;
+  color: #c00;
+  border: 1px solid #fcc;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  border: 2px dashed #ddd;
+  border-radius: 12px;
+  background: #f9f9f9;
+}
+
+.emptyState p {
+  font-size: 18px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.emptyCreateBtn {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.emptyCreateBtn:hover {
+  transform: scale(1.05);
+}

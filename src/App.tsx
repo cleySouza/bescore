@@ -1,10 +1,16 @@
-import { useAtomValue } from 'jotai'
+import { useAtomValue, useSetAtom } from 'jotai'
 import { isAuthenticatedAtom, userAtom } from './atoms/sessionAtom'
+import { currentViewAtom } from './atoms/tournamentAtoms'
 import { signInWithGoogle, signOut } from './lib/authGoogle'
+import Dashboard from './components/Dashboard'
+import TournamentView from './components/TournamentView'
 import styles from './App.module.css'
+
 function App() {
   const isAuthenticated = useAtomValue(isAuthenticatedAtom)
   const user = useAtomValue(userAtom)
+  const currentView = useAtomValue(currentViewAtom)
+  const setCurrentView = useSetAtom(currentViewAtom)
 
   const handleGoogleLogin = async () => {
     try {
@@ -39,16 +45,19 @@ function App() {
       <header className={styles.header}>
         <h1>🏆 BeScore</h1>
         <div className={styles.userInfo}>
-          <img src={user?.user_metadata?.avatar_url} alt="Avatar" />
-          <span>{user?.user_metadata?.name}</span>
+          <img src={user?.user_metadata?.avatar_url} alt="Avatar" className={styles.avatar} />
+          <span className={styles.userName}>{user?.user_metadata?.name}</span>
           <button onClick={handleLogout} className={styles.logoutBtn}>
             Sair
           </button>
         </div>
       </header>
       <main className={styles.main}>
-        <h2>Bem-vindo ao BeScore!</h2>
-        <p>Seu gerenciador de campeonatos de eSports está pronto! 🎮</p>
+        {currentView === 'dashboard' ? (
+          <Dashboard />
+        ) : (
+          <TournamentView onBackToDashboard={() => setCurrentView('dashboard')} />
+        )}
       </main>
     </div>
   )
