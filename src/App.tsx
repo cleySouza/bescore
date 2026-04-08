@@ -1,7 +1,8 @@
 import { useAtomValue, useSetAtom } from 'jotai'
 import { isAuthenticatedAtom, userAtom } from './atoms/sessionAtom'
 import { currentViewAtom } from './atoms/tournamentAtoms'
-import { signInWithGoogle, signOut } from './lib/authGoogle'
+import { signOut } from './lib/authGoogle'
+import { SignIn } from './screen/SingIn/SignIn'
 import Dashboard from './components/Dashboard'
 import TournamentView from './components/TournamentView'
 import styles from './App.module.css'
@@ -12,14 +13,6 @@ function App() {
   const currentView = useAtomValue(currentViewAtom)
   const setCurrentView = useSetAtom(currentViewAtom)
 
-  const handleGoogleLogin = async () => {
-    try {
-      await signInWithGoogle()
-    } catch (error) {
-      console.error('Login failed:', error)
-    }
-  }
-
   const handleLogout = async () => {
     try {
       await signOut()
@@ -29,15 +22,7 @@ function App() {
   }
 
   if (!isAuthenticated) {
-    return (
-      <div className={styles.loginContainer}>
-        <h1>🏆 BeScore</h1>
-        <p>Gerenciador de Campeonatos de eSports</p>
-        <button onClick={handleGoogleLogin} className={styles.googleLoginBtn}>
-          🚀 Entrar com Google
-        </button>
-      </div>
-    )
+    return <SignIn />
   }
 
   return (
