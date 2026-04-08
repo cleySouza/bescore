@@ -1,0 +1,282 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.table thead {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.table th {
+  padding: 14px 12px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table td {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+}
+
+.even {
+  background: white;
+}
+
+.odd {
+  background: rgba(102, 126, 234, 0.02);
+}
+
+.position {
+  width: 50px;
+  text-align: center;
+}
+
+.position strong {
+  font-size: 16px;
+  color: #667eea;
+}
+
+.team {
+  flex: 1;
+  min-width: 200px;
+}
+
+.teamCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.teamName {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.teamCell small {
+  font-size: 12px;
+  color: #999;
+}
+
+.stat {
+  width: 40px;
+  text-align: center;
+  color: #666;
+  font-weight: 500;
+}
+
+.points {
+  width: 50px;
+  text-align: center;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+
+.points strong {
+  font-size: 16px;
+  color: #667eea;
+}
+
+.positive {
+  color: #4caf50;
+  font-weight: 600;
+}
+
+.negative {
+  color: #ff6b6b;
+  font-weight: 600;
+}
+
+.legend {
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  text-align: center;
+  color: #666;
+  border-left: 4px solid #667eea;
+}
+
+.legend small {
+  font-size: 12px;
+}
+
+.error {
+  background: #fff5f5;
+  color: #c00;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  border-left: 4px solid #ff6b6b;
+}
+
+.empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #999;
+}
+
+@media (max-width: 900px) {
+  .table th,
+  .table td {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .position {
+    width: 40px;
+  }
+
+  .stat {
+    width: 35px;
+    font-size: 12px;
+  }
+
+  .points {
+    width: 45px;
+    padding: 6px 10px;
+  }
+
+  .points strong {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 600px) {
+  .table {
+    font-size: 12px;
+    overflow-x: auto;
+    display: block;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tbody {
+    display: block;
+  }
+
+  .table tr {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+    background: white;
+    margin-bottom: 4px;
+    border-radius: 8px;
+  }
+
+  .even {
+    background: white;
+  }
+
+  .odd {
+    background: white;
+  }
+
+  .table td {
+    padding: 0;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    font-size: 10px;
+    font-weight: 700;
+    color: #999;
+    text-transform: uppercase;
+  }
+
+  .position {
+    width: auto;
+    text-align: left;
+    grid-column: 1 / 2;
+  }
+
+  .position::before {
+    content: 'Pos';
+  }
+
+  .team {
+    min-width: auto;
+    grid-column: 2 / 3;
+  }
+
+  .team::before {
+    content: 'Time';
+  }
+
+  .stat {
+    width: auto;
+    text-align: left;
+  }
+
+  .points {
+    width: auto;
+    background: transparent;
+    padding: 0;
+  }
+
+  .legend {
+    font-size: 11px;
+    padding: 10px;
+  }
+}
+
+/* Responsive table scrolling for medium screens */
+@media (max-width: 900px) and (min-width: 601px) {
+  .table {
+    overflow-x: auto;
+    display: block;
+  }
+
+  .table tbody {
+    display: block;
+  }
+
+  .table tr {
+    display: block;
+  }
+
+  .table td,
+  .table th {
+    display: block;
+    text-align: right;
+    padding-right: 50%;
+    position: relative;
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 6px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #999;
+    font-size: 11px;
+  }
+
+  .table th {
+    display: none;
+  }
+}

@@ -12,13 +12,51 @@ export interface TournamentSettings {
 }
 
 export interface Match {
+  id: string
   tournament_id: string
   home_participant_id: string | null
   away_participant_id: string | null
   round: number
   status: 'pending' | 'finished'
-  home_score?: number
-  away_score?: number
+  home_score: number | null
+  away_score: number | null
+  created_at?: string
+  updated_at?: string
+}
+
+export interface MatchWithTeams extends Match {
+  homeTeam?: {
+    id: string
+    team_name: string
+    profile?: {
+      nickname: string | null
+      avatar_url: string | null
+    }
+  }
+  awayTeam?: {
+    id: string
+    team_name: string
+    profile?: {
+      nickname: string | null
+      avatar_url: string | null
+    }
+  }
+}
+
+export interface StandingsRow {
+  participant_id: string
+  team_name: string | null
+  user_nickname: string | null
+  user_avatar_url: string | null
+  total_matches: number
+  wins: number
+  draws: number
+  losses: number
+  goals_for: number
+  goals_against: number
+  goal_difference: number
+  points: number
+  position: number
 }
 
 // Validação de settings

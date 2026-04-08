@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react'
-import { useAtomValue, useSetAtom } from 'jotai'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../atoms/sessionAtom'
-import { activeTournamentAtom, currentViewAtom, showConfigModalAtom } from '../atoms/tournamentAtoms'
+import {
+  activeTournamentAtom,
+  currentViewAtom,
+  showConfigModalAtom,
+  activeTournamentTabAtom,
+} from '../atoms/tournamentAtoms'
 import { getTournamentParticipants } from '../lib/tournamentService'
+import { getTournamentMatches } from '../lib/matchService'
 import type { Participant } from '../atoms/tournamentAtoms'
+import type { MatchWithTeams } from '../types/tournament'
 import TournamentConfig from './TournamentConfig'
+import MatchCard from './MatchCard'
+import StandingsTable from './StandingsTable'
 import styles from './TournamentView.module.css'
 
 interface ParticipantWithProfile extends Participant {
@@ -24,10 +33,12 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   const tournament = useAtomValue(activeTournamentAtom)
   const setCurrentView = useSetAtom(currentViewAtom)
   const setShowConfigModal = useSetAtom(showConfigModalAtom)
-
+  const [activeTab, setActiveTab] = useAtom(activeTournamentTabAtom)
   const [participants, setParticipants] = useState<ParticipantWithProfile[]>([])
+  const [matches, setMatches] = useState<MatchWithTeams[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     if (!tournament) {
@@ -35,14 +46,20 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
       return
     }
 
-    const loadParticipants = async () => {
+    const loadData = async () => {
       setLoading(true)
       setError(null)
       try {
-        const data = await getTournamentParticipants(tournament.id)
-        setParticipants(data as ParticipantWithProfile[])
+        const participantsData = await getTournamentParticipants(tournament.id)
+        setParticipants(participantsData as ParticipantWithProfile[])
+
+        // Load matches if tournament is active
+        if (tournament.status === 'active') {
+          const matchesData = await getTournamentMatches(tournament.id)
+          setMatches(matchesData)
+        }
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Erro ao carregar participantes'
+        const message = err instanceof Error ? err.message : 'Erro ao carregar dados'
         setError(message)
         console.error('Erro:', err)
       } finally {
@@ -50,8 +67,8 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
       }
     }
 
-    loadParticipants()
-  }, [tournament, setCurrentView])
+    loadData()
+  }, [tournament, setCurrentView, refreshKey])
 
   if (!tournament || !user) {
     return null
@@ -59,10 +76,23 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
 
   const isCreator = tournament.creator_id === user.id
   const participantCount = participants.length
+  const isDraft = tournament.status === 'draft'
+  const isActive = tournament.status === 'active'
 
   const handleSetupMatches = () => {
     setShowConfigModal(true)
   }
+
+  const handleMatchesGenerated = () => {
+    setRefreshKey((prev) => prev + 1)
+  }
+
+  const handleMatchResultUpdated = () => {
+    setRefreshKey((prev) => prev + 1)
+  }
+
+  const pendingMatches = matches.filter((m) => m.status === 'pending')
+  const finishedMatches = matches.filter((m) => m.status === 'finished')
 
   return (
     <div className={styles.container}>
@@ -94,7 +124,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
             </div>
           </div>
 
-          {isCreator && (
+          {isCreator && isDraft && (
             <button className={styles.setupBtn} onClick={handleSetupMatches}>
               ⚙️ Configurar Partidas
             </button>
@@ -103,62 +133,138 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
 
         {error && <div className={styles.errorMessage}>{error}</div>}
 
-        <section className={styles.participantsSection}>
-          <h2 className={styles.sectionTitle}>Participantes ({participantCount})</h2>
+        {isDraft ? (
+          // Draft View: Show participants list
+          <section className={styles.participantsSection}>
+            <h2 className={styles.sectionTitle}>Participantes ({participantCount})</h2>
 
-          {loading ? (
-            <div className={styles.loadingMessage}>Carregando participantes...</div>
-          ) : participantCount < 2 ? (
-            <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}>👥</div>
-              <p className={styles.emptyText}>Aguardando oponentes...</p>
-              <p className={styles.emptySubtext}>
-                Compartilhe o código <strong>{tournament.invite_code}</strong> com seus amigos para começar!
-              </p>
-              <div className={styles.shareActions}>
-                <button
-                  className={styles.copyBtn}
-                  onClick={() => {
-                    navigator.clipboard.writeText(tournament.invite_code)
-                    alert('Código copiado!')
-                  }}
-                >
-                  📋 Copiar Código
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className={styles.participantsList}>
-              {participants.map((participant) => (
-                <div key={participant.id} className={styles.participantCard}>
-                  {participant.profile?.avatar_url ? (
-                    <img
-                      src={participant.profile.avatar_url}
-                      alt={participant.profile.nickname || 'Avatar'}
-                      className={styles.avatar}
-                    />
-                  ) : (
-                    <div className={styles.avatarPlaceholder}>👤</div>
-                  )}
-                  <div className={styles.participantInfo}>
-                    <div className={styles.teamName}>{participant.team_name || 'Sem time'}</div>
-                    <small className={styles.userName}>
-                      {participant.profile?.nickname || participant.profile?.email || 'Usuário'}
-                    </small>
-                  </div>
-                  {participant.user_id === tournament.creator_id && (
-                    <span className={styles.creatorBadge}>👑</span>
-                  )}
+            {loading ? (
+              <div className={styles.loadingMessage}>Carregando participantes...</div>
+            ) : participantCount < 2 ? (
+              <div className={styles.emptyState}>
+                <div className={styles.emptyIcon}>👥</div>
+                <p className={styles.emptyText}>Aguardando oponentes...</p>
+                <p className={styles.emptySubtext}>
+                  Compartilhe o código <strong>{tournament.invite_code}</strong> com seus amigos para
+                  começar!
+                </p>
+                <div className={styles.shareActions}>
+                  <button
+                    className={styles.copyBtn}
+                    onClick={() => {
+                      navigator.clipboard.writeText(tournament.invite_code)
+                      alert('Código copiado!')
+                    }}
+                  >
+                    📋 Copiar Código
+                  </button>
                 </div>
-              ))}
+              </div>
+            ) : (
+              <div className={styles.participantsList}>
+                {participants.map((participant) => (
+                  <div key={participant.id} className={styles.participantCard}>
+                    {participant.profile?.avatar_url ? (
+                      <img
+                        src={participant.profile.avatar_url}
+                        alt={participant.profile.nickname || 'Avatar'}
+                        className={styles.avatar}
+                      />
+                    ) : (
+                      <div className={styles.avatarPlaceholder}>👤</div>
+                    )}
+                    <div className={styles.participantInfo}>
+                      <div className={styles.teamName}>{participant.team_name || 'Sem time'}</div>
+                      <small className={styles.userName}>
+                        {participant.profile?.nickname || participant.profile?.email || 'Usuário'}
+                      </small>
+                    </div>
+                    {participant.user_id === tournament.creator_id && (
+                      <span className={styles.creatorBadge}>👑</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        ) : isActive ? (
+          // Active View: Show tabs (Matches / Standings)
+          <div className={styles.tabsContainer}>
+            <div className={styles.tabsNav}>
+              <button
+                className={`${styles.tab} ${activeTab === 'matches' ? styles.active : ''}`}
+                onClick={() => setActiveTab('matches')}
+              >
+                🎮 Jogos {pendingMatches.length > 0 && `(${pendingMatches.length})`}
+              </button>
+              <button
+                className={`${styles.tab} ${activeTab === 'standings' ? styles.active : ''}`}
+                onClick={() => setActiveTab('standings')}
+              >
+                📊 Classificação
+              </button>
             </div>
-          )}
-        </section>
+
+            <div className={styles.tabContent}>
+              {activeTab === 'matches' && (
+                <section className={styles.matchesSection}>
+                  {loading ? (
+                    <div className={styles.loadingMessage}>Carregando jogos...</div>
+                  ) : matches.length === 0 ? (
+                    <div className={styles.emptyState}>
+                      <div className={styles.emptyIcon}>🎮</div>
+                      <p className={styles.emptyText}>Nenhum jogo gerado ainda</p>
+                    </div>
+                  ) : (
+                    <div className={styles.matchesList}>
+                      {pendingMatches.length > 0 && (
+                        <div>
+                          <h3 className={styles.matchesSubtitle}>Pendentes ({pendingMatches.length})</h3>
+                          <div className={styles.matchesGrid}>
+                            {pendingMatches.map((match) => (
+                              <MatchCard
+                                key={match.id}
+                                match={match}
+                                onResultUpdated={handleMatchResultUpdated}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {finishedMatches.length > 0 && (
+                        <div>
+                          <h3 className={styles.matchesSubtitle}>Encerrados ({finishedMatches.length})</h3>
+                          <div className={styles.matchesGrid}>
+                            {finishedMatches.map((match) => (
+                              <MatchCard
+                                key={match.id}
+                                match={match}
+                                onResultUpdated={handleMatchResultUpdated}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {activeTab === 'standings' && (
+                <section className={styles.standingsSection}>
+                  <StandingsTable onDataUpdate={handleMatchResultUpdated} />
+                </section>
+              )}
+            </div>
+          </div>
+        ) : null}
       </main>
 
-      <TournamentConfig 
-        participantCount={participantCount} 
+      <TournamentConfig
+        participantCount={participantCount}
         onClose={() => setShowConfigModal(false)}
+        onMatchesGenerated={handleMatchesGenerated}
       />
     </div>
   )
