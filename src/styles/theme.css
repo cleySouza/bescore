@@ -1,0 +1,59 @@
+/**
+ * Global CSS Variables
+ * Theme colors that can be used across the application
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Typography */
+  --font-primary: 'Inter', sans-serif;
+
+  /* Grayscale */
+  --color-gray-100: #f0f0f0;
+  --color-gray-200: #d9d9d9;
+  --color-gray-300: #777777;
+
+  /* Gold/Yellow */
+  --color-gold-100: #fbbc05;
+  --color-mid: #ffc758;
+
+  /* Dark/Black */
+  --color-dark: #000000;
+  --color-dark-100: #393939;
+  --color-dark-200: #333333;
+
+  /* White */
+  --color-white: #ffffff;
+
+  /* Primary Brand Color (Purple) */
+  --color-be: #a200ff;
+  --color-be-100: #7700bc;
+
+  /* Status/Semantic Colors */
+  --color-success: #00b900;
+  --color-red: #ee3124;
+  --color-blue: #00b6f1;
+  --color-orange: #f89731;
+  --color-red-100: #ff9797;
+
+  /* Special */
+  --color-classified: rgba(255, 199, 88, 0.4);
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, var(--color-be) 0%, var(--color-be-100) 100%);
+  --gradient-warm: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Global Typography */
+html,
+body {
+  font-family: var(--font-primary);
+}
+
+/* Dark mode (for future use) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Colors can be overridden here for dark mode */
+  }
+}

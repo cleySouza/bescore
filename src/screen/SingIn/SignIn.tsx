@@ -1,4 +1,6 @@
 import { signInWithGoogle } from '../../lib/authGoogle'
+import logo from '../../assets/logo.svg'
+import googleLogo from '../../assets/google-logo.svg'
 import styles from './SignIn.module.css'
 
 interface SignInProps {
@@ -17,11 +19,13 @@ export function SignIn({ onLoginSuccess }: SignInProps) {
 
   return (
     <div className={styles.loginContainer}>
-      <h1>🏆 BeScore</h1>
-      <p>Gerenciador de Campeonatos de eSports</p>
-      <button onClick={handleGoogleLogin} className={styles.googleLoginBtn}>
-        🚀 Entrar com Google
-      </button>
+      <img src={logo} alt="BeScore Logo" className={styles.logo} />
+      <section>
+        <p>Escolha uma forma de login</p>
+        <button onClick={handleGoogleLogin} className={styles.googleLoginBtn} title="Entrar com Google">
+          <img src={googleLogo} alt="Google" className={styles.googleLogoIcon} />
+        </button>
+      </section>
     </div>
   )
 }

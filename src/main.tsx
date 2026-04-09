@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { Provider, useSetAtom } from 'jotai'
 import { supabase } from './lib/supabaseClient'
 import { sessionAtom } from './atoms/sessionAtom'
+import './styles/theme.css'
 import App from './App'
 
 // Componente para inicializar a autenticação
