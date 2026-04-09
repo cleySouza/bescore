@@ -1,208 +1,250 @@
+/* =============================================
+   CreateTournament — CSS Module
+   Variáveis: estritamente do theme.css real
+   ============================================= */
+
 .container {
   min-height: 100vh;
   background: var(--color-gray-100);
-  padding: 20px;
+  padding: 24px 20px;
   display: flex;
   flex-direction: column;
 }
 
+/* Header */
 .header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
   gap: 16px;
+  margin-bottom: 32px;
 }
 
 .backBtn {
   background: none;
   border: none;
-  color: var(--color-primary);
+  color: var(--color-dark);
   cursor: pointer;
-  font-size: 16px;
-  padding: 8px;
-  border-radius: 6px;
-  transition: background 0.3s;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 0;
+  transition: color 0.2s;
 }
 
 .backBtn:hover {
-  background: var(--color-gray-200);
+  color: var(--color-gray-300);
 }
 
 .title {
   color: var(--color-dark);
   margin: 0;
-  font-size: 24px;
+  font-size: 22px;
+  font-weight: 700;
   flex: 1;
   text-align: center;
 }
 
-/* Main Content - Two Column Grid */
-.mainContent {
+/* Main Content Grid - 2 columns */
+.content {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 32px;
+  gap: 40px;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
 }
 
-/* Form Section */
+/* Form Section — white box com borda fina, sem sombra */
 .formSection {
   background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
   border-radius: 12px;
-  padding: 32px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  gap: 18px;
 }
 
-.formGroup {
+/* Field Group - Each input field */
+.fieldGroup {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
-.label {
-  font-weight: 600;
-  color: var(--color-dark);
-  font-size: 13px;
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-gray-300);
   text-transform: capitalize;
 }
 
-.input,
-.select {
-  padding: 12px 16px;
-  border: 1.5px solid var(--color-gray-200);
+.fieldInput,
+.fieldSelect {
+  padding: 10px 12px;
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   font-size: 14px;
   font-family: inherit;
-  transition: all 0.3s;
-  background: var(--color-white);
   color: var(--color-dark);
+  background: var(--color-white);
+  transition: border-color 0.2s;
 }
 
-.input::placeholder,
-.select::placeholder {
+.fieldInput::placeholder,
+.fieldSelect::placeholder {
   color: var(--color-gray-300);
 }
 
-.input:focus,
-.select:focus {
+.fieldInput:focus,
+.fieldSelect:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  border-color: var(--color-dark-100);
 }
 
-.input:disabled,
-.select:disabled {
-  background: var(--color-gray-100);
+.fieldSelect {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+  padding-right: 32px;
+}
+
+.disabledInput {
+  background-color: var(--color-gray-100);
   color: var(--color-gray-300);
   cursor: not-allowed;
 }
 
-/* Metrics Row - Three columns */
-.metricsRow {
+/* Participants Row - inline 3 fields */
+.participantsRow {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 12px;
 }
 
-.metricsRow .formGroup {
+.participantsRow .fieldGroup {
   gap: 6px;
 }
 
-.metricsRow .label {
-  font-size: 12px;
-}
-
-.metricsRow .input {
-  padding: 10px 12px;
-  font-size: 13px;
-}
-
-/* Toggles Row */
-.togglesRow {
+/* Toggles Section — grade 2x2, com borda de contêiner */
+.togglesSection {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  padding: 20px;
-  background: var(--color-gray-50);
-  border-radius: 8px;
+  gap: 16px;
+  padding: 16px;
   border: 1px solid var(--color-gray-200);
+  border-radius: 8px;
 }
 
 .toggleGroup {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
-.toggleLabel {
+.toggleGroupLabel {
+  font-size: 10px;
   font-weight: 600;
-  color: var(--color-dark);
-  font-size: 12px;
+  color: var(--color-gray-300);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  margin-bottom: 4px;
 }
 
-.toggleButtons {
+.togglePills {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
-.singleToggleGroup {
-  display: flex;
-  gap: 8px;
+.togglePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 20px;
+  background: var(--color-white);
+  color: var(--color-gray-300);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-primary);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.togglePill:hover:not(.active) {
+  border-color: var(--color-dark-100);
+  color: var(--color-dark-100);
+}
+
+/* O círculo preto fica à esquerda do texto */
+.toggleCircle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-gray-200);
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.togglePill.active {
+  border-color: var(--color-dark);
+  color: var(--color-dark);
+}
+
+.togglePill.active .toggleCircle {
+  background: var(--color-dark);
 }
 
 /* Error Message */
 .errorMessage {
-  padding: 12px 16px;
-  background: #fee;
+  padding: 10px 14px;
+  background: var(--color-white);
   color: var(--color-red);
-  border-radius: 8px;
-  font-size: 13px;
-  border-left: 4px solid var(--color-red);
+  border-radius: 6px;
+  font-size: 12px;
+  border: 1px solid var(--color-red);
 }
 
 /* Submit Button */
 .submitBtn {
-  padding: 14px 24px;
-  border: none;
+  padding: 12px 24px;
+  border: 1px solid var(--color-dark);
   border-radius: 8px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  background: var(--color-primary);
-  color: white;
-  transition: all 0.3s;
+  background: transparent;
+  color: var(--color-dark);
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  margin-top: 12px;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: 8px;
 }
 
 .submitBtn:hover:not(:disabled) {
-  background: #2563eb;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  background: var(--color-gray-50);
 }
 
 .submitBtn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
+/* Spinner: cor da marca conforme design system */
 .spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-gray-200);
+  border-top-color: var(--color-be);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin 0.7s linear infinite;
 }
 
 @keyframes spin {
@@ -217,7 +259,7 @@
   flex-direction: column;
 }
 
-/* Success State */
+/* Success Container */
 .successContainer {
   display: flex;
   flex-direction: column;
@@ -230,7 +272,6 @@
 
 .successIcon {
   font-size: 64px;
-  animation: bounce 0.6s ease-out;
 }
 
 .successMessage {
@@ -240,27 +281,15 @@
   margin: 0;
 }
 
-@keyframes bounce {
-  0% {
-    transform: scale(0);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-/* Mobile Responsive */
+/* ─── Responsive ──────────────────────────────── */
 @media (max-width: 1024px) {
-  .mainContent {
+  .content {
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: 20px;
   }
 
-  .togglesRow {
-    grid-template-columns: 1fr;
+  .participantsRow {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -269,15 +298,23 @@
     padding: 12px;
   }
 
-  .formSection {
-    padding: 20px;
-  }
-
-  .metricsRow {
-    grid-template-columns: 1fr;
+  .header {
+    margin-bottom: 16px;
   }
 
   .title {
     font-size: 18px;
+  }
+
+  .formSection {
+    padding: 16px;
+  }
+
+  .participantsRow {
+    grid-template-columns: 1fr;
+  }
+
+  .togglesSection {
+    grid-template-columns: 1fr;
   }
 }

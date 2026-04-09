@@ -8,7 +8,7 @@ import {
   currentViewAtom,
 } from '../../atoms/tournamentAtoms'
 import { createTournament, fetchMyTournaments, getTournamentById } from '../../lib/tournamentService'
-import { ToggleSwitch, PreviewCard } from './components'
+import { PreviewCard } from './components'
 import styles from './CreateTournament.module.css'
 
 function CreateTournament() {
@@ -31,6 +31,7 @@ function CreateTournament() {
   const [loading, setLoading] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [tournamentImage, setTournamentImage] = useState<string | null>(null)
 
   if (!user) {
     return null
@@ -52,6 +53,14 @@ function CreateTournament() {
         [key]: !prev[key],
       }))
     }
+  }
+
+  const handleImageChange = (file: File) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setTournamentImage(reader.result as string)
+    }
+    reader.readAsDataURL(file)
   }
 
   const handleBack = () => {
@@ -143,181 +152,202 @@ function CreateTournament() {
           <small>Redirecionando...</small>
         </div>
       ) : (
-        <div className={styles.mainContent}>
+        <div className={styles.content}>
+          {/* Form Section - Left */}
           <form onSubmit={handleSubmit} className={styles.formSection}>
-            {/* Liga/Torneio */}
-            <div className={styles.formGroup}>
-              <label htmlFor="name" className={styles.label}>
-                Liga/Torneio
-              </label>
+            {/* Liga/Torneio Input */}
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Liga/torneio</label>
               <input
-                id="name"
                 type="text"
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
                 placeholder="Selecione uma liga/torneio"
-                className={styles.input}
+                className={styles.fieldInput}
                 disabled={loading}
                 maxLength={100}
                 required
               />
             </div>
 
-            {/* Formato */}
-            <div className={styles.formGroup}>
-              <label htmlFor="format" className={styles.label}>
-                Formato
-              </label>
+            {/* Formato Select */}
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Formato</label>
               <select
-                id="format"
                 name="format"
                 value={formData.format}
                 onChange={handleInputChange}
-                className={styles.select}
+                className={styles.fieldSelect}
                 disabled={loading}
               >
+                <option value="">Selecione um formato</option>
                 <option value="liga">Liga</option>
                 <option value="mata-mata">Mata-mata</option>
                 <option value="grupos">Grupos</option>
               </select>
             </div>
 
-            {/* Jogo */}
-            <div className={styles.formGroup}>
-              <label htmlFor="gameType" className={styles.label}>
-                Jogo
-              </label>
+            {/* Jogo Select */}
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Jogo</label>
               <select
-                id="gameType"
                 name="gameType"
                 value={formData.gameType}
                 onChange={handleInputChange}
-                className={styles.select}
+                className={styles.fieldSelect}
                 disabled={loading}
               >
+                <option value="">Selecione um jogo</option>
                 <option value="eFootball">⚽ eFootball 2025</option>
                 <option value="LoL">🎮 League of Legends</option>
                 <option value="CS2">🔫 Counter-Strike 2</option>
                 <option value="Valorant">🔴 Valorant</option>
-                <option value="Outros">❓ Outros</option>
               </select>
             </div>
 
-            {/* Linha de Métricas */}
-            <div className={styles.metricsRow}>
-              <div className={styles.formGroup}>
-                <label htmlFor="maxParticipants" className={styles.label}>
-                  N. Participantes
-                </label>
-                <input
-                  id="maxParticipants"
-                  type="number"
+            {/* Participants Row - 3 fields inline */}
+            <div className={styles.participantsRow}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>N. Participantes</label>
+                <select
                   name="maxParticipants"
                   value={formData.maxParticipants}
                   onChange={handleInputChange}
-                  className={styles.input}
+                  className={styles.fieldSelect}
                   disabled={loading}
-                  min="2"
-                  max="128"
-                />
+                >
+                  <option value="4">4</option>
+                  <option value="8">8</option>
+                  <option value="16">16</option>
+                  <option value="32">32</option>
+                </select>
               </div>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Participantes</label>
+
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Participantes</label>
                 <input
                   type="text"
-                  placeholder="Participantes"
-                  className={styles.input}
-                  disabled
                   value={formData.maxParticipants}
+                  className={`${styles.fieldInput} ${styles.disabledInput}`}
+                  disabled
                   readOnly
                 />
               </div>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Times</label>
-                <input type="text" placeholder="Times" className={styles.input} disabled readOnly />
+
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Times</label>
+                <input
+                  type="text"
+                  value={formData.maxParticipants > 8 ? Math.ceil(formData.maxParticipants / 4) : 2}
+                  className={`${styles.fieldInput} ${styles.disabledInput}`}
+                  disabled
+                  readOnly
+                />
               </div>
             </div>
 
-            {/* Linha de Toggles - Times */}
-            <div className={styles.togglesRow}>
+            {/* Toggles Section */}
+            <div className={styles.togglesSection}>
+              {/* TIMES */}
               <div className={styles.toggleGroup}>
-                <label className={styles.toggleLabel}>Times</label>
-                <div className={styles.toggleButtons}>
-                  <ToggleSwitch
-                    label="AUTO"
-                    isActive={formData.autoTeams}
+                <div className={styles.toggleGroupLabel}>TIMES</div>
+                <div className={styles.togglePills}>
+                  <button
+                    type="button"
+                    className={`${styles.togglePill} ${formData.autoTeams ? styles.active : ''}`}
                     onClick={() => handleToggle('autoTeams')}
-                  />
-                  <ToggleSwitch
-                    label="NÃO"
-                    isActive={!formData.autoTeams}
+                  >
+                    <span className={styles.toggleCircle} />
+                    AUTO
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.togglePill} ${!formData.autoTeams ? styles.active : ''}`}
                     onClick={() => handleToggle('autoTeams')}
-                  />
+                  >
+                    <span className={styles.toggleCircle} />
+                    NÃO
+                  </button>
                 </div>
               </div>
 
+              {/* PRIVADO */}
               <div className={styles.toggleGroup}>
-                <label className={styles.toggleLabel}>Privado</label>
-                <div className={styles.toggleButtons}>
-                  <ToggleSwitch
-                    label="NÃO"
-                    isActive={!formData.isPrivate}
+                <div className={styles.toggleGroupLabel}>PRIVADO</div>
+                <div className={styles.togglePills}>
+                  <button
+                    type="button"
+                    className={`${styles.togglePill} ${!formData.isPrivate ? styles.active : ''}`}
                     onClick={() => handleToggle('isPrivate')}
-                  />
-                  <ToggleSwitch
-                    label="ADM"
-                    isActive={formData.isPrivate}
+                  >
+                    <span className={styles.toggleCircle} />
+                    NÃO
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.togglePill} ${formData.isPrivate ? styles.active : ''}`}
                     onClick={() => handleToggle('isPrivate')}
-                  />
+                  >
+                    <span className={styles.toggleCircle} />
+                    ADM
+                  </button>
                 </div>
               </div>
 
+              {/* TIPO SORTEIO */}
               <div className={styles.toggleGroup}>
-                <label className={styles.toggleLabel}>Tipo sorteio</label>
-                <select className={styles.select} disabled={loading}>
+                <div className={styles.toggleGroupLabel}>TIPO SORTEIO</div>
+                <select className={styles.fieldSelect} disabled={loading}>
                   <option>ADM</option>
                 </select>
               </div>
 
+              {/* TIPO */}
               <div className={styles.toggleGroup}>
-                <label className={styles.toggleLabel}>Tipo</label>
-                <div className={styles.singleToggleGroup}>
-                  <ToggleSwitch
-                    label="PA"
-                    isActive={formData.matchType === 'PA'}
+                <div className={styles.toggleGroupLabel}>TIPO</div>
+                <div className={styles.togglePills}>
+                  <button
+                    type="button"
+                    className={`${styles.togglePill} ${formData.matchType === 'PA' ? styles.active : ''}`}
                     onClick={() =>
                       setFormData((prev) => ({
                         ...prev,
                         matchType: prev.matchType === 'PA' ? 'PA' : 'PA',
                       }))
                     }
-                  />
+                  >
+                    <span className={styles.toggleCircle} />
+                    PA
+                  </button>
                 </div>
               </div>
             </div>
 
             {localError && <div className={styles.errorMessage}>{localError}</div>}
 
+            {/* Submit Button - Full Width, Transparent, Dark Border */}
             <button
               type="submit"
               className={styles.submitBtn}
               disabled={loading || !formData.name.trim()}
             >
               {loading ? (
-                <>
-                  <span className={styles.spinner} />
-                  Criando...
-                </>
+                <span className={styles.spinner} />
               ) : (
                 'Criar Torneio'
               )}
             </button>
           </form>
 
-          {/* Preview Section */}
+          {/* Preview Section - Right */}
           <div className={styles.previewSection}>
-            <PreviewCard tournamentName={formData.name} gameType={formData.gameType} />
+            <PreviewCard
+              tournamentName={formData.name}
+              gameType={formData.gameType}
+              tournamentImage={tournamentImage}
+              onImageChange={handleImageChange}
+            />
           </div>
         </div>
       )}

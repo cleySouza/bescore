@@ -3,6 +3,8 @@ import styles from './PreviewCard.module.css'
 interface PreviewCardProps {
   tournamentName: string
   gameType: string
+  tournamentImage?: string | null
+  onImageChange?: (file: File) => void
 }
 
 const GAME_ICONS: Record<string, string> = {
@@ -18,40 +20,60 @@ const PREVIEW_RULES = [
   'O sistema de punições será aberto votação para todos os usuários do torneio tendo o mínimo de 51%+ 1% para ser aprovado.',
 ]
 
-const PREVIEW_TABS = ['Classificado', 'Melhor Ataque', 'Melhor Defesa']
+const PREVIEW_TAGS = ['Classificado', 'Melhor Ataque', 'Melhor Defesa']
 
-export const PreviewCard = ({ tournamentName, gameType }: PreviewCardProps) => {
+export const PreviewCard = ({
+  tournamentName,
+  gameType,
+  tournamentImage,
+  onImageChange,
+}: PreviewCardProps) => {
   const gameIcon = GAME_ICONS[gameType] || '🎮'
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      onImageChange?.(file)
+    }
+  }
 
   return (
     <div className={styles.previewCard}>
-      {/* Image Placeholder */}
-      <div className={styles.previewImagePlaceholder}>
-        <span className={styles.gameIcon}>{gameIcon}</span>
+      {/* Image Placeholder - Small, Centered */}
+      <div className={styles.imageContainer}>
+        <div className={styles.imagePlaceholder}>
+          {tournamentImage ? (
+            <img src={tournamentImage} alt="Torneio" />
+          ) : (
+            <span className={styles.gameIcon}>{gameIcon}</span>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            className={styles.imageInput}
+            onChange={handleImageUpload}
+            aria-label="Upload imagem do torneio"
+          />
+          <label className={styles.uploadLabel}>📷</label>
+        </div>
       </div>
 
       {/* Tournament Title */}
       <h2 className={styles.previewTitle}>{tournamentName || 'Seu Torneio'}</h2>
 
-      {/* Rules Info */}
-      <div className={styles.previewInfo}>
-        <ul className={styles.rulesList}>
-          {PREVIEW_RULES.map((rule, index) => (
-            <li key={index}>• {rule}</li>
-          ))}
-        </ul>
-      </div>
+      {/* Rules - Simple bullets */}
+      <ul className={styles.rulesList}>
+        {PREVIEW_RULES.map((rule, index) => (
+          <li key={index}>{rule}</li>
+        ))}
+      </ul>
 
-      {/* Preview Tabs */}
-      <div className={styles.previewTabs}>
-        {PREVIEW_TABS.map((tab, index) => (
-          <button
-            key={index}
-            className={`${styles.tab} ${index === 0 ? styles.active : ''}`}
-            disabled
-          >
-            {tab}
-          </button>
+      {/* Tags - Horizontal pill container */}
+      <div className={styles.tagsContainer}>
+        {PREVIEW_TAGS.map((tag, index) => (
+          <span key={index} className={`${styles.tag} ${index === 0 ? styles.primaryTag : ''}`}>
+            {tag}
+          </span>
         ))}
       </div>
     </div>
