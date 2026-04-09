@@ -1,0 +1,49 @@
+.toggleBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 2px solid var(--color-gray-300);
+  border-radius: 20px;
+  background: var(--color-white);
+  color: var(--color-gray-400);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.toggleBtn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.toggleCircle {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-gray-300);
+  transition: all 0.3s ease;
+}
+
+.toggleBtn.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+
+.toggleBtn.active .toggleCircle {
+  background: var(--color-white);
+  box-shadow: inset 0 0 0 2px var(--color-primary);
+}
+
+.toggleBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.toggleBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
