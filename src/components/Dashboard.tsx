@@ -6,14 +6,10 @@ import {
   activeTournamentAtom,
   tournamentsLoadingAtom,
   tournamentsErrorAtom,
-  showCreateModalAtom,
-  showJoinModalAtom,
   currentViewAtom,
 } from '../atoms/tournamentAtoms'
 import { fetchMyTournaments } from '../lib/tournamentService'
 import TournamentCard from './TournamentCard'
-import CreateTournament from './CreateTournament'
-import JoinByCode from './JoinByCode'
 import styles from './Dashboard.module.css'
 
 function Dashboard() {
@@ -21,8 +17,6 @@ function Dashboard() {
   const [myTournaments, setMyTournaments] = useAtom(myTournamentsAtom)
   const [loading, setLoading] = useAtom(tournamentsLoadingAtom)
   const [error, setError] = useAtom(tournamentsErrorAtom)
-  const [showModal, setShowModal] = useAtom(showCreateModalAtom)
-  const [showJoinModal, setShowJoinModal] = useAtom(showJoinModalAtom)
   const setActiveTournament = useSetAtom(activeTournamentAtom)
   const setCurrentView = useSetAtom(currentViewAtom)
 
@@ -62,26 +56,20 @@ function Dashboard() {
         <div className={styles.actions}>
           <button
             className={styles.joinBtn}
-            onClick={() => setShowJoinModal(true)}
+            onClick={() => setCurrentView('join-by-code')}
             aria-label="Entrar em um torneio"
           >
             🔓 Entrar
           </button>
           <button
             className={styles.createBtn}
-            onClick={() => setShowModal(true)}
+            onClick={() => setCurrentView('create-tournament')}
             aria-label="Criar novo torneio"
           >
             ➕ Novo Torneio
           </button>
         </div>
       </div>
-
-      {showModal && (
-        <CreateTournament onClose={() => setShowModal(false)} onTournamentCreated={() => {}} />
-      )}
-
-      {showJoinModal && <JoinByCode onClose={() => setShowJoinModal(false)} />}
 
       {error && <div className={styles.errorMessage}>{error}</div>}
 
@@ -92,7 +80,7 @@ function Dashboard() {
           <p>Nenhum torneio ainda.</p>
           <button
             className={styles.emptyCreateBtn}
-            onClick={() => setShowModal(true)}
+            onClick={() => setCurrentView('create-tournament')}
           >
             Crie seu primeiro torneio
           </button>
