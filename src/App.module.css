@@ -3,60 +3,6 @@
   background: var(--color-gray-100);
 }
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  background: var(--color-white);
-  border-bottom: 1px solid var(--color-gray-200);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.header h1 {
-  color: var(--color-dark);
-  margin: 0;
-  font-size: 28px;
-}
-
-.userInfo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 2px solid var(--color-gray-200);
-  object-fit: cover;
-}
-
-.userName {
-  font-weight: 500;
-  color: var(--color-gray-300);
-  font-size: 14px;
-}
-
-.logoutBtn {
-  background: var(--color-red);
-  color: var(--color-white);
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background 0.3s;
-  white-space: nowrap;
-}
-
-.logoutBtn:hover {
-  background: #c53030;
-}
-
 .main {
   min-height: calc(100vh - 80px);
 }

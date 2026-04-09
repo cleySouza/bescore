@@ -3,6 +3,7 @@ import { isAuthenticatedAtom, userAtom } from './atoms/sessionAtom'
 import { currentViewAtom } from './atoms/tournamentAtoms'
 import { signOut } from './lib/authGoogle'
 import { SignIn } from './screen/SingIn/SignIn'
+import { Header } from './components/Header/Header'
 import Dashboard from './components/Dashboard'
 import TournamentView from './components/TournamentView'
 import styles from './App.module.css'
@@ -27,16 +28,7 @@ function App() {
 
   return (
     <div className={styles.appContainer}>
-      <header className={styles.header}>
-        <h1>🏆 BeScore</h1>
-        <div className={styles.userInfo}>
-          <img src={user?.user_metadata?.avatar_url} alt="Avatar" className={styles.avatar} />
-          <span className={styles.userName}>{user?.user_metadata?.name}</span>
-          <button onClick={handleLogout} className={styles.logoutBtn}>
-            Sair
-          </button>
-        </div>
-      </header>
+      <Header user={user} onLogout={handleLogout} />
       <main className={styles.main}>
         {currentView === 'dashboard' ? (
           <Dashboard />
