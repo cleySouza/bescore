@@ -26,8 +26,9 @@ function CreateTournament() {
     gameType: 'eFootball',
     maxParticipants: 8,
     isPrivate: false,
-    autoTeams: false,
-    adminControl: false,
+    autoTeams: true,
+    adminDraft: true,    // true = admin escolhe times; false = participante escolhe na inscrição
+    adminScores: true,   // true = só admin lança placares; false = jogadores lançam próprias partidas
     matchType: 'PA',
     willPlay: true,
   })
@@ -109,8 +110,9 @@ function CreateTournament() {
       gameType: 'eFootball',
       maxParticipants: 8,
       isPrivate: false,
-      autoTeams: false,
-      adminControl: false,
+      autoTeams: true,
+      adminDraft: true,
+      adminScores: true,
       matchType: 'PA',
       willPlay: true,
     })
@@ -160,8 +162,9 @@ function CreateTournament() {
         gameType: 'eFootball',
         maxParticipants: 8,
         isPrivate: false,
-        autoTeams: false,
-        adminControl: false,
+        autoTeams: true,
+        adminDraft: true,
+        adminScores: true,
         matchType: 'PA',
         willPlay: true,
       })
@@ -315,98 +318,76 @@ function CreateTournament() {
                   {/* TIMES */}
                   <div className={styles.toggleGroup}>
                     <div className={styles.toggleGroupLabel}>TIMES</div>
-                    <div className={styles.togglePills}>
-                      <button
-                        type="button"
-                        className={`${styles.togglePill} ${formData.autoTeams ? styles.active : ''}`}
-                        onClick={() => handleToggle('autoTeams')}
-                      >
-                        <span className={styles.toggleCircle} />
-                        AUTO
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.togglePill} ${!formData.autoTeams ? styles.active : ''}`}
-                        onClick={() => handleToggle('autoTeams')}
-                      >
-                        <span className={styles.toggleCircle} />
-                        NÃO
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      className={`${styles.slideToggle} ${formData.autoTeams ? styles.active : ''}`}
+                      onClick={() => handleToggle('autoTeams')}
+                    >
+                      <span className={styles.slideKnob} />
+                      <span className={styles.slideLabel}>
+                        {formData.autoTeams ? 'AUTO' : 'MANUAL'}
+                      </span>
+                    </button>
                   </div>
 
                   {/* PRIVADO */}
                   <div className={styles.toggleGroup}>
-                    <div className={styles.toggleGroupLabel}>PRIVADO</div>
-                    <div className={styles.togglePills}>
-                      <button
-                        type="button"
-                        className={`${styles.togglePill} ${!formData.isPrivate ? styles.active : ''}`}
-                        onClick={() => handleToggle('isPrivate')}
-                      >
-                        <span className={styles.toggleCircle} />
-                        NÃO
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.togglePill} ${formData.isPrivate ? styles.active : ''}`}
-                        onClick={() => handleToggle('isPrivate')}
-                      >
-                        <span className={styles.toggleCircle} />
-                        ADM
-                      </button>
-                    </div>
+                    <div className={styles.toggleGroupLabel}>ACESSO</div>
+                    <button
+                      type="button"
+                      className={`${styles.slideToggle} ${formData.isPrivate ? styles.active : ''}`}
+                      onClick={() => handleToggle('isPrivate')}
+                    >
+                      <span className={styles.slideKnob} />
+                      <span className={styles.slideLabel}>
+                        {formData.isPrivate ? 'PRIVADO' : 'ABERTO'}
+                      </span>
+                    </button>
                   </div>
 
                   {/* TIPO SORTEIO */}
                   <div className={styles.toggleGroup}>
-                    <div className={styles.toggleGroupLabel}>TIPO SORTEIO</div>
-                    <select className={styles.fieldSelect} disabled={loading}>
-                      <option>ADM</option>
-                    </select>
+                    <div className={styles.toggleGroupLabel}>SORTEIO</div>
+                    <button
+                      type="button"
+                      className={`${styles.slideToggle} ${formData.adminDraft ? styles.active : ''}`}
+                      onClick={() => handleToggle('adminDraft')}
+                    >
+                      <span className={styles.slideKnob} />
+                      <span className={styles.slideLabel}>
+                        {formData.adminDraft ? 'ADMIN' : 'LIVRE'}
+                      </span>
+                    </button>
                   </div>
 
-                  {/* TIPO */}
+                  {/* TIPO — quem lança placares */}
                   <div className={styles.toggleGroup}>
-                    <div className={styles.toggleGroupLabel}>TIPO</div>
-                    <div className={styles.togglePills}>
-                      <button
-                        type="button"
-                        className={`${styles.togglePill} ${formData.matchType === 'PA' ? styles.active : ''}`}
-                        onClick={() =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            matchType: prev.matchType === 'PA' ? 'PA' : 'PA',
-                          }))
-                        }
-                      >
-                        <span className={styles.toggleCircle} />
-                        PA
-                      </button>
-                    </div>
+                    <div className={styles.toggleGroupLabel}>PLACARES</div>
+                    <button
+                      type="button"
+                      className={`${styles.slideToggle} ${formData.adminScores ? styles.active : ''}`}
+                      onClick={() => handleToggle('adminScores')}
+                    >
+                      <span className={styles.slideKnob} />
+                      <span className={styles.slideLabel}>
+                        {formData.adminScores ? 'ADMIN' : 'JOGAD.'}
+                      </span>
+                    </button>
                   </div>
 
                   {/* VOU JOGAR — span full width */}
                   <div className={`${styles.toggleGroup} ${styles.toggleGroupFull}`}>
                     <div className={styles.toggleGroupLabel}>VOU JOGAR</div>
-                    <div className={styles.togglePills}>
-                      <button
-                        type="button"
-                        className={`${styles.togglePill} ${formData.willPlay ? styles.active : ''}`}
-                        onClick={() => handleToggle('willPlay')}
-                      >
-                        <span className={styles.toggleCircle} />
-                        SIM
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.togglePill} ${!formData.willPlay ? styles.active : ''}`}
-                        onClick={() => handleToggle('willPlay')}
-                      >
-                        <span className={styles.toggleCircle} />
-                        NÃO
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      className={`${styles.slideToggle} ${formData.willPlay ? styles.active : ''}`}
+                      onClick={() => handleToggle('willPlay')}
+                    >
+                      <span className={styles.slideKnob} />
+                      <span className={styles.slideLabel}>
+                        {formData.willPlay ? 'SIM' : 'NÃO'}
+                      </span>
+                    </button>
                   </div>
                 </div>
 
