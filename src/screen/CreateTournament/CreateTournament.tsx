@@ -31,6 +31,7 @@ function CreateTournament() {
     adminScores: true,   // true = só admin lança placares; false = jogadores lançam próprias partidas
     matchType: 'PA',
     willPlay: true,
+    teamNames: '',
   })
   const [loading, setLoading] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
@@ -115,6 +116,7 @@ function CreateTournament() {
       adminScores: true,
       matchType: 'PA',
       willPlay: true,
+      teamNames: '',
     })
     setLocalError(null)
     setSuccess(false)
@@ -167,6 +169,7 @@ function CreateTournament() {
         adminScores: true,
         matchType: 'PA',
         willPlay: true,
+        teamNames: '',
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao criar torneio'
@@ -251,8 +254,8 @@ function CreateTournament() {
                   </select>
                 </div>
 
-                {/* Participants Row - 3 fields inline */}
-                <div className={styles.participantsRow}>
+                {/* Participants Row */}
+                <div className={`${styles.participantsRow}${!formData.adminDraft ? ` ${styles.participantsRowSingle}` : ''}`}>
                   <div className={styles.fieldGroup}>
                     <label className={styles.fieldLabel}>N. Participantes</label>
                     <div className={styles.stepper}>
@@ -286,31 +289,20 @@ function CreateTournament() {
                     </div>
                   </div>
 
-                  <div className={styles.fieldGroup}>
-                    <label className={styles.fieldLabel}>Participantes</label>
-                    <input
-                      type="text"
-                      value={
-                        formData.willPlay
-                          ? formData.maxParticipants
-                          : `${formData.maxParticipants} vagas`
-                      }
-                      className={`${styles.fieldInput} ${styles.disabledInput}`}
-                      disabled
-                      readOnly
-                    />
-                  </div>
-
-                  <div className={styles.fieldGroup}>
-                    <label className={styles.fieldLabel}>Times</label>
-                    <input
-                      type="text"
-                      value={formData.maxParticipants > 8 ? Math.ceil(formData.maxParticipants / 4) : 2}
-                      className={`${styles.fieldInput} ${styles.disabledInput}`}
-                      disabled
-                      readOnly
-                    />
-                  </div>
+                  {formData.adminDraft && (
+                    <div className={styles.fieldGroup}>
+                      <label className={styles.fieldLabel}>Times</label>
+                      <input
+                        type="text"
+                        name="teamNames"
+                        value={formData.teamNames}
+                        onChange={handleInputChange}
+                        placeholder="Ex: Real, Barça, PSG"
+                        className={styles.fieldInput}
+                        disabled={loading}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Toggles Section */}
@@ -439,6 +431,7 @@ function CreateTournament() {
                   tournamentName={formData.name}
                   gameType={formData.gameType}
                   willPlay={formData.willPlay}
+                  adminDraft={formData.adminDraft}
                   tournamentImage={tournamentImage}
                   onImageChange={handleImageChange}
                 />

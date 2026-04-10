@@ -6,6 +6,7 @@ interface PreviewCardProps {
   tournamentImage?: string | null
   onImageChange?: (file: File) => void
   willPlay?: boolean
+  adminDraft?: boolean
 }
 
 const GAME_ICONS: Record<string, string> = {
@@ -29,8 +30,13 @@ export const PreviewCard = ({
   tournamentImage,
   onImageChange,
   willPlay = true,
+  adminDraft = true,
 }: PreviewCardProps) => {
   const gameIcon = GAME_ICONS[gameType] || '🎮'
+
+  const draftRule = adminDraft
+    ? 'Times pré-definidos pelo Organizador.'
+    : 'Escolha de times livre (por ordem de entrada).'
 
   const adminRule = willPlay
     ? 'Criador participará como competidor.'
@@ -72,6 +78,7 @@ export const PreviewCard = ({
         {PREVIEW_RULES.map((rule, index) => (
           <li key={index}>{rule}</li>
         ))}
+        <li key="draft-rule">{draftRule}</li>
         <li key="admin-rule">{adminRule}</li>
       </ul>
 
