@@ -10,6 +10,7 @@
 .imageContainer {
   display: flex;
   justify-content: center;
+  padding-bottom: 40px;
 }
 
 /* Placeholder 100×100, fundo cinza, sem sombra */
