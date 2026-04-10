@@ -1,0 +1,337 @@
+/* =============================================
+   TeamSelectModal — CSS Module
+   ============================================= */
+
+/* ── Overlay ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+/* ── Modal shell ── */
+.modal {
+  background: var(--color-white);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18);
+}
+
+/* ── Header (fixed inside modal) ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--color-gray-200);
+  flex-shrink: 0;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-dark);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-primary);
+  padding: 4px 0;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.backBtn:hover {
+  color: var(--color-gray-300);
+}
+
+.headerTitle {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-dark);
+  margin: 0;
+}
+
+.counter {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-gray-300);
+  white-space: nowrap;
+}
+
+.counterActive {
+  color: var(--color-be);
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-gray-300);
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px;
+  transition: color 0.15s;
+}
+
+.closeBtn:hover {
+  color: var(--color-dark);
+}
+
+/* ── Slide container ── */
+.slideWrap {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.slides {
+  display: flex;
+  width: 200%;
+  height: 100%;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slides.onClubs {
+  transform: translateX(-50%);
+}
+
+.slide {
+  width: 50%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* Thin scrollbar */
+.slide::-webkit-scrollbar {
+  width: 4px;
+}
+.slide::-webkit-scrollbar-track {
+  background: transparent;
+}
+.slide::-webkit-scrollbar-thumb {
+  background: var(--color-gray-200);
+  border-radius: 2px;
+}
+
+/* ── League grid (Step 1) ── */
+.leagueGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--color-gray-200); /* gap becomes a border */
+  border: 1px solid var(--color-gray-200);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.leagueCard {
+  background: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border: none;
+  font-family: var(--font-primary);
+}
+
+.leagueCard:hover {
+  background: var(--color-gray-100);
+}
+
+.leagueLogo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.leagueInitials {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-white);
+  letter-spacing: 0.3px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.leagueName {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-dark);
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* ── Club grid (Step 2) ── */
+.clubGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--color-gray-200);
+  border: 1px solid var(--color-gray-200);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.clubCard {
+  background: var(--color-white);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border: none;
+  font-family: var(--font-primary);
+  position: relative;
+}
+
+.clubCard:hover:not(:disabled) {
+  background: var(--color-gray-100);
+}
+
+.clubCard:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.clubCard.selected {
+  background: var(--color-white);
+}
+
+.clubBadgeWrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+}
+
+.clubLogo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 4px;
+  border: 1.5px solid transparent;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.clubCard.selected .clubLogo {
+  border-color: var(--color-be);
+}
+
+.clubInitials {
+  width: 44px;
+  height: 44px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-white);
+  border: 1.5px solid transparent;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.clubCard.selected .clubInitials {
+  border-color: var(--color-be);
+}
+
+/* Tick badge for selected */
+.selectedTick {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-be);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: var(--color-white);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.clubName {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-dark);
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* ── Footer ── */
+.footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--color-gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.footerHint {
+  font-size: 12px;
+  color: var(--color-gray-300);
+  font-weight: 500;
+}
+
+.confirmBtn {
+  padding: 10px 36px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-primary);
+  cursor: pointer;
+  background: var(--color-dark-100);
+  color: var(--color-white);
+  transition: background 0.2s;
+}
+
+.confirmBtn:hover:not(:disabled) {
+  background: var(--color-be);
+}
+
+.confirmBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Loading state ── */
+.loading {
+  padding: 48px 0;
+  text-align: center;
+  color: var(--color-gray-300);
+  font-size: 13px;
+}

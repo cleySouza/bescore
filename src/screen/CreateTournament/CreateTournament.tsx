@@ -9,7 +9,7 @@ import {
   recentPlayersAtom,
 } from '../../atoms/tournamentAtoms'
 import { createTournament, fetchMyTournaments, getTournamentById } from '../../lib/tournamentService'
-import { PreviewCard } from './components'
+import { PreviewCard, TeamSelectModal } from './components'
 import styles from './CreateTournament.module.css'
 
 function CreateTournament() {
@@ -32,12 +32,17 @@ function CreateTournament() {
     matchType: 'PA',
     willPlay: true,
     teamNames: '',
+    selectedTeamIds: [] as string[],
   })
   const [loading, setLoading] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [tournamentImage, setTournamentImage] = useState<string | null>(null)
   const [invitedPlayers, setInvitedPlayers] = useState<string[]>([])
+  const [showTeamModal, setShowTeamModal] = useState(false)
+  const [selectedTeamsPreview, setSelectedTeamsPreview] = useState<
+    { id: string; name: string; logo: string; color: string }[]
+  >([])
 
   if (!user) {
     return null
@@ -117,9 +122,11 @@ function CreateTournament() {
       matchType: 'PA',
       willPlay: true,
       teamNames: '',
+      selectedTeamIds: [],
     })
     setLocalError(null)
     setSuccess(false)
+    setSelectedTeamsPreview([])
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,6 +177,7 @@ function CreateTournament() {
         matchType: 'PA',
         willPlay: true,
         teamNames: '',
+        selectedTeamIds: [],
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao criar torneio'
@@ -292,15 +300,42 @@ function CreateTournament() {
                   {formData.adminDraft && (
                     <div className={styles.fieldGroup}>
                       <label className={styles.fieldLabel}>Times</label>
-                      <input
-                        type="text"
-                        name="teamNames"
-                        value={formData.teamNames}
-                        onChange={handleInputChange}
-                        placeholder="Ex: Real, Barça, PSG"
-                        className={styles.fieldInput}
+                      <button
+                        type="button"
+                        className={`${styles.fieldInput} ${styles.teamsPickerBtn}`}
+                        onClick={() => setShowTeamModal(true)}
                         disabled={loading}
-                      />
+                      >
+                        {selectedTeamsPreview.length > 0 ? (
+                          <span className={styles.teamsBadgeList}>
+                            {(selectedTeamsPreview.length > 8
+                              ? selectedTeamsPreview.slice(0, 7)
+                              : selectedTeamsPreview
+                            ).map((team) => (
+                              <span
+                                key={team.id}
+                                className={styles.teamsBadge}
+                                style={{ backgroundColor: team.color }}
+                                title={team.name}
+                              >
+                                <img
+                                  src={team.logo}
+                                  alt={team.name}
+                                  className={styles.teamsBadgeImg}
+                                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                                />
+                              </span>
+                            ))}
+                            {selectedTeamsPreview.length > 8 && (
+                              <span className={styles.teamsBadgeOverflow}>
+                                +{selectedTeamsPreview.length - 7}
+                              </span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className={styles.teamsPickerPlaceholder}>Escolher times…</span>
+                        )}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -451,6 +486,19 @@ function CreateTournament() {
             </button>
           </div>
         </div>
+      )}
+
+      {showTeamModal && (
+        <TeamSelectModal
+          selectedIds={formData.selectedTeamIds}
+          maxTeams={formData.maxParticipants}
+          onConfirm={(clubs) => {
+            setSelectedTeamsPreview(clubs)
+            setFormData((prev) => ({ ...prev, selectedTeamIds: clubs.map((c) => c.id) }))
+            setShowTeamModal(false)
+          }}
+          onClose={() => setShowTeamModal(false)}
+        />
       )}
     </div>
   )

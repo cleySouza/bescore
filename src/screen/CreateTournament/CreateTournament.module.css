@@ -152,6 +152,65 @@
   grid-template-columns: 1fr;
 }
 
+/* Teams picker trigger — same look as fieldInput but cursor pointer */
+.teamsPickerBtn {
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  font-family: var(--font-primary);
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+}
+
+.teamsPickerBtn:not([disabled]):hover {
+  border-color: var(--color-dark-100);
+}
+
+.teamsPickerPlaceholder {
+  color: var(--color-gray-300);
+}
+
+/* Badge row inside the picker button */
+.teamsBadgeList {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  align-items: center;
+  overflow: hidden;
+}
+
+.teamsBadge {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.teamsBadgeImg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.teamsBadgeOverflow {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: var(--color-gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-dark);
+  flex-shrink: 0;
+}
+
 .participantsRow .fieldGroup {
   gap: 6px;
 }
