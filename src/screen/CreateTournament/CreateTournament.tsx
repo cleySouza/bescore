@@ -6,6 +6,7 @@ import {
   tournamentsErrorAtom,
   activeTournamentAtom,
   currentViewAtom,
+  recentPlayersAtom,
 } from '../../atoms/tournamentAtoms'
 import { createTournament, fetchMyTournaments, getTournamentById } from '../../lib/tournamentService'
 import { PreviewCard } from './components'
@@ -17,6 +18,7 @@ function CreateTournament() {
   const setError = useSetAtom(tournamentsErrorAtom)
   const setActiveTournament = useSetAtom(activeTournamentAtom)
   const setCurrentView = useSetAtom(currentViewAtom)
+  const recentPlayers = useAtomValue(recentPlayersAtom)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -27,11 +29,13 @@ function CreateTournament() {
     autoTeams: false,
     adminControl: false,
     matchType: 'PA',
+    willPlay: true,
   })
   const [loading, setLoading] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [tournamentImage, setTournamentImage] = useState<string | null>(null)
+  const [invitedPlayers, setInvitedPlayers] = useState<string[]>([])
 
   if (!user) {
     return null
@@ -46,6 +50,32 @@ function CreateTournament() {
     setLocalError(null)
   }
 
+  const handleParticipantsInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value
+    if (raw === '') {
+      setFormData((prev) => ({ ...prev, maxParticipants: 0 }))
+      return
+    }
+    const parsed = parseInt(raw)
+    if (!isNaN(parsed) && parsed >= 0) {
+      setFormData((prev) => ({ ...prev, maxParticipants: parsed }))
+    }
+  }
+
+  const handleParticipantsBlur = () => {
+    setFormData((prev) => ({
+      ...prev,
+      maxParticipants: Math.max(2, prev.maxParticipants),
+    }))
+  }
+
+  const stepParticipants = (delta: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      maxParticipants: Math.max(2, prev.maxParticipants + delta),
+    }))
+  }
+
   const handleToggle = (key: keyof typeof formData) => {
     if (typeof formData[key] === 'boolean') {
       setFormData((prev) => ({
@@ -53,6 +83,14 @@ function CreateTournament() {
         [key]: !prev[key],
       }))
     }
+  }
+
+  const toggleInvite = (playerId: string) => {
+    setInvitedPlayers((prev) =>
+      prev.includes(playerId)
+        ? prev.filter((id) => id !== playerId)
+        : [...prev, playerId]
+    )
   }
 
   const handleImageChange = (file: File) => {
@@ -74,6 +112,7 @@ function CreateTournament() {
       autoTeams: false,
       adminControl: false,
       matchType: 'PA',
+      willPlay: true,
     })
     setLocalError(null)
     setSuccess(false)
@@ -124,6 +163,7 @@ function CreateTournament() {
         autoTeams: false,
         adminControl: false,
         matchType: 'PA',
+        willPlay: true,
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao criar torneio'
@@ -212,25 +252,46 @@ function CreateTournament() {
                 <div className={styles.participantsRow}>
                   <div className={styles.fieldGroup}>
                     <label className={styles.fieldLabel}>N. Participantes</label>
-                    <select
-                      name="maxParticipants"
-                      value={formData.maxParticipants}
-                      onChange={handleInputChange}
-                      className={styles.fieldSelect}
-                      disabled={loading}
-                    >
-                      <option value="4">4</option>
-                      <option value="8">8</option>
-                      <option value="16">16</option>
-                      <option value="32">32</option>
-                    </select>
+                    <div className={styles.stepper}>
+                      <button
+                        type="button"
+                        className={styles.stepperBtn}
+                        onClick={() => stepParticipants(-1)}
+                        disabled={loading || formData.maxParticipants <= 2}
+                        aria-label="Diminuir participantes"
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        className={styles.stepperInput}
+                        value={formData.maxParticipants || ''}
+                        onChange={handleParticipantsInput}
+                        onBlur={handleParticipantsBlur}
+                        disabled={loading}
+                        min={2}
+                      />
+                      <button
+                        type="button"
+                        className={styles.stepperBtn}
+                        onClick={() => stepParticipants(1)}
+                        disabled={loading}
+                        aria-label="Aumentar participantes"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
 
                   <div className={styles.fieldGroup}>
                     <label className={styles.fieldLabel}>Participantes</label>
                     <input
                       type="text"
-                      value={formData.maxParticipants}
+                      value={
+                        formData.willPlay
+                          ? formData.maxParticipants
+                          : `${formData.maxParticipants} vagas`
+                      }
                       className={`${styles.fieldInput} ${styles.disabledInput}`}
                       disabled
                       readOnly
@@ -324,6 +385,67 @@ function CreateTournament() {
                       </button>
                     </div>
                   </div>
+
+                  {/* VOU JOGAR — span full width */}
+                  <div className={`${styles.toggleGroup} ${styles.toggleGroupFull}`}>
+                    <div className={styles.toggleGroupLabel}>VOU JOGAR</div>
+                    <div className={styles.togglePills}>
+                      <button
+                        type="button"
+                        className={`${styles.togglePill} ${formData.willPlay ? styles.active : ''}`}
+                        onClick={() => handleToggle('willPlay')}
+                      >
+                        <span className={styles.toggleCircle} />
+                        SIM
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.togglePill} ${!formData.willPlay ? styles.active : ''}`}
+                        onClick={() => handleToggle('willPlay')}
+                      >
+                        <span className={styles.toggleCircle} />
+                        NÃO
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CONVIDAR RECENTES */}
+                <div className={styles.recentSection}>
+                  <div className={styles.recentLabel}>CONVIDAR RECENTES</div>
+                  {recentPlayers.length === 0 ? (
+                    <p className={styles.recentEmpty}>
+                      Seus jogadores recentes aparecerão aqui.
+                    </p>
+                  ) : (
+                    <div className={styles.recentList}>
+                      {recentPlayers.map((player) => (
+                        <button
+                          key={player.id}
+                          type="button"
+                          className={`${styles.recentPill} ${
+                            invitedPlayers.includes(player.id) ? styles.recentPillSelected : ''
+                          }`}
+                          onClick={() => toggleInvite(player.id)}
+                          aria-pressed={invitedPlayers.includes(player.id)}
+                        >
+                          <span className={styles.recentAvatar}>
+                            {player.avatar ? (
+                              <img src={player.avatar} alt={player.name} />
+                            ) : (
+                              player.name.charAt(0).toUpperCase()
+                            )}
+                          </span>
+                          <span className={styles.recentName}>{player.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {invitedPlayers.length > 0 && (
+                    <p className={styles.recentCount}>
+                      {invitedPlayers.length} jogador{invitedPlayers.length > 1 ? 'es' : ''} pré-selecionado{invitedPlayers.length > 1 ? 's' : ''}
+                    </p>
+                  )}
                 </div>
 
               </form>
@@ -335,6 +457,7 @@ function CreateTournament() {
                 <PreviewCard
                   tournamentName={formData.name}
                   gameType={formData.gameType}
+                  willPlay={formData.willPlay}
                   tournamentImage={tournamentImage}
                   onImageChange={handleImageChange}
                 />

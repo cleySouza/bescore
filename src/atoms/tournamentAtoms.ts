@@ -36,3 +36,18 @@ export const activeTournamentTabAtom = atom<'matches' | 'standings'>('matches')
 
 // View atual: 'dashboard' ou 'tournament'
 export const currentViewAtom = atom<'dashboard' | 'tournament'>('dashboard')
+
+// --- Conexões Recentes ---
+
+export interface RecentPlayer {
+  id: string
+  name: string
+  avatar: string | null
+  lastPlayed: string // ISO date
+}
+
+/**
+ * Lista de jogadores com quem o usuário já jogou (populado após participar/finalizar torneios).
+ * Usado na seção "CONVIDAR RECENTES" do CreateTournament.
+ */
+export const recentPlayersAtom = atom<RecentPlayer[]>([])

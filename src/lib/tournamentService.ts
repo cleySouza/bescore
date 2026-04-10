@@ -257,3 +257,93 @@ export async function getTournamentParticipants(
     profile?: { nickname: string | null; avatar_url: string | null; email: string } | null
   }>
 }
+
+/**
+ * Garante que existe uma conexão entre dois usuários na tabela `connections`.
+ *
+ * Gatilho: chamado quando um jogador entra em um lobby OU quando um torneio é finalizado.
+ * Para cada par (participante ↔ admin) e (participante ↔ participante) que ainda não
+ * possuir registro, insere uma nova linha.
+ *
+ * Esquema esperado na tabela `connections`:
+ *   id          uuid primary key
+ *   user_a      uuid references auth.users
+ *   user_b      uuid references auth.users
+ *   source      text ('tournament' | 'lobby')
+ *   created_at  timestamptz
+ *
+ * Constraint: UNIQUE (LEAST(user_a, user_b), GREATEST(user_a, user_b))
+ * garantindo que a conexão é bidirecional e sem duplicatas.
+ *
+ * @param userA  - ID do primeiro usuário (ex: participante)
+ * @param userB  - ID do segundo usuário (ex: admin ou outro participante)
+ * @param source - Origem do vínculo ('tournament' | 'lobby')
+ */
+export async function ensureConnection(
+  userA: string,
+  userB: string,
+  source: 'tournament' | 'lobby' = 'tournament'
+): Promise<void> {
+  if (userA === userB) return
+
+  // upsert ignora conflito caso a conexão já exista (onConflict = constraint única)
+  const { error } = await supabase
+    .from('connections')
+    .upsert(
+      {
+        user_a: userA < userB ? userA : userB,
+        user_b: userA < userB ? userB : userA,
+        source,
+      },
+      { onConflict: 'user_a,user_b', ignoreDuplicates: true }
+    )
+
+  if (error) {
+    console.error('Erro ao registrar conexão:', error.message)
+  }
+}
+
+/**
+ * Busca os jogadores recentes de um usuário (últimas conexões registradas),
+ * retornando dados de perfil para popular o `recentPlayersAtom`.
+ *
+ * @param userId - ID do usuário autenticado
+ * @param limit  - Número máximo de conexões retornadas (padrão: 20)
+ */
+export async function fetchRecentPlayers(
+  userId: string,
+  limit = 20
+): Promise<Array<{ id: string; name: string; avatar: string | null; lastPlayed: string }>> {
+  // Busca conexões onde o usuário é user_a ou user_b, ordenado pelo mais recente
+  const { data, error } = await supabase
+    .from('connections')
+    .select(
+      `
+      created_at,
+      user_a,
+      user_b,
+      profile_a:user_a ( nickname, avatar_url ),
+      profile_b:user_b ( nickname, avatar_url )
+    `
+    )
+    .or(`user_a.eq.${userId},user_b.eq.${userId}`)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    console.error('Erro ao buscar conexões recentes:', error.message)
+    return []
+  }
+
+  return (data || []).map((row: any) => {
+    const isA = row.user_a === userId
+    const otherId = isA ? row.user_b : row.user_a
+    const profile = isA ? row.profile_b : row.profile_a
+    return {
+      id: otherId,
+      name: profile?.nickname || 'Jogador',
+      avatar: profile?.avatar_url || null,
+      lastPlayed: row.created_at,
+    }
+  })
+}

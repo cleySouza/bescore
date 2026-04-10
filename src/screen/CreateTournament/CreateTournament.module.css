@@ -152,6 +152,70 @@
   gap: 6px;
 }
 
+/* Stepper counter — N. Participantes */
+.stepper {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 8px;
+  overflow: hidden;
+  height: 40px;
+}
+
+.stepperBtn {
+  width: 36px;
+  flex-shrink: 0;
+  background: var(--color-gray-100);
+  border: none;
+  color: var(--color-dark);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  height: 100%;
+  transition: background 0.15s;
+}
+
+.stepperBtn:hover:not(:disabled) {
+  background: var(--color-gray-200);
+}
+
+.stepperBtn:disabled {
+  color: var(--color-gray-300);
+  cursor: not-allowed;
+}
+
+.stepperInput {
+  flex: 1;
+  border: none;
+  border-left: 1px solid var(--color-gray-200);
+  border-right: 1px solid var(--color-gray-200);
+  text-align: center;
+  font-size: 14px;
+  font-family: var(--font-primary);
+  color: var(--color-dark);
+  background: var(--color-white);
+  height: 100%;
+  padding: 0;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.stepperInput::-webkit-inner-spin-button,
+.stepperInput::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.stepperInput:focus {
+  outline: none;
+  background: var(--color-white);
+}
+
+.stepperInput:disabled {
+  background: var(--color-gray-100);
+  color: var(--color-gray-300);
+}
+
 /* Toggles Section — grade 2x2, com borda de contêiner */
 .togglesSection {
   display: grid;
@@ -166,6 +230,11 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* VOU JOGAR — ocupa as 2 colunas do grid */
+.toggleGroupFull {
+  grid-column: 1 / -1;
 }
 
 .toggleGroupLabel {
@@ -231,6 +300,96 @@
   border-radius: 6px;
   font-size: 12px;
   border: 1px solid var(--color-red);
+}
+
+/* ================================================
+   CONVIDAR RECENTES
+   ================================================ */
+
+.recentSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 8px;
+}
+
+.recentLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-gray-300);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.recentEmpty {
+  font-size: 12px;
+  color: var(--color-gray-300);
+  margin: 0;
+  font-style: italic;
+}
+
+.recentList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recentPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--color-gray-100);
+  border: 1px solid var(--color-gray-200);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  font-family: var(--font-primary);
+}
+
+.recentPill:hover {
+  border-color: var(--color-gray-300);
+}
+
+.recentPillSelected {
+  border-color: var(--color-be);
+  outline: 1px solid var(--color-be);
+}
+
+.recentAvatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-dark-100);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.recentAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.recentName {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-dark);
+}
+
+.recentCount {
+  font-size: 11px;
+  color: var(--color-be);
+  margin: 0;
+  font-weight: 500;
 }
 
 /* Submit row — fora do grid, centralizado */

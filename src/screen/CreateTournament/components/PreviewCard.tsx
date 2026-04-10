@@ -5,6 +5,7 @@ interface PreviewCardProps {
   gameType: string
   tournamentImage?: string | null
   onImageChange?: (file: File) => void
+  willPlay?: boolean
 }
 
 const GAME_ICONS: Record<string, string> = {
@@ -27,8 +28,13 @@ export const PreviewCard = ({
   gameType,
   tournamentImage,
   onImageChange,
+  willPlay = true,
 }: PreviewCardProps) => {
   const gameIcon = GAME_ICONS[gameType] || '🎮'
+
+  const adminRule = willPlay
+    ? 'Criador participará como competidor.'
+    : 'Torneio gerenciado por Admin externo.'
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -66,6 +72,7 @@ export const PreviewCard = ({
         {PREVIEW_RULES.map((rule, index) => (
           <li key={index}>{rule}</li>
         ))}
+        <li key="admin-rule">{adminRule}</li>
       </ul>
 
       {/* Tags - Horizontal pill container */}
