@@ -79,6 +79,8 @@ export type Database = {
           team_name: string | null
           tournament_id: string | null
           user_id: string | null
+          penalty_points: number | null
+          penalty_reason: string | null
         }
         Insert: {
           id?: string
@@ -86,6 +88,8 @@ export type Database = {
           team_name?: string | null
           tournament_id?: string | null
           user_id?: string | null
+          penalty_points?: number | null
+          penalty_reason?: string | null
         }
         Update: {
           id?: string
@@ -93,6 +97,8 @@ export type Database = {
           team_name?: string | null
           tournament_id?: string | null
           user_id?: string | null
+          penalty_points?: number | null
+          penalty_reason?: string | null
         }
         Relationships: [
           {

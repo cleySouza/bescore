@@ -135,6 +135,9 @@ function TournamentConfig({ participantCount, onClose, onMatchesGenerated }: Tou
     return null
   }
 
+  // Bloqueia configuração se o torneio não está mais em rascunho
+  const isDraft = tournament.status === 'draft'
+
   const handleFormatChange = (newFormat: TournamentFormat) => {
     setFormat(newFormat)
     setSettings((prev) => ({ ...prev, format: newFormat }))
@@ -221,7 +224,20 @@ function TournamentConfig({ participantCount, onClose, onMatchesGenerated }: Tou
           </button>
         </div>
 
-        {success ? (
+        {!isDraft ? (
+          // Torneio já iniciado — configurações bloqueadas
+          <div className={styles.lockedContainer}>
+            <div className={styles.lockedIcon}>🔒</div>
+            <p className={styles.lockedTitle}>Configurações bloqueadas</p>
+            <p className={styles.lockedSubtext}>
+              As configurações de formato, privacidade e vagas não podem ser alteradas
+              após o torneio ser iniciado.
+            </p>
+            <button className={styles.cancelBtn} onClick={onClose}>
+              Fechar
+            </button>
+          </div>
+        ) : success ? (
           <div className={styles.successContainer}>
             <div className={styles.successIcon}>✅</div>
             <p className={styles.successMessage}>Campeonato montado com sucesso!</p>

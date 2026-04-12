@@ -284,6 +284,72 @@
   flex-shrink: 0;
 }
 
+/* Botão de gerenciar participante (criador) */
+.manageBtn {
+  background: none;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 8px;
+  color: #888;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.manageBtn:hover {
+  background: #f0f4ff;
+  border-color: #667eea;
+  color: #667eea;
+}
+
+/* Painel administrativo na aba Classificação */
+.adminPanel {
+  margin-top: 24px;
+  border: 1.5px dashed #ddd;
+  border-radius: 10px;
+  padding: 16px;
+  background: #fafafa;
+}
+
+.adminPanelTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 12px 0;
+}
+
+.adminParticipantList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.adminParticipantRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+.adminParticipantName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 768px) {
   .header {
     flex-wrap: wrap;

@@ -2,6 +2,28 @@ import { supabase } from './supabaseClient'
 import type { MatchWithTeams, StandingsRow } from '../types/tournament'
 
 /**
+ * Atualiza dados administrativos de um participante (somente criador).
+ * Permite alterar team_name, penalty_points e penalty_reason.
+ */
+export async function updateParticipantAdmin(
+  participantId: string,
+  updates: {
+    team_name?: string
+    penalty_points?: number
+    penalty_reason?: string | null
+  }
+): Promise<void> {
+  const { error } = await supabase
+    .from('participants')
+    .update(updates)
+    .eq('id', participantId)
+
+  if (error) {
+    throw new Error(`Falha ao atualizar participante: ${error.message}`)
+  }
+}
+
+/**
  * Busca todas as partidas de um torneio com dados dos participantes
  */
 export async function getTournamentMatches(tournamentId: string): Promise<MatchWithTeams[]> {
@@ -82,6 +104,8 @@ export async function getTournamentStandings(tournamentId: string, roundFilter?:
         id,
         team_name,
         user_id,
+        penalty_points,
+        penalty_reason,
         profile:user_id (
           id,
           nickname,
@@ -125,6 +149,9 @@ export async function getTournamentStandings(tournamentId: string, roundFilter?:
         goals_for: 0,
         goals_against: 0,
         goal_difference: 0,
+        match_points: 0,       // pontos acumulados apenas das partidas
+        penalty_points: p.penalty_points ?? 0,
+        penalty_reason: p.penalty_reason ?? null,
         points: 0,
         position: 0,
       })
@@ -153,25 +180,26 @@ export async function getTournamentStandings(tournamentId: string, roundFilter?:
       // Calcula resultado
       if (match.home_score > match.away_score) {
         homeRow.wins += 1
-        homeRow.points += 3
+        homeRow.match_points += 3
         awayRow.losses += 1
       } else if (match.home_score < match.away_score) {
         homeRow.losses += 1
         awayRow.wins += 1
-        awayRow.points += 3
+        awayRow.match_points += 3
       } else {
         homeRow.draws += 1
-        homeRow.points += 1
+        homeRow.match_points += 1
         awayRow.draws += 1
-        awayRow.points += 1
+        awayRow.match_points += 1
       }
     })
 
-    // Calcula saldo de gols e ordena
+    // Calcula saldo de gols, aplica penalty_points e ordena
     const result = Array.from(standings.values())
       .map((row) => ({
         ...row,
         goal_difference: row.goals_for - row.goals_against,
+        points: row.match_points + (row.penalty_points ?? 0),
       }))
       .sort((a, b) => {
         if (b.points !== a.points) return b.points - a.points

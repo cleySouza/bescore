@@ -15,6 +15,7 @@ import type { MatchWithTeams, TournamentSettings } from '../../types/tournament'
 import TournamentConfig from '../../components/TournamentConfig'
 import MatchCard from '../../components/MatchCard'
 import StandingsTable from '../../components/StandingsTable'
+import ManageParticipantModal, { type ManagedParticipant } from './components/ManageParticipantModal'
 import styles from './TournamentView.module.css'
 
 interface ParticipantWithProfile extends Participant {
@@ -41,6 +42,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   const [error, setError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [generatingPlayoff, setGeneratingPlayoff] = useState(false)
+  const [managedParticipant, setManagedParticipant] = useState<ManagedParticipant | null>(null)
 
   useEffect(() => {
     if (!tournament) {
@@ -219,6 +221,15 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                     {participant.user_id === tournament.creator_id && (
                       <span className={styles.creatorBadge}>👑</span>
                     )}
+                    {isCreator && (
+                      <button
+                        className={styles.manageBtn}
+                        title="Gerenciar participante"
+                        onClick={() => setManagedParticipant(participant as ManagedParticipant)}
+                      >
+                        ⚙️
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -366,6 +377,29 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                     onDataUpdate={handleMatchResultUpdated}
                     playoffCutoff={playoffCutoff}
                   />
+
+                  {/* Painel de gerenciamento — apenas para o criador */}
+                  {isCreator && participants.length > 0 && (
+                    <div className={styles.adminPanel}>
+                      <h4 className={styles.adminPanelTitle}>⚙️ Ajustes Administrativos</h4>
+                      <div className={styles.adminParticipantList}>
+                        {participants.map((p) => (
+                          <div key={p.id} className={styles.adminParticipantRow}>
+                            <span className={styles.adminParticipantName}>
+                              {p.team_name || p.profile?.nickname || 'Participante'}
+                            </span>
+                            <button
+                              className={styles.manageBtn}
+                              title="Gerenciar participante"
+                              onClick={() => setManagedParticipant(p as ManagedParticipant)}
+                            >
+                              ⚙️ Gerenciar
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </section>
               )}
             </div>
@@ -378,6 +412,14 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
         onClose={() => setShowConfigModal(false)}
         onMatchesGenerated={handleMatchesGenerated}
       />
+
+      {managedParticipant && (
+        <ManageParticipantModal
+          participant={managedParticipant}
+          onClose={() => setManagedParticipant(null)}
+          onSaved={() => setRefreshKey((prev) => prev + 1)}
+        />
+      )}
     </div>
   )
 }

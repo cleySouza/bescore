@@ -90,6 +90,7 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
             <th className={styles.stat}>GF</th>
             <th className={styles.stat}>GA</th>
             <th className={styles.stat}>SG</th>
+            <th className={styles.stat} title="Ajuste de pontos (punição/bônus)">Adj</th>
             <th className={styles.points}>Pts</th>
           </tr>
         </thead>
@@ -122,6 +123,19 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
                 <td className={`${styles.stat} ${row.goal_difference >= 0 ? styles.positive : styles.negative}`}>
                   {row.goal_difference > 0 ? '+' : ''}{row.goal_difference}
                 </td>
+                <td className={styles.stat}>
+                  {row.penalty_points !== 0 ? (
+                    <span
+                      className={row.penalty_points < 0 ? styles.penaltyNegative : styles.penaltyPositive}
+                      title={row.penalty_reason ?? undefined}
+                    >
+                      {row.penalty_points > 0 ? '+' : ''}{row.penalty_points}
+                      {row.penalty_reason && <span className={styles.penaltyIcon}> ⚠️</span>}
+                    </span>
+                  ) : (
+                    <span className={styles.penaltyZero}>—</span>
+                  )}
+                </td>
                 <td className={styles.points}>
                   <strong>{row.points}</strong>
                 </td>
@@ -132,7 +146,7 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
       </table>
 
       <div className={styles.legend}>
-        <small>J = Jogos | V = Vitórias | E = Empates | D = Derrotas | GF = Gols Favor | GA = Gols Contra | SG = Saldo | Pts = Pontos</small>
+        <small>J = Jogos | V = Vitórias | E = Empates | D = Derrotas | GF = Gols Favor | GA = Gols Contra | SG = Saldo | Adj = Ajuste | Pts = Pontos</small>
       </div>
 
       {playoffCutoff !== undefined && (

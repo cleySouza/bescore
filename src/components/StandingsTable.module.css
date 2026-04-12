@@ -103,6 +103,29 @@
   font-weight: 600;
 }
 
+/* Colunas de ajuste de pontos */
+.penaltyNegative {
+  color: #c62828;
+  font-weight: 700;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.penaltyPositive {
+  color: #2e7d32;
+  font-weight: 700;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.penaltyZero {
+  color: #ccc;
+}
+
+.penaltyIcon {
+  font-size: 11px;
+}
+
 .inPlayoffZone {
   border-left: 3px solid #4caf50;
   background: rgba(76, 175, 80, 0.06) !important;

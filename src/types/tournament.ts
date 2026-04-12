@@ -58,6 +58,8 @@ export interface StandingsRow {
   goal_difference: number
   points: number
   position: number
+  penalty_points: number        // pontos de punição/bônus (valor negativo = punição)
+  penalty_reason: string | null // motivo exibido no tooltip
 }
 
 // Validação de settings
