@@ -77,6 +77,7 @@ function CreateTournament() {
   }
 
   const stepParticipants = (delta: number) => {
+    if (delta < 0 && formData.maxParticipants === formData.selectedTeamIds.length) return
     setFormData((prev) => ({
       ...prev,
       maxParticipants: Math.max(2, prev.maxParticipants + delta),
@@ -85,10 +86,20 @@ function CreateTournament() {
 
   const handleToggle = (key: keyof typeof formData) => {
     if (typeof formData[key] === 'boolean') {
-      setFormData((prev) => ({
-        ...prev,
-        [key]: !prev[key],
-      }))
+      const newValue = !formData[key]
+      if (key === 'adminDraft' && !newValue && formData.selectedTeamIds.length > 0) {
+        const confirmed = window.confirm(
+          'Mudar para o modo LIVRE removerá os times já selecionados. Deseja continuar?'
+        )
+        if (!confirmed) return
+        setFormData((prev) => ({ ...prev, [key]: newValue, selectedTeamIds: [] }))
+        setSelectedTeamsPreview([])
+      } else if (key === 'adminDraft' && !newValue) {
+        setFormData((prev) => ({ ...prev, [key]: newValue, selectedTeamIds: [] }))
+        setSelectedTeamsPreview([])
+      } else {
+        setFormData((prev) => ({ ...prev, [key]: newValue }))
+      }
     }
   }
 
@@ -263,7 +274,7 @@ function CreateTournament() {
                 </div>
 
                 {/* Participants Row */}
-                <div className={`${styles.participantsRow}${!formData.adminDraft ? ` ${styles.participantsRowSingle}` : ''}`}>
+                <div className={styles.participantsRow}>
                   <div className={styles.fieldGroup}>
                     <label className={styles.fieldLabel}>N. Participantes</label>
                     <div className={styles.stepper}>
@@ -271,7 +282,7 @@ function CreateTournament() {
                         type="button"
                         className={styles.stepperBtn}
                         onClick={() => stepParticipants(-1)}
-                        disabled={loading || formData.maxParticipants <= 2}
+                        disabled={loading || formData.maxParticipants <= 2 || formData.maxParticipants === formData.selectedTeamIds.length}
                         aria-label="Diminuir participantes"
                       >
                         −
@@ -295,60 +306,64 @@ function CreateTournament() {
                         +
                       </button>
                     </div>
+                    {formData.adminDraft && formData.maxParticipants === formData.selectedTeamIds.length && formData.selectedTeamIds.length > 0 && (
+                      <span className={styles.stepperHint}>Remova times da lista para reduzir o número de participantes</span>
+                    )}
                   </div>
 
-                  {formData.adminDraft && (
-                    <div className={styles.fieldGroup}>
-                      <label className={styles.fieldLabel}>Times</label>
-                      <button
-                        type="button"
-                        className={`${styles.fieldInput} ${styles.teamsPickerBtn}`}
-                        onClick={() => setShowTeamModal(true)}
-                        disabled={loading}
-                      >
-                        {selectedTeamsPreview.length > 0 ? (
-                          <span className={styles.teamsBadgeList}>
-                            {(selectedTeamsPreview.length > 8
-                              ? selectedTeamsPreview.slice(0, 7)
-                              : selectedTeamsPreview
-                            ).map((team) => (
-                              <span
-                                key={team.id}
-                                className={styles.teamsBadge}
-                                style={{ backgroundColor: team.color }}
-                                title={team.name}
-                              >
-                                <img
-                                  src={team.logo}
-                                  alt={team.name}
-                                  className={styles.teamsBadgeImg}
-                                  onError={(e) => { e.currentTarget.style.display = 'none' }}
-                                />
-                              </span>
-                            ))}
-                            {selectedTeamsPreview.length > 8 && (
-                              <span className={styles.teamsBadgeOverflow}>
-                                +{selectedTeamsPreview.length - 7}
-                              </span>
-                            )}
-                          </span>
-                        ) : (
-                          <span className={styles.teamsPickerPlaceholder}>Escolher times…</span>
-                        )}
-                      </button>
-                    </div>
-                  )}
+                  <div className={`${styles.fieldGroup} ${styles.collapsibleSection}${!formData.adminDraft ? ` ${styles.collapsed}` : ''}`}>
+                    <label className={styles.fieldLabel}>Times</label>
+                    <button
+                      type="button"
+                      className={`${styles.fieldInput} ${styles.teamsPickerBtn}`}
+                      onClick={() => setShowTeamModal(true)}
+                      disabled={loading || !formData.adminDraft}
+                      tabIndex={formData.adminDraft ? 0 : -1}
+                    >
+                      {selectedTeamsPreview.length > 0 ? (
+                        <span className={styles.teamsBadgeList}>
+                          {(selectedTeamsPreview.length > 8
+                            ? selectedTeamsPreview.slice(0, 7)
+                            : selectedTeamsPreview
+                          ).map((team) => (
+                            <span
+                              key={team.id}
+                              className={styles.teamsBadge}
+                              style={{ backgroundColor: team.color }}
+                              title={team.name}
+                            >
+                              <img
+                                src={team.logo}
+                                alt={team.name}
+                                className={styles.teamsBadgeImg}
+                                onError={(e) => { e.currentTarget.style.display = 'none' }}
+                              />
+                            </span>
+                          ))}
+                          {selectedTeamsPreview.length > 8 && (
+                            <span className={styles.teamsBadgeOverflow}>
+                              +{selectedTeamsPreview.length - 7}
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className={styles.teamsPickerPlaceholder}>Escolher times…</span>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Toggles Section */}
                 <div className={styles.togglesSection}>
                   {/* TIMES */}
-                  <div className={styles.toggleGroup}>
+                  <div className={`${styles.toggleGroup} ${styles.collapsibleSection}${!formData.adminDraft ? ` ${styles.collapsed}` : ''}`}>
                     <div className={styles.toggleGroupLabel}>TIMES</div>
                     <button
                       type="button"
                       className={`${styles.slideToggle} ${formData.autoTeams ? styles.active : ''}`}
                       onClick={() => handleToggle('autoTeams')}
+                      disabled={!formData.adminDraft}
+                      tabIndex={formData.adminDraft ? 0 : -1}
                     >
                       <span className={styles.slideKnob} />
                       <span className={styles.slideLabel}>
@@ -374,7 +389,7 @@ function CreateTournament() {
 
                   {/* TIPO SORTEIO */}
                   <div className={styles.toggleGroup}>
-                    <div className={styles.toggleGroupLabel}>SORTEIO</div>
+                    <div className={styles.toggleGroupLabel}>ESCOLHA</div>
                     <button
                       type="button"
                       className={`${styles.slideToggle} ${formData.adminDraft ? styles.active : ''}`}
@@ -382,7 +397,7 @@ function CreateTournament() {
                     >
                       <span className={styles.slideKnob} />
                       <span className={styles.slideLabel}>
-                        {formData.adminDraft ? 'ADMIN' : 'LIVRE'}
+                        {formData.adminDraft ? 'DEFINIR' : 'LIVRE'}
                       </span>
                     </button>
                   </div>
@@ -467,6 +482,7 @@ function CreateTournament() {
                   gameType={formData.gameType}
                   willPlay={formData.willPlay}
                   adminDraft={formData.adminDraft}
+                  autoTeams={formData.autoTeams}
                   tournamentImage={tournamentImage}
                   onImageChange={handleImageChange}
                 />

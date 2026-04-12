@@ -7,6 +7,7 @@ interface PreviewCardProps {
   onImageChange?: (file: File) => void
   willPlay?: boolean
   adminDraft?: boolean
+  autoTeams?: boolean
 }
 
 const GAME_ICONS: Record<string, string> = {
@@ -31,12 +32,19 @@ export const PreviewCard = ({
   onImageChange,
   willPlay = true,
   adminDraft = true,
+  autoTeams = true,
 }: PreviewCardProps) => {
   const gameIcon = GAME_ICONS[gameType] || '🎮'
 
   const draftRule = adminDraft
-    ? 'Times pré-definidos pelo Organizador.'
-    : 'Escolha de times livre (por ordem de entrada).'
+    ? 'O organizador define os times de cada vaga.'
+    : 'Os participantes escolhem seus times ao entrar.'
+
+  const autoTeamsRule = adminDraft
+    ? (autoTeams
+        ? 'O sistema sorteará os times entre os inscritos.'
+        : 'O Admin atribuirá os times manualmente aos jogadores.')
+    : null
 
   const adminRule = willPlay
     ? 'Criador participará como competidor.'
@@ -79,6 +87,7 @@ export const PreviewCard = ({
           <li key={index}>{rule}</li>
         ))}
         <li key="draft-rule">{draftRule}</li>
+        {autoTeamsRule && <li key="autoteams-rule">{autoTeamsRule}</li>}
         <li key="admin-rule">{adminRule}</li>
       </ul>
 
