@@ -1,129 +1,65 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAtomValue } from 'jotai'
 import { userAtom } from '../atoms/sessionAtom'
 import { activeTournamentAtom, showConfigModalAtom } from '../atoms/tournamentAtoms'
 import { generateMatchesByFormat } from '../lib/matchGenerationEngine'
+import { updateParticipantTeamName } from '../lib/tournamentService'
 import type { TournamentFormat, TournamentSettings } from '../types/tournament'
 import styles from './TournamentConfig.module.css'
 
+interface LobbyParticipant {
+  id: string
+  team_name: string | null
+  user_id: string
+  profile?: {
+    nickname: string | null
+    avatar_url: string | null
+    email: string
+  } | null
+}
+
+const FALLBACK_CLUBS = [
+  'Real Madrid', 'Barcelona', 'Manchester City', 'Liverpool', 'Bayern München',
+  'PSG', 'Chelsea', 'Arsenal', 'Juventus', 'AC Milan', 'Inter Milan',
+  'Atlético Madrid', 'Borussia Dortmund', 'Ajax', 'Porto', 'Benfica',
+  'Roma', 'Napoli', 'Tottenham', 'Manchester United',
+]
+
 interface TournamentConfigProps {
   participantCount: number
+  participants: LobbyParticipant[]
   onClose: () => void
   onMatchesGenerated?: () => void
 }
 
-/**
- * Calcula informações sobre o formato Knockout
- */
-function calculateKnockoutInfo(participantCount: number) {
-  if (participantCount < 2) {
-    return { valid: false, reason: 'Mata-Mata precisa de pelo menos 2 participantes' }
-  }
-
-  // Encontrar potência de 2 mais próxima
-  const powerOf2 = Math.pow(2, Math.ceil(Math.log2(participantCount)))
-  const byeCount = powerOf2 - participantCount
-  const totalMatches = participantCount - 1 // Sempre n-1 partidas em eliminatória
-  const rounds = Math.ceil(Math.log2(participantCount))
-
-  return {
-    valid: true,
-    powerOf2,
-    byeCount,
-    totalMatches,
-    rounds,
-    description:
-      byeCount > 0
-        ? `${byeCount} ${byeCount === 1 ? 'vaga' : 'vagas'} de folga na primeira rodada`
-        : 'Sem vagas de folga',
-  }
-}
-
-/**
- * Calcula informações sobre o formato Round Robin
- */
-function calculateRoundRobinInfo(participantCount: number, hasReturnMatch: boolean) {
-  const matches = (participantCount * (participantCount - 1)) / 2
-  const totalMatches = hasReturnMatch ? matches * 2 : matches
-  const rounds = hasReturnMatch ? 2 : 1
-
-  return {
-    valid: participantCount >= 2,
-    matches,
-    totalMatches,
-    rounds,
-    description: `${totalMatches} ${totalMatches === 1 ? 'partida' : 'partidas'} em ${rounds} ${rounds === 1 ? 'rodada' : 'rodadas'}`,
-  }
-}
-
-/**
- * Calcula informações sobre Grupos Cruzados
- */
-function calculateGroupsInfo(participantCount: number, groupCount: number) {
-  const perGroup = Math.floor(participantCount / groupCount)
-  const extra = participantCount % groupCount
-  const matchesPerGroup = (perGroup * (perGroup - 1)) / 2
-  const crossMatches = (groupCount * (groupCount - 1)) / 2 * perGroup * perGroup
-
-  return {
-    valid: participantCount >= 3,
-    perGroup,
-    extra,
-    totalMatches: groupCount * matchesPerGroup + crossMatches,
-    description:
-      extra > 0
-        ? `${extra} ${extra === 1 ? 'grupo' : 'grupos'} com ${perGroup + 1}, ${groupCount - extra} com ${perGroup}`
-        : `${groupCount} ${groupCount === 1 ? 'grupo' : 'grupos'} com ${perGroup} cada`,
-  }
-}
-
-/**
- * Calcula informações sobre o formato Misto
- */
-function calculateMixedInfo(
-  participantCount: number,
-  groupCount: number,
-  qualifiedCount: number
-) {
-  if (participantCount < 4) {
-    return { valid: false, reason: 'Misto precisa de pelo menos 4 participantes' }
-  }
-
-  if (qualifiedCount > participantCount) {
-    return {
-      valid: false,
-      reason: `Não é possível qualificar ${qualifiedCount} de ${participantCount} participantes`,
-    }
-  }
-
-  const perGroup = Math.floor(participantCount / groupCount)
-  const groupMatches = (perGroup * (perGroup - 1)) / 2
-  const knockoutMatches = qualifiedCount - 1
-
-  return {
-    valid: true,
-    groupMatches: groupCount * groupMatches,
-    knockoutMatches,
-    totalMatches: groupCount * groupMatches + knockoutMatches,
-    description: `${groupCount} grupos → ${qualifiedCount} avançam → ${Math.log2(qualifiedCount)} rodadas de mata-mata`,
-  }
-}
-
-function TournamentConfig({ participantCount, onClose, onMatchesGenerated }: TournamentConfigProps) {
+function TournamentConfig({ participantCount, participants, onClose, onMatchesGenerated }: TournamentConfigProps) {
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
   const showModal = useAtomValue(showConfigModalAtom)
 
-  const [format, setFormat] = useState<TournamentFormat>('roundRobin')
+  const savedSettings = tournament?.settings as TournamentSettings | null
+  const initialFormat: TournamentFormat = savedSettings?.format ?? 'roundRobin'
+  const [format, setFormat] = useState<TournamentFormat>(initialFormat)
   const [settings, setSettings] = useState<TournamentSettings>({
-    format: 'roundRobin',
-    hasReturnMatch: false,
-    qualifiedCount: 2,
-    bracketGroups: 2,
+    format: initialFormat,
+    hasReturnMatch: savedSettings?.hasReturnMatch ?? false,
+    qualifiedCount: savedSettings?.qualifiedCount ?? 2,
+    bracketGroups: savedSettings?.bracketGroups ?? 2,
+    playoffCutoff: savedSettings?.playoffCutoff ?? 4,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [editableNames, setEditableNames] = useState<Record<string, string>>({})
+  const [randomizeFeedback, setRandomizeFeedback] = useState<string | null>(null)
+  const [pickerOpenFor, setPickerOpenFor] = useState<string | null>(null)
+
+  // Sincroniza nomes quando o modal abre ou os participantes mudam
+  useEffect(() => {
+    if (showModal) {
+      setEditableNames(Object.fromEntries(participants.map((p) => [p.id, p.team_name ?? ''])))
+    }
+  }, [showModal, participants])
 
   if (!user || !tournament || !showModal) {
     return null
@@ -138,63 +74,57 @@ function TournamentConfig({ participantCount, onClose, onMatchesGenerated }: Tou
   // Bloqueia configuração se o torneio não está mais em rascunho
   const isDraft = tournament.status === 'draft'
 
-  const handleFormatChange = (newFormat: TournamentFormat) => {
-    setFormat(newFormat)
-    setSettings((prev) => ({ ...prev, format: newFormat }))
-    setError(null)
+  const isManualMode = savedSettings?.teamAssignMode === 'manual'
+  const teamPool = savedSettings?.selectedTeamNames ?? FALLBACK_CLUBS
+
+  const handleRandomize = () => {
+    const preSelected = savedSettings?.selectedTeamNames
+    const source = preSelected && preSelected.length >= participants.length
+      ? preSelected
+      : FALLBACK_CLUBS
+    const shuffled = [...source].sort(() => Math.random() - 0.5)
+    const newNames = { ...editableNames }
+    participants.forEach((p, i) => {
+      newNames[p.id] = shuffled[i % source.length]
+    })
+    setEditableNames(newNames)
+    const feedbackMsg = preSelected && preSelected.length >= participants.length
+      ? `Times sorteados dos ${preSelected.length} clubes pré-selecionados ✅`
+      : 'Times sorteados do pool genérico 🌍'
+    setRandomizeFeedback(feedbackMsg)
+    setTimeout(() => setRandomizeFeedback(null), 2500)
   }
+
+  const allTeamsAssigned =
+    participants.length > 0 &&
+    participants.every((p) => (editableNames[p.id] ?? '').trim().length > 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
-    // Validar apenas se for mathematicamente impossível
-    let isValid = true
-    let validationMessage = ''
-
-    switch (format) {
-      case 'knockout':
-        if (participantCount < 2) {
-          isValid = false
-          validationMessage = 'Mata-Mata precisa de pelo menos 2 participantes'
-        }
-        break
-      case 'groupsCrossed':
-        if (participantCount < 3) {
-          isValid = false
-          validationMessage = 'Grupos Cruzados precisa de pelo menos 3 participantes'
-        }
-        break
-      case 'mixed':
-        if (participantCount < 4) {
-          isValid = false
-          validationMessage = 'Misto precisa de pelo menos 4 participantes'
-        }
-        break
-      case 'roundRobin':
-      default:
-        if (participantCount < 2) {
-          isValid = false
-          validationMessage = 'Round Robin precisa de pelo menos 2 participantes'
-        }
-    }
-
-    if (!isValid) {
-      setError(validationMessage)
+    if (participantCount < 2) {
+      setError('Precisa de pelo menos 2 participantes para gerar partidas')
       return
     }
 
     setLoading(true)
 
     try {
+      // Salva os team_names editados antes de gerar as partidas
+      await Promise.all(
+        participants.map((p) => {
+          const newName = (editableNames[p.id] ?? '').trim()
+          if (newName !== (p.team_name ?? '').trim()) {
+            return updateParticipantTeamName(p.id, newName)
+          }
+          return Promise.resolve()
+        })
+      )
+
       await generateMatchesByFormat(tournament.id, format, settings)
       setSuccess(true)
-
       onMatchesGenerated?.()
-
-      setTimeout(() => {
-        onClose()
-      }, 2000)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao gerar partidas'
       setError(message)
@@ -203,16 +133,6 @@ function TournamentConfig({ participantCount, onClose, onMatchesGenerated }: Tou
       setLoading(false)
     }
   }
-
-  // Calcular informações para preview
-  const knockoutInfo = calculateKnockoutInfo(participantCount)
-  const roundRobinInfo = calculateRoundRobinInfo(participantCount, settings.hasReturnMatch || false)
-  const groupsInfo = calculateGroupsInfo(participantCount, settings.bracketGroups || 2)
-  const mixedInfo = calculateMixedInfo(
-    participantCount,
-    settings.bracketGroups || 2,
-    settings.qualifiedCount || 2
-  )
 
   return (
     <div className={styles.overlay} onClick={onClose}>
@@ -249,230 +169,105 @@ function TournamentConfig({ participantCount, onClose, onMatchesGenerated }: Tou
               👥 <strong>{participantCount}</strong> {participantCount === 1 ? 'participante' : 'participantes'} inscritos
             </div>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Escolha o Formato</label>
-              <div className={styles.formatGrid}>
-                <button
-                  type="button"
-                  className={`${styles.formatCard} ${format === 'roundRobin' ? styles.active : ''}`}
-                  onClick={() => handleFormatChange('roundRobin')}
-                  disabled={loading}
-                >
-                  <div className={styles.formatCard__icon}>🔄</div>
-                  <div className={styles.formatCard__title}>Pontos Corridos</div>
-                  <div className={styles.formatCard__subtitle}>Todos vs Todos</div>
-                  <div className={styles.formatCard__info}>{roundRobinInfo.description}</div>
-                </button>
-
-                <button
-                  type="button"
-                  className={`${styles.formatCard} ${format === 'knockout' ? styles.active : ''}`}
-                  onClick={() => handleFormatChange('knockout')}
-                  disabled={loading}
-                >
-                  <div className={styles.formatCard__icon}>🏆</div>
-                  <div className={styles.formatCard__title}>Mata-Mata</div>
-                  <div className={styles.formatCard__subtitle}>Eliminatória Direta</div>
-                  {knockoutInfo.valid ? (
-                    <div className={styles.formatCard__info}>{knockoutInfo.description}</div>
-                  ) : (
-                    <div className={styles.formatCard__warning}>{knockoutInfo.reason}</div>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  className={`${styles.formatCard} ${format === 'groupsCrossed' ? styles.active : ''}`}
-                  onClick={() => handleFormatChange('groupsCrossed')}
-                  disabled={loading}
-                >
-                  <div className={styles.formatCard__icon}>👥</div>
-                  <div className={styles.formatCard__title}>Grupos Cruzados</div>
-                  <div className={styles.formatCard__subtitle}>Fase de Grupos</div>
-                  {groupsInfo.valid ? (
-                    <div className={styles.formatCard__info}>{groupsInfo.description}</div>
-                  ) : (
-                    <div className={styles.formatCard__warning}>Mínimo 3 participantes</div>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  className={`${styles.formatCard} ${format === 'mixed' ? styles.active : ''}`}
-                  onClick={() => handleFormatChange('mixed')}
-                  disabled={loading}
-                >
-                  <div className={styles.formatCard__icon}>⚡</div>
-                  <div className={styles.formatCard__title}>Misto</div>
-                  <div className={styles.formatCard__subtitle}>Grupos + Eliminatória</div>
-                  {mixedInfo.valid ? (
-                    <div className={styles.formatCard__info}>{mixedInfo.description}</div>
-                  ) : (
-                    <div className={styles.formatCard__warning}>
-                      {mixedInfo.reason || 'Mínimo 4 participantes'}
-                    </div>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Configurações específicas por formato */}
-            {format === 'roundRobin' && (
-              <div className={styles.configSection}>
-                <div className={styles.configTitle}>⚙️ Configurações do Pontos Corridos</div>
-                <label className={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    checked={settings.hasReturnMatch || false}
-                    onChange={(e) =>
-                      setSettings((prev) => ({
-                        ...prev,
-                        hasReturnMatch: e.target.checked,
-                      }))
-                    }
+            {/* ── Lobby de Atribuição de Times ── */}
+            <div className={styles.lobbySection}>
+              <div className={styles.lobbyHeader}>
+                <span className={styles.lobbyTitle}>🏟️ Atribuição de Times</span>
+                {!isManualMode && (
+                  <button
+                    type="button"
+                    className={styles.randomizeBtn}
+                    onClick={handleRandomize}
                     disabled={loading}
-                  />
-                  <span>Turno e Returno</span>
-                </label>
-                <small className={styles.configHint}>
-                  Cada time joga 2 vezes contra cada adversário (aumenta de{' '}
-                  {roundRobinInfo.matches} para{' '}
-                  {calculateRoundRobinInfo(participantCount, true).totalMatches} partidas)
-                </small>
+                  >
+                    🎲 Sortear Times
+                  </button>
+                )}
               </div>
-            )}
-
-            {format === 'knockout' && (
-              <div className={styles.configSection}>
-                <div className={styles.configTitle}>🏆 Estrutura do Mata-Mata</div>
-                {knockoutInfo.valid && (
-                  <div className={styles.previewBox}>
-                    <div className={styles.previewRow}>
-                      <span>Chave ao melhor de:</span>
-                      <strong>{Math.pow(2, (knockoutInfo.rounds || 1))}</strong>
-                    </div>
-                    <div className={styles.previewRow}>
-                      <span>Rodadas:</span>
-                      <strong>{knockoutInfo.rounds}</strong>
-                    </div>
-                    <div className={styles.previewRow}>
-                      <span>Partidas:</span>
-                      <strong>{knockoutInfo.totalMatches}</strong>
-                    </div>
-                    {(knockoutInfo.byeCount || 0) > 0 && (
-                      <div className={styles.previewRow}>
-                        <span>Vagas de folga:</span>
-                        <strong>{knockoutInfo.byeCount}</strong>
-                      </div>
+              {randomizeFeedback && (
+                <div className={styles.randomizeFeedback}>
+                  ✅ {randomizeFeedback}
+                </div>
+              )}
+              <div className={styles.lobbyList}>
+                {participants.map((p) => (
+                  <div key={p.id} className={styles.lobbyItem}>
+                    {p.profile?.avatar_url ? (
+                      <img src={p.profile.avatar_url} alt="" className={styles.lobbyAvatar} />
+                    ) : (
+                      <div className={styles.lobbyAvatarPlaceholder}>👤</div>
+                    )}
+                    <span className={styles.lobbyNickname}>
+                      {p.profile?.nickname || p.profile?.email || 'Jogador'}
+                    </span>
+                    {isManualMode ? (
+                      <button
+                        type="button"
+                        className={`${styles.lobbyTeamBtn}${editableNames[p.id] ? ` ${styles.lobbyTeamBtnFilled}` : ''}`}
+                        onClick={() => setPickerOpenFor(p.id)}
+                        disabled={loading}
+                      >
+                        {editableNames[p.id] || 'Escolher time…'}
+                      </button>
+                    ) : (
+                      <input
+                        className={styles.lobbyInput}
+                        value={editableNames[p.id] ?? ''}
+                        onChange={(e) =>
+                          setEditableNames((prev) => ({ ...prev, [p.id]: e.target.value }))
+                        }
+                        placeholder="Nome do time..."
+                        maxLength={40}
+                        disabled={loading}
+                      />
                     )}
                   </div>
-                )}
+                ))}
               </div>
-            )}
+              {!allTeamsAssigned && participants.length > 0 && (
+                <p className={styles.lobbyWarning}>
+                  ⚠️ Todos os participantes precisam ter um time definido para gerar as partidas.
+                </p>
+              )}
+            </div>
 
-            {format === 'groupsCrossed' && (
-              <div className={styles.configSection}>
-                <div className={styles.configTitle}>👥 Configurar Grupos</div>
-                <div className={styles.configControl}>
-                  <label htmlFor="bracketGroups" className={styles.selectLabel}>
-                    Número de Grupos
-                  </label>
-                  <select
-                    id="bracketGroups"
-                    value={settings.bracketGroups || 2}
-                    onChange={(e) => {
-                      const newGroupCount = parseInt(e.target.value)
-                      setSettings((prev) => ({
-                        ...prev,
-                        bracketGroups: newGroupCount,
-                      }))
-                    }}
-                    className={styles.select}
-                    disabled={loading}
-                  >
-                    <option value="2">2 Grupos</option>
-                    <option value="3">3 Grupos</option>
-                    <option value="4">4 Grupos</option>
-                  </select>
-                </div>
-                <div className={styles.previewBox}>
-                  <div className={styles.previewRow}>
-                    <span>Distribuição:</span>
-                    <strong>{groupsInfo.description}</strong>
+            {/* ── Picker de Time (modo manual) ── */}
+            {pickerOpenFor && (
+              <div className={styles.teamPickerOverlay} onClick={() => setPickerOpenFor(null)}>
+                <div className={styles.teamPickerPanel} onClick={(e) => e.stopPropagation()}>
+                  <div className={styles.teamPickerHeader}>
+                    <span>🏆 Escolher Time</span>
+                    <button
+                      type="button"
+                      className={styles.teamPickerClose}
+                      onClick={() => setPickerOpenFor(null)}
+                    >
+                      ✕
+                    </button>
                   </div>
-                  <div className={styles.previewRow}>
-                    <span>Total de partidas:</span>
-                    <strong>{groupsInfo.totalMatches}</strong>
+                  <div className={styles.teamPickerList}>
+                    {teamPool.map((name) => {
+                      const takenByOther = participants
+                        .filter((p) => p.id !== pickerOpenFor)
+                        .some((p) => editableNames[p.id] === name)
+                      return (
+                        <button
+                          key={name}
+                          type="button"
+                          className={`${styles.teamPickerItem}${takenByOther ? ` ${styles.teamPickerItemTaken}` : ''}`}
+                          disabled={takenByOther}
+                          onClick={() => {
+                            setEditableNames((prev) => ({ ...prev, [pickerOpenFor]: name }))
+                            setPickerOpenFor(null)
+                          }}
+                        >
+                          {name}
+                          {takenByOther && <span className={styles.takenBadge}>Ocupado</span>}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
-              </div>
-            )}
-
-            {format === 'mixed' && (
-              <div className={styles.configSection}>
-                <div className={styles.configTitle}>⚡ Configurar Fases</div>
-                <div className={styles.configControl}>
-                  <label htmlFor="bracketGroups2" className={styles.selectLabel}>
-                    Fase de Grupos
-                  </label>
-                  <select
-                    id="bracketGroups2"
-                    value={settings.bracketGroups || 2}
-                    onChange={(e) => {
-                      const newGroupCount = parseInt(e.target.value)
-                      setSettings((prev) => ({
-                        ...prev,
-                        bracketGroups: newGroupCount,
-                      }))
-                    }}
-                    className={styles.select}
-                    disabled={loading}
-                  >
-                    <option value="2">2 Grupos</option>
-                    <option value="3">3 Grupos</option>
-                    <option value="4">4 Grupos</option>
-                  </select>
-                </div>
-
-                <div className={styles.configControl}>
-                  <label htmlFor="qualifiedCount" className={styles.selectLabel}>
-                    Quantos Avançam?
-                  </label>
-                  <select
-                    id="qualifiedCount"
-                    value={settings.qualifiedCount || 2}
-                    onChange={(e) => {
-                      const newQualified = parseInt(e.target.value)
-                      setSettings((prev) => ({
-                        ...prev,
-                        qualifiedCount: newQualified,
-                      }))
-                    }}
-                    className={styles.select}
-                    disabled={loading}
-                  >
-                    <option value="2">2 (Semifinal)</option>
-                    <option value="4">4 (Quartafinal)</option>
-                    <option value="8">8 (Oitavas)</option>
-                  </select>
-                </div>
-
-                {mixedInfo.valid && (
-                  <div className={styles.previewBox}>
-                    <div className={styles.previewRow}>
-                      <span>Partidas de grupo:</span>
-                      <strong>{mixedInfo.groupMatches}</strong>
-                    </div>
-                    <div className={styles.previewRow}>
-                      <span>Partidas de mata-mata:</span>
-                      <strong>{mixedInfo.knockoutMatches}</strong>
-                    </div>
-                    <div className={styles.previewRow}>
-                      <span>Total:</span>
-                      <strong>{mixedInfo.totalMatches}</strong>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -487,7 +282,7 @@ function TournamentConfig({ participantCount, onClose, onMatchesGenerated }: Tou
               >
                 Cancelar
               </button>
-              <button type="submit" className={styles.submitBtn} disabled={loading}>
+              <button type="submit" className={styles.submitBtn} disabled={loading || !allTeamsAssigned}>
                 {loading ? '⏳ Gerando campeonato...' : '✨ Gerar Partidas'}
               </button>
             </div>

@@ -12,6 +12,8 @@ export interface TournamentSettings {
   playoffCutoff?: 4 | 2 // Para Campeonato: quantos avançam para mata-mata
   isPrivate?: boolean // Torneio privado (requer código para entrar)
   maxParticipants?: number // Limite máximo de participantes
+  selectedTeamNames?: string[] // Nomes dos clubes pré-selecionados pelo admin no modal de criação
+  teamAssignMode?: 'auto' | 'manual' // Como os times são atribuídos no lobby
 }
 
 export interface Match {

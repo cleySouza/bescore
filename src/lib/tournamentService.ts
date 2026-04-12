@@ -24,7 +24,7 @@ export async function createTournament(
   name: string,
   userId: string,
   gameType?: string,
-  initialSettings?: Pick<TournamentSettings, 'isPrivate' | 'maxParticipants'>
+  initialSettings?: Pick<TournamentSettings, 'isPrivate' | 'maxParticipants' | 'format' | 'playoffCutoff'>
 ): Promise<Tournament> {
   const inviteCode = generateInviteCode()
 
@@ -331,7 +331,8 @@ export async function ensureConnection(
   if (userA === userB) return
 
   // upsert ignora conflito caso a conexão já exista (onConflict = constraint única)
-  const { error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
     .from('connections')
     .upsert(
       {
@@ -359,7 +360,8 @@ export async function fetchRecentPlayers(
   limit = 20
 ): Promise<Array<{ id: string; name: string; avatar: string | null; lastPlayed: string }>> {
   // Busca conexões onde o usuário é user_a ou user_b, ordenado pelo mais recente
-  const { data, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
     .from('connections')
     .select(
       `
@@ -406,6 +408,41 @@ export async function cancelTournament(id: string): Promise<void> {
     throw new Error(`Falha ao cancelar torneio: ${error.message}`)
   }
 }
+
+/**
+ * Atualiza o nome do time de um participante (usado pelo Lobby de Atribuição)
+ */
+export async function updateParticipantTeamName(
+  participantId: string,
+  teamName: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('participants')
+    .update({ team_name: teamName })
+    .eq('id', participantId)
+
+  if (error) {
+    console.error('Erro ao atualizar nome do time:', error.message)
+    throw new Error(`Falha ao atualizar time: ${error.message}`)
+  }
+}
+
+// ─── DEV ONLY ────────────────────────────────────────────────────────────────
+/**
+ * Popula um torneio com 5 participantes fictícios para testes em desenvolvimento.
+ * Os user_id são UUIDs fixos dedicados ao mock — não são usuários reais.
+ */
+export async function seedMockParticipants(tournamentId: string): Promise<void> {
+  // Usa RPC com SECURITY DEFINER para contornar RLS (user_id fictícios não existem em auth.users)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).rpc('seed_mock_participants', { p_tournament_id: tournamentId })
+
+  if (error) {
+    console.error('Erro ao injetar participantes mock:', error.message)
+    throw new Error(`Falha ao injetar participantes: ${error.message}`)
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Exclui permanentemente um torneio em rascunho.

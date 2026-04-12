@@ -8,8 +8,7 @@ import {
   showConfigModalAtom,
   activeTournamentTabAtom,
 } from '../../atoms/tournamentAtoms'
-import { fetchMyTournaments } from '../../lib/tournamentService'
-import { getTournamentParticipants, joinTournamentById, deleteTournament, cancelTournament } from '../../lib/tournamentService'
+import { fetchMyTournaments, getTournamentById, getTournamentParticipants, joinTournamentById, deleteTournament, cancelTournament, seedMockParticipants } from '../../lib/tournamentService'
 import { getTournamentMatches } from '../../lib/matchService'
 import { generatePlayoffMatches } from '../../lib/matchGenerationEngine'
 import type { Participant } from '../../atoms/tournamentAtoms'
@@ -130,8 +129,19 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
     setShowConfigModal(true)
   }
 
-  const handleMatchesGenerated = () => {
+  const handleMatchesGenerated = async () => {
+    // Rebusca o torneio para capturar status: 'active' e settings atualizados
+    try {
+      const updated = await getTournamentById(tournament!.id, user!.id)
+      setActiveTournament(updated)
+      const updatedList = await fetchMyTournaments(user!.id)
+      setMyTournaments(updatedList)
+    } catch {
+      // silently ignore — refreshKey já vai recarregar partidas
+    }
     setRefreshKey((prev) => prev + 1)
+    setActiveTab('matches')
+    setShowConfigModal(false)
   }
 
   const handleMatchResultUpdated = () => {
@@ -164,6 +174,25 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
       setError(err instanceof Error ? err.message : 'Erro ao cancelar torneio')
     }
   }
+
+  // ─── DEV ONLY ──────────────────────────────────────────────────────────────
+  const handleSeedParticipants = async () => {
+    console.log('[DEV] seedMockParticipants → tournament.id:', tournament.id)
+    try {
+      await seedMockParticipants(tournament.id)
+      console.log('[DEV] Seed concluído com sucesso')
+      // Atualiza a lista de participantes na view e o atom do Dashboard
+      const updated = await fetchMyTournaments(user.id)
+      setMyTournaments(updated)
+      setRefreshKey((prev) => prev + 1)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro ao injetar participantes'
+      console.error('[DEV] Seed falhou:', err)
+      alert('❌ Seed falhou: ' + msg)
+      setError(msg)
+    }
+  }
+  // ──────────────────────────────────────────────────────────────────────────
 
   const handleJoin = async () => {
     if (!user) return
@@ -294,6 +323,26 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Dev: Seed button — only when creator has 0 opponents yet */}
+            {isCreator && isDraft && participants.length < 2 && (
+              <div style={{ textAlign: 'center', margin: '1rem 0' }}>
+                <button
+                  onClick={handleSeedParticipants}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: '#2d6a2d',
+                    color: '#fff',
+                    border: '1px dashed #5ab55a',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  🌱 Injetar 5 Jogadores (Dev Mode)
+                </button>
               </div>
             )}
 
@@ -530,6 +579,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
 
       <TournamentConfig
         participantCount={participantCount}
+        participants={participants}
         onClose={() => setShowConfigModal(false)}
         onMatchesGenerated={handleMatchesGenerated}
       />

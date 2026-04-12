@@ -8,7 +8,7 @@ import {
   currentViewAtom,
   recentPlayersAtom,
 } from '../../atoms/tournamentAtoms'
-import { createTournament, fetchMyTournaments, getTournamentById } from '../../lib/tournamentService'
+import { createTournament, fetchMyTournaments, getTournamentById, joinTournamentById } from '../../lib/tournamentService'
 import { PreviewCard, TeamSelectModal } from './components'
 import styles from './CreateTournament.module.css'
 
@@ -203,7 +203,27 @@ function CreateTournament() {
       const newTournament = await createTournament(formData.name, user.id, formData.gameType, {
         isPrivate: formData.isPrivate,
         maxParticipants: formData.maxParticipants,
+        format: formData.format === 'campeonato' ? 'campeonato' : 'roundRobin',
+        ...(formData.adminDraft && selectedTeamsPreview.length > 0
+          ? {
+              selectedTeamNames: selectedTeamsPreview.map((t) => t.name),
+              teamAssignMode: formData.autoTeams ? 'auto' : ('manual' as const),
+            }
+          : {}),
+        ...(formData.format === 'campeonato'
+          ? { playoffCutoff: formData.playoffCutoff === 'top4' ? 4 : 2 }
+          : {}),
       })
+
+      // Inscrever o criador como participante se ele optou por jogar
+      if (formData.willPlay) {
+        await joinTournamentById(
+          newTournament.id,
+          user.id,
+          user.email?.split('@')[0] ?? 'Organizador'
+        )
+      }
+
       setSuccessData({ name: formData.name, inviteCode: newTournament.invite_code ?? '' })
       setSuccess(true)
 
