@@ -96,11 +96,18 @@ export async function generateMatchesByFormat(
   }
 
   // 6. Atualizar status do torneio para 'active'
+  // Mesclar com settings existentes para preservar isPrivate e maxParticipants
+  const existingSettings = tournament.settings as Partial<TournamentSettings> | null
+  const mergedSettings = {
+    ...(existingSettings ?? {}),
+    ...JSON.parse(JSON.stringify(settings)),
+  }
+
   const { error: updateError } = await supabase
     .from('tournaments')
     .update({
       status: 'active',
-      settings: JSON.parse(JSON.stringify(settings)),
+      settings: mergedSettings,
     })
     .eq('id', tournamentId)
 

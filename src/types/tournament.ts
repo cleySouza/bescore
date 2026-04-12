@@ -10,6 +10,8 @@ export interface TournamentSettings {
   qualifiedCount?: number // Para Mixed (quantos avançam dos grupos)
   bracketGroups?: number // Para Grupos Cruzados (default: 2)
   playoffCutoff?: 4 | 2 // Para Campeonato: quantos avançam para mata-mata
+  isPrivate?: boolean // Torneio privado (requer código para entrar)
+  maxParticipants?: number // Limite máximo de participantes
 }
 
 export interface Match {

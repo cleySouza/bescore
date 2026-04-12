@@ -7,7 +7,7 @@ import {
   showConfigModalAtom,
   activeTournamentTabAtom,
 } from '../../atoms/tournamentAtoms'
-import { getTournamentParticipants } from '../../lib/tournamentService'
+import { getTournamentParticipants, joinTournamentById } from '../../lib/tournamentService'
 import { getTournamentMatches } from '../../lib/matchService'
 import { generatePlayoffMatches } from '../../lib/matchGenerationEngine'
 import type { Participant } from '../../atoms/tournamentAtoms'
@@ -43,6 +43,9 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   const [refreshKey, setRefreshKey] = useState(0)
   const [generatingPlayoff, setGeneratingPlayoff] = useState(false)
   const [managedParticipant, setManagedParticipant] = useState<ManagedParticipant | null>(null)
+  const [joinCode, setJoinCode] = useState('')
+  const [joinCodeError, setJoinCodeError] = useState<string | null>(null)
+  const [joiningTournament, setJoiningTournament] = useState(false)
 
   useEffect(() => {
     if (!tournament) {
@@ -88,6 +91,13 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   const isCampeonato = tournamentSettings?.format === 'campeonato'
   const playoffCutoff = isCampeonato ? (tournamentSettings?.playoffCutoff ?? 2) : undefined
 
+  // Governance: papéis e controle de acesso
+  const isParticipant = tournament.isParticipant ?? participants.some((p) => p.user_id === user.id)
+  const isVisitor = !isCreator && !isParticipant
+  const isPrivate = tournamentSettings?.isPrivate ?? false
+  const maxParticipants = tournamentSettings?.maxParticipants ?? null
+  const isFull = maxParticipants !== null && participantCount >= maxParticipants
+
   // Derivações de fase
   const leagueMatches = matches.filter((m) => m.round === 1)
   const playoffMatches = matches.filter((m) => m.round === 2)
@@ -124,6 +134,24 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
     setRefreshKey((prev) => prev + 1)
   }
 
+  const handleJoin = async () => {
+    if (!user) return
+    if (isPrivate && joinCode.trim().toUpperCase() !== tournament.invite_code.toUpperCase()) {
+      setJoinCodeError('Código de convite inválido')
+      return
+    }
+    setJoinCodeError(null)
+    setJoiningTournament(true)
+    try {
+      await joinTournamentById(tournament.id, user.id, user.email?.split('@')[0] ?? 'Jogador')
+      setRefreshKey((prev) => prev + 1)
+    } catch (err) {
+      setJoinCodeError(err instanceof Error ? err.message : 'Erro ao entrar no torneio')
+    } finally {
+      setJoiningTournament(false)
+    }
+  }
+
   const pendingMatches = matches.filter((m) => m.status === 'pending')
   const finishedMatches = matches.filter((m) => m.status === 'finished')
 
@@ -142,6 +170,9 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
         <div className={styles.headerContent}>
           <h1 className={styles.title}>{tournament.name}</h1>
           <span className={styles.gameType}>{tournament.game_type}</span>
+          <span className={`${styles.roleTag} ${isCreator ? styles.roleTagOrganizer : isParticipant ? styles.roleTagParticipant : styles.roleTagVisitor}`}>
+            {isCreator ? 'ORGANIZADOR' : isParticipant ? 'PARTICIPANTE' : 'VISITANTE'}
+          </span>
         </div>
         <div className={styles.spacer} />
       </header>
@@ -232,6 +263,48 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Join section: only for visitors in draft status */}
+            {isDraft && isVisitor && (
+              <div className={styles.joinSection}>
+                {isFull ? (
+                  <span className={styles.fullBadge}>🔒 Torneio Lotado</span>
+                ) : isPrivate ? (
+                  <>
+                    <p className={styles.joinHint}>Este torneio é privado. Insira o código de convite para participar.</p>
+                    <div className={styles.joinCodeRow}>
+                      <input
+                        className={styles.joinCodeInput}
+                        placeholder="Código de convite"
+                        value={joinCode}
+                        onChange={(e) => { setJoinCode(e.target.value); setJoinCodeError(null) }}
+                        maxLength={6}
+                      />
+                      <button
+                        className={styles.joinBtn}
+                        disabled={joinCode.trim().length === 0 || joiningTournament}
+                        onClick={handleJoin}
+                      >
+                        {joiningTournament ? 'Entrando...' : 'Entrar'}
+                      </button>
+                    </div>
+                    {joinCodeError && <span className={styles.joinError}>{joinCodeError}</span>}
+                  </>
+                ) : (
+                  <>
+                    <p className={styles.joinHint}>Este torneio é aberto. Clique para participar!</p>
+                    {joinCodeError && <span className={styles.joinError}>{joinCodeError}</span>}
+                    <button
+                      className={styles.joinBtn}
+                      disabled={joiningTournament}
+                      onClick={handleJoin}
+                    >
+                      {joiningTournament ? 'Entrando...' : '🎮 Entrar no Torneio'}
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </section>

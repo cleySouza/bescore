@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient'
 import type { Tables } from '../types/supabase'
 import type { TournamentWithParticipants, Participant } from '../atoms/tournamentAtoms'
+import type { TournamentSettings } from '../types/tournament'
 
 type Tournament = Tables<'tournaments'>
 
@@ -22,7 +23,8 @@ export function generateInviteCode(): string {
 export async function createTournament(
   name: string,
   userId: string,
-  gameType?: string
+  gameType?: string,
+  initialSettings?: Pick<TournamentSettings, 'isPrivate' | 'maxParticipants'>
 ): Promise<Tournament> {
   const inviteCode = generateInviteCode()
 
@@ -34,6 +36,7 @@ export async function createTournament(
       invite_code: inviteCode,
       game_type: gameType || 'eFootball',
       status: 'draft',
+      ...(initialSettings ? { settings: initialSettings } : {}),
     })
     .select()
     .single()
@@ -170,6 +173,47 @@ export async function joinTournament(
     .from('participants')
     .insert({
       tournament_id: tournament.id,
+      user_id: userId,
+      team_name: teamName,
+      joined_at: new Date().toISOString(),
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Erro ao entrar no torneio:', error.message)
+    throw new Error(`Falha ao entrar no torneio: ${error.message}`)
+  }
+
+  return data
+}
+
+/**
+ * Permite que um usuário se junte a um torneio diretamente pelo ID
+ * (usado na TournamentView quando o torneio já está visível)
+ */
+export async function joinTournamentById(
+  tournamentId: string,
+  userId: string,
+  teamName: string
+): Promise<Participant> {
+  // 1. Verificar se o usuário já é participante
+  const { data: existingParticipant } = await supabase
+    .from('participants')
+    .select('id')
+    .eq('tournament_id', tournamentId)
+    .eq('user_id', userId)
+    .single()
+
+  if (existingParticipant) {
+    throw new Error('Você já é participante deste torneio')
+  }
+
+  // 2. Inserir novo participante
+  const { data, error } = await supabase
+    .from('participants')
+    .insert({
+      tournament_id: tournamentId,
       user_id: userId,
       team_name: teamName,
       joined_at: new Date().toISOString(),

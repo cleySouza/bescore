@@ -200,7 +200,10 @@ function CreateTournament() {
 
     try {
       // Criar torneio
-      const newTournament = await createTournament(formData.name, user.id, formData.gameType)
+      const newTournament = await createTournament(formData.name, user.id, formData.gameType, {
+        isPrivate: formData.isPrivate,
+        maxParticipants: formData.maxParticipants,
+      })
       setSuccessData({ name: formData.name, inviteCode: newTournament.invite_code ?? '' })
       setSuccess(true)
 
