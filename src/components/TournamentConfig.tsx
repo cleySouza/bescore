@@ -49,7 +49,6 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
   const [editableNames, setEditableNames] = useState<Record<string, string>>({})
   const [randomizeFeedback, setRandomizeFeedback] = useState<string | null>(null)
   const [pickerOpenFor, setPickerOpenFor] = useState<string | null>(null)
@@ -123,7 +122,6 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
       )
 
       await generateMatchesByFormat(tournament.id, format, settings)
-      setSuccess(true)
       onMatchesGenerated?.()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao gerar partidas'
@@ -156,12 +154,6 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
             <button className={styles.cancelBtn} onClick={onClose}>
               Fechar
             </button>
-          </div>
-        ) : success ? (
-          <div className={styles.successContainer}>
-            <div className={styles.successIcon}>✅</div>
-            <p className={styles.successMessage}>Campeonato montado com sucesso!</p>
-            <small>Redirecionando...</small>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className={styles.form}>

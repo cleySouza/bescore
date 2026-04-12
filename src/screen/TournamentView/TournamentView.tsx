@@ -8,7 +8,7 @@ import {
   showConfigModalAtom,
   activeTournamentTabAtom,
 } from '../../atoms/tournamentAtoms'
-import { fetchMyTournaments, getTournamentById, getTournamentParticipants, joinTournamentById, deleteTournament, cancelTournament, seedMockParticipants } from '../../lib/tournamentService'
+import { fetchMyTournaments, getTournamentParticipants, joinTournamentById, deleteTournament, cancelTournament, seedMockParticipants } from '../../lib/tournamentService'
 import { getTournamentMatches } from '../../lib/matchService'
 import { generatePlayoffMatches } from '../../lib/matchGenerationEngine'
 import type { Participant } from '../../atoms/tournamentAtoms'
@@ -130,18 +130,16 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   }
 
   const handleMatchesGenerated = async () => {
-    // Rebusca o torneio para capturar status: 'active' e settings atualizados
-    try {
-      const updated = await getTournamentById(tournament!.id, user!.id)
-      setActiveTournament(updated)
-      const updatedList = await fetchMyTournaments(user!.id)
-      setMyTournaments(updatedList)
-    } catch {
-      // silently ignore — refreshKey já vai recarregar partidas
+    // 1. Atualização síncrona ANTES de fechar — garante que `isActive` já é true
+    //    quando o React re-renderiza após o fechamento do modal
+    if (tournament) {
+      setActiveTournament({ ...tournament, status: 'active' })
     }
-    setRefreshKey((prev) => prev + 1)
     setActiveTab('matches')
     setShowConfigModal(false)
+
+    // 2. Sincroniza só a lista do dashboard em background (não sobrescreve o atom ativo)
+    fetchMyTournaments(user!.id).then(setMyTournaments).catch(() => {})
   }
 
   const handleMatchResultUpdated = () => {

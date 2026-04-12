@@ -58,7 +58,14 @@ export async function getTournamentMatches(tournamentId: string): Promise<MatchW
     throw new Error(`Falha ao buscar partidas: ${error.message}`)
   }
 
-  return (data || []) as MatchWithTeams[]
+  // Supabase retorna os joins como home_team / away_team (snake_case).
+  // MatchWithTeams espera homeTeam / awayTeam — mapeamos aqui.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data || []).map((m: any) => ({
+    ...m,
+    homeTeam: m.home_team ?? null,
+    awayTeam: m.away_team ?? null,
+  })) as MatchWithTeams[]
 }
 
 /**
