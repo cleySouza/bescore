@@ -530,3 +530,45 @@
   font-size: 14px;
   font-weight: 600;
 }
+
+/* ===========================
+   DANGER ZONE
+   =========================== */
+
+.dangerZone {
+  margin-top: 24px;
+  padding: 16px 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(198, 40, 40, 0.4);
+  background: rgba(198, 40, 40, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dangerZoneTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #e57373;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dangerBtn {
+  align-self: flex-start;
+  padding: 9px 18px;
+  border-radius: 8px;
+  border: 1px solid #c62828;
+  background: transparent;
+  color: #ef5350;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+
+.dangerBtn:hover {
+  background: #c62828;
+  color: #fff;
+}

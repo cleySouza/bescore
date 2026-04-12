@@ -3,11 +3,13 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import {
   activeTournamentAtom,
+  myTournamentsAtom,
   currentViewAtom,
   showConfigModalAtom,
   activeTournamentTabAtom,
 } from '../../atoms/tournamentAtoms'
-import { getTournamentParticipants, joinTournamentById } from '../../lib/tournamentService'
+import { fetchMyTournaments } from '../../lib/tournamentService'
+import { getTournamentParticipants, joinTournamentById, deleteTournament, cancelTournament } from '../../lib/tournamentService'
 import { getTournamentMatches } from '../../lib/matchService'
 import { generatePlayoffMatches } from '../../lib/matchGenerationEngine'
 import type { Participant } from '../../atoms/tournamentAtoms'
@@ -33,6 +35,8 @@ interface TournamentViewProps {
 function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentViewProps) {
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
+  const setActiveTournament = useSetAtom(activeTournamentAtom)
+  const setMyTournaments = useSetAtom(myTournamentsAtom)
   const setCurrentView = useSetAtom(currentViewAtom)
   const setShowConfigModal = useSetAtom(showConfigModalAtom)
   const [activeTab, setActiveTab] = useAtom(activeTournamentTabAtom)
@@ -132,6 +136,33 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
 
   const handleMatchResultUpdated = () => {
     setRefreshKey((prev) => prev + 1)
+  }
+
+  const handleDeleteTournament = async () => {
+    if (!window.confirm('⚠️ Esta ação não pode ser desfeita. O torneio e todos os seus dados serão removidos permanentemente. Tem certeza?')) return
+    try {
+      await deleteTournament(tournament.id)
+      // Aguarda o fetch completo para garantir que o atom reflita o estado real do banco
+      const updated = await fetchMyTournaments(user.id)
+      setMyTournaments(updated)
+      setActiveTournament(null)
+      setCurrentView('dashboard')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao excluir torneio')
+    }
+  }
+
+  const handleCancelTournament = async () => {
+    if (!window.confirm('⚠️ Esta ação não pode ser desfeita. O torneio será cancelado e nenhuma partida poderá ser registrada. Tem certeza?')) return
+    try {
+      await cancelTournament(tournament.id)
+      const updated = await fetchMyTournaments(user.id)
+      setMyTournaments(updated)
+      setActiveTournament(null)
+      setCurrentView('dashboard')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao cancelar torneio')
+    }
   }
 
   const handleJoin = async () => {
@@ -263,6 +294,16 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Danger zone for creator in draft */}
+            {isCreator && isDraft && (
+              <div className={styles.dangerZone}>
+                <h5 className={styles.dangerZoneTitle}>🚨 Zona de Perigo</h5>
+                <button className={styles.dangerBtn} onClick={handleDeleteTournament}>
+                  Apagar Torneio
+                </button>
               </div>
             )}
 
@@ -470,6 +511,13 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                             </button>
                           </div>
                         ))}
+                      </div>
+
+                      <div className={styles.dangerZone}>
+                        <h5 className={styles.dangerZoneTitle}>🚨 Zona de Perigo</h5>
+                        <button className={styles.dangerBtn} onClick={handleCancelTournament}>
+                          Cancelar Torneio
+                        </button>
                       </div>
                     </div>
                   )}

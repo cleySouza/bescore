@@ -391,3 +391,61 @@ export async function fetchRecentPlayers(
     }
   })
 }
+
+/**
+ * Cancela um torneio ativo, alterando seu status para 'cancelled'
+ */
+export async function cancelTournament(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('tournaments')
+    .update({ status: 'cancelled' })
+    .eq('id', id)
+
+  if (error) {
+    console.error('Erro ao cancelar torneio:', error.message)
+    throw new Error(`Falha ao cancelar torneio: ${error.message}`)
+  }
+}
+
+/**
+ * Exclui permanentemente um torneio em rascunho.
+ * Assume ON DELETE CASCADE para participantes e partidas;
+ * caso contrário, remove as dependências antes.
+ */
+export async function deleteTournament(id: string): Promise<void> {
+  // Remove dependências primeiro (compatível com ou sem ON DELETE CASCADE)
+  const { error: participantsError } = await supabase
+    .from('participants')
+    .delete()
+    .eq('tournament_id', id)
+
+  if (participantsError) {
+    console.error('Erro ao remover participantes:', participantsError.message)
+    throw new Error(`Falha ao remover participantes: ${participantsError.message}`)
+  }
+
+  const { error: matchesError } = await supabase
+    .from('matches')
+    .delete()
+    .eq('tournament_id', id)
+
+  if (matchesError) {
+    console.error('Erro ao remover partidas:', matchesError.message)
+    throw new Error(`Falha ao remover partidas: ${matchesError.message}`)
+  }
+
+  // .select().single() faz o Supabase retornar a linha deletada —
+  // se a RLS bloquear ou a linha não existir, retorna PGRST116 (error != null)
+  // em vez de um silencioso { data: null, error: null }
+  const { error } = await supabase
+    .from('tournaments')
+    .delete()
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Erro ao excluir torneio:', error.message, error.code)
+    throw new Error(`Falha ao excluir torneio: ${error.message}`)
+  }
+}
