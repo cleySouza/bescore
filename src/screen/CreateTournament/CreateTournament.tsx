@@ -33,6 +33,7 @@ function CreateTournament() {
     willPlay: true,
     teamNames: '',
     selectedTeamIds: [] as string[],
+    playoffCutoff: 'top4' as 'top4' | 'top2',
   })
   const [loading, setLoading] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
@@ -47,6 +48,10 @@ function CreateTournament() {
   if (!user) {
     return null
   }
+
+  const effectiveMin = formData.format === 'campeonato'
+    ? (formData.playoffCutoff === 'top4' ? 6 : 4)
+    : 2
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -72,7 +77,7 @@ function CreateTournament() {
   const handleParticipantsBlur = () => {
     setFormData((prev) => ({
       ...prev,
-      maxParticipants: Math.max(2, prev.maxParticipants),
+      maxParticipants: Math.max(effectiveMin, prev.maxParticipants),
     }))
   }
 
@@ -80,7 +85,7 @@ function CreateTournament() {
     if (delta < 0 && formData.maxParticipants === formData.selectedTeamIds.length) return
     setFormData((prev) => ({
       ...prev,
-      maxParticipants: Math.max(2, prev.maxParticipants + delta),
+      maxParticipants: Math.max(effectiveMin, prev.maxParticipants + delta),
     }))
   }
 
@@ -134,6 +139,7 @@ function CreateTournament() {
       willPlay: true,
       teamNames: '',
       selectedTeamIds: [],
+      playoffCutoff: 'top4',
     })
     setLocalError(null)
     setSuccess(false)
@@ -152,6 +158,15 @@ function CreateTournament() {
 
     if (formData.name.length < 3) {
       setLocalError('Nome deve ter pelo menos 3 caracteres')
+      return
+    }
+
+    if (formData.format === 'campeonato' && formData.maxParticipants < effectiveMin) {
+      setLocalError(
+        formData.playoffCutoff === 'top4'
+          ? 'Mínimo de 6 jogadores para gerar semifinais.'
+          : 'Mínimo de 4 jogadores para este formato.'
+      )
       return
     }
 
@@ -189,6 +204,7 @@ function CreateTournament() {
         willPlay: true,
         teamNames: '',
         selectedTeamIds: [],
+        playoffCutoff: 'top4',
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao criar torneio'
@@ -252,7 +268,44 @@ function CreateTournament() {
                     <option value="liga">Liga</option>
                     <option value="mata-mata">Mata-mata</option>
                     <option value="grupos">Grupos</option>
+                    <option value="campeonato">Campeonato</option>
                   </select>
+                </div>
+
+                {/* Fase Final — só visível quando format === 'campeonato' */}
+                <div className={`${styles.collapsibleSection}${formData.format !== 'campeonato' ? ` ${styles.collapsed}` : ''}`}>
+                  <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel}>Fase Final</label>
+                    <div className={styles.pillSelect}>
+                      <button
+                        type="button"
+                        className={`${styles.pillOption}${formData.playoffCutoff === 'top4' ? ` ${styles.pillOptionActive}` : ''}`}
+                        onClick={() => setFormData((prev) => ({ ...prev, playoffCutoff: 'top4' }))}
+                        disabled={loading || formData.format !== 'campeonato'}
+                        tabIndex={formData.format === 'campeonato' ? 0 : -1}
+                      >
+                        TOP 4
+                        <span className={styles.pillOptionSub}>Semi + Final</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.pillOption}${formData.playoffCutoff === 'top2' ? ` ${styles.pillOptionActive}` : ''}`}
+                        onClick={() => setFormData((prev) => ({ ...prev, playoffCutoff: 'top2' }))}
+                        disabled={loading || formData.format !== 'campeonato'}
+                        tabIndex={formData.format === 'campeonato' ? 0 : -1}
+                      >
+                        TOP 2
+                        <span className={styles.pillOptionSub}>Final Direta</span>
+                      </button>
+                    </div>
+                    {formData.maxParticipants < effectiveMin && (
+                      <span className={styles.stepperHint}>
+                        {formData.playoffCutoff === 'top4'
+                          ? 'Mínimo de 6 jogadores para gerar semifinais.'
+                          : 'Mínimo de 4 jogadores para este formato.'}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Jogo Select */}
@@ -282,7 +335,7 @@ function CreateTournament() {
                         type="button"
                         className={styles.stepperBtn}
                         onClick={() => stepParticipants(-1)}
-                        disabled={loading || formData.maxParticipants <= 2 || formData.maxParticipants === formData.selectedTeamIds.length}
+                        disabled={loading || formData.maxParticipants <= effectiveMin || formData.maxParticipants === formData.selectedTeamIds.length}
                         aria-label="Diminuir participantes"
                       >
                         −
@@ -483,6 +536,8 @@ function CreateTournament() {
                   willPlay={formData.willPlay}
                   adminDraft={formData.adminDraft}
                   autoTeams={formData.autoTeams}
+                  format={formData.format}
+                  playoffCutoff={formData.playoffCutoff}
                   tournamentImage={tournamentImage}
                   onImageChange={handleImageChange}
                 />

@@ -8,6 +8,8 @@ interface PreviewCardProps {
   willPlay?: boolean
   adminDraft?: boolean
   autoTeams?: boolean
+  format?: string
+  playoffCutoff?: 'top4' | 'top2'
 }
 
 const GAME_ICONS: Record<string, string> = {
@@ -33,6 +35,8 @@ export const PreviewCard = ({
   willPlay = true,
   adminDraft = true,
   autoTeams = true,
+  format = 'liga',
+  playoffCutoff = 'top4',
 }: PreviewCardProps) => {
   const gameIcon = GAME_ICONS[gameType] || '🎮'
 
@@ -49,6 +53,9 @@ export const PreviewCard = ({
   const adminRule = willPlay
     ? 'Criador participará como competidor.'
     : 'Torneio gerenciado por Admin externo.'
+
+  const isCampeonato = format === 'campeonato'
+  const playoffN = playoffCutoff === 'top4' ? 4 : 2
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -86,8 +93,17 @@ export const PreviewCard = ({
         {PREVIEW_RULES.map((rule, index) => (
           <li key={index}>{rule}</li>
         ))}
-        <li key="draft-rule">{draftRule}</li>
-        {autoTeamsRule && <li key="autoteams-rule">{autoTeamsRule}</li>}
+        {isCampeonato ? (
+          <>
+            <li key="camp-rule1">Todos jogam contra todos em turno único.</li>
+            <li key="camp-rule2">Os {playoffN} melhores avançam para o mata-mata.</li>
+          </>
+        ) : (
+          <>
+            <li key="draft-rule">{draftRule}</li>
+            {autoTeamsRule && <li key="autoteams-rule">{autoTeamsRule}</li>}
+          </>
+        )}
         <li key="admin-rule">{adminRule}</li>
       </ul>
 
