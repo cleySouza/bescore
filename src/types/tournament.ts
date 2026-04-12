@@ -2,13 +2,14 @@
  * Types para Tournament Settings (JSONB)
  */
 
-export type TournamentFormat = 'roundRobin' | 'knockout' | 'groupsCrossed' | 'mixed'
+export type TournamentFormat = 'roundRobin' | 'knockout' | 'groupsCrossed' | 'mixed' | 'campeonato'
 
 export interface TournamentSettings {
   format: TournamentFormat
   hasReturnMatch?: boolean // Para Round Robin
   qualifiedCount?: number // Para Mixed (quantos avançam dos grupos)
   bracketGroups?: number // Para Grupos Cruzados (default: 2)
+  playoffCutoff?: 4 | 2 // Para Campeonato: quantos avançam para mata-mata
 }
 
 export interface Match {
@@ -88,6 +89,12 @@ export function validateSettingsForFormat(
     case 'mixed': {
       if (participantCount < 4) {
         return { valid: false, error: 'Misto precisa de pelo menos 4 participantes' }
+      }
+      return { valid: true }
+    }
+    case 'campeonato': {
+      if (participantCount < 4) {
+        return { valid: false, error: 'Campeonato precisa de pelo menos 4 participantes' }
       }
       return { valid: true }
     }

@@ -1,15 +1,15 @@
 import { useEffect } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
-import { userAtom } from '../atoms/sessionAtom'
+import { userAtom } from '../../atoms/sessionAtom'
 import {
   myTournamentsAtom,
   activeTournamentAtom,
   tournamentsLoadingAtom,
   tournamentsErrorAtom,
   currentViewAtom,
-} from '../atoms/tournamentAtoms'
-import { fetchMyTournaments } from '../lib/tournamentService'
-import TournamentCard from './TournamentCard'
+} from '../../atoms/tournamentAtoms'
+import { fetchMyTournaments } from '../../lib/tournamentService'
+import TournamentCard from '../../components/TournamentCard'
 import styles from './Dashboard.module.css'
 
 function Dashboard() {

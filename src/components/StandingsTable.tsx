@@ -8,9 +8,10 @@ import styles from './StandingsTable.module.css'
 
 interface StandingsTableProps {
   onDataUpdate?: () => void
+  playoffCutoff?: number
 }
 
-function StandingsTable({ onDataUpdate }: StandingsTableProps) {
+function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
   const tournament = useAtomValue(activeTournamentAtom)
   const [standings, setStandings] = useState<StandingsRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -93,37 +94,53 @@ function StandingsTable({ onDataUpdate }: StandingsTableProps) {
           </tr>
         </thead>
         <tbody>
-          {standings.map((row, idx) => (
-            <tr key={row.participant_id} className={idx % 2 === 0 ? styles.even : styles.odd}>
-              <td className={styles.position}>
-                <strong>{row.position}</strong>
-              </td>
-              <td className={styles.team}>
-                <div className={styles.teamCell}>
-                  <span className={styles.teamName}>{row.team_name || 'Equipe'}</span>
-                  <small>{row.user_nickname || 'Usuário'}</small>
-                </div>
-              </td>
-              <td className={styles.stat}>{row.total_matches}</td>
-              <td className={styles.stat}>{row.wins}</td>
-              <td className={styles.stat}>{row.draws}</td>
-              <td className={styles.stat}>{row.losses}</td>
-              <td className={styles.stat}>{row.goals_for}</td>
-              <td className={styles.stat}>{row.goals_against}</td>
-              <td className={`${styles.stat} ${row.goal_difference >= 0 ? styles.positive : styles.negative}`}>
-                {row.goal_difference > 0 ? '+' : ''}{row.goal_difference}
-              </td>
-              <td className={styles.points}>
-                <strong>{row.points}</strong>
-              </td>
-            </tr>
-          ))}
+          {standings.map((row, idx) => {
+            const isInPlayoffZone = playoffCutoff !== undefined && idx + 1 <= playoffCutoff
+            return (
+              <tr
+                key={row.participant_id}
+                className={[
+                  idx % 2 === 0 ? styles.even : styles.odd,
+                  isInPlayoffZone ? styles.inPlayoffZone : '',
+                ].join(' ')}
+              >
+                <td className={styles.position}>
+                  <strong>{row.position}</strong>
+                </td>
+                <td className={styles.team}>
+                  <div className={styles.teamCell}>
+                    <span className={styles.teamName}>{row.team_name || 'Equipe'}</span>
+                    <small>{row.user_nickname || 'Usuário'}</small>
+                  </div>
+                </td>
+                <td className={styles.stat}>{row.total_matches}</td>
+                <td className={styles.stat}>{row.wins}</td>
+                <td className={styles.stat}>{row.draws}</td>
+                <td className={styles.stat}>{row.losses}</td>
+                <td className={styles.stat}>{row.goals_for}</td>
+                <td className={styles.stat}>{row.goals_against}</td>
+                <td className={`${styles.stat} ${row.goal_difference >= 0 ? styles.positive : styles.negative}`}>
+                  {row.goal_difference > 0 ? '+' : ''}{row.goal_difference}
+                </td>
+                <td className={styles.points}>
+                  <strong>{row.points}</strong>
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
 
       <div className={styles.legend}>
         <small>J = Jogos | V = Vitórias | E = Empates | D = Derrotas | GF = Gols Favor | GA = Gols Contra | SG = Saldo | Pts = Pontos</small>
       </div>
+
+      {playoffCutoff !== undefined && (
+        <div className={styles.playoffLegend}>
+          <span className={styles.playoffDot} />
+          <small>Top {playoffCutoff} avançam para a Fase Final</small>
+        </div>
+      )}
     </div>
   )
 }

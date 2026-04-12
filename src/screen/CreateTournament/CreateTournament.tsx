@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import {
@@ -44,6 +44,15 @@ function CreateTournament() {
   const [selectedTeamsPreview, setSelectedTeamsPreview] = useState<
     { id: string; name: string; logo: string; color: string }[]
   >([])
+  const [successData, setSuccessData] = useState<{ name: string; inviteCode: string } | null>(null)
+  const [copied, setCopied] = useState(false)
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current)
+    }
+  }, [])
 
   if (!user) {
     return null
@@ -124,6 +133,23 @@ function CreateTournament() {
     reader.readAsDataURL(file)
   }
 
+  const handleCopy = () => {
+    if (!successData) return
+    navigator.clipboard.writeText(successData.inviteCode).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {
+      // Silently ignore — user can copy manually
+    })
+    if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current)
+    redirectTimerRef.current = setTimeout(() => setCurrentView('tournament'), 1500)
+  }
+
+  const handleShareClick = () => {
+    if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current)
+    redirectTimerRef.current = setTimeout(() => setCurrentView('tournament'), 1500)
+  }
+
   const handleBack = () => {
     setCurrentView('dashboard')
     setFormData({
@@ -175,6 +201,7 @@ function CreateTournament() {
     try {
       // Criar torneio
       const newTournament = await createTournament(formData.name, user.id, formData.gameType)
+      setSuccessData({ name: formData.name, inviteCode: newTournament.invite_code ?? '' })
       setSuccess(true)
 
       // Recarregar lista de torneios
@@ -185,10 +212,10 @@ function CreateTournament() {
       const tournamentWithDetails = await getTournamentById(newTournament.id, user.id)
       setActiveTournament(tournamentWithDetails)
 
-      // Mudar view para tournament
-      setTimeout(() => {
+      // Redirecionar após 3s (ou 1.5s se o usuário interagiu com os botões de compartilhar)
+      redirectTimerRef.current = setTimeout(() => {
         setCurrentView('tournament')
-      }, 1500)
+      }, 3000)
 
       // Limpar formulário
       setFormData({
@@ -216,6 +243,12 @@ function CreateTournament() {
     }
   }
 
+  const whatsappUrl = successData
+    ? `https://wa.me/?text=${encodeURIComponent(
+        `🏆 Participe do torneio *${successData.name}* no beScore!\n\nCódigo de convite: *${successData.inviteCode}*`
+      )}`
+    : '#'
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -228,9 +261,36 @@ function CreateTournament() {
 
       {success ? (
         <div className={styles.successContainer}>
-          <div className={styles.successIcon}>✅</div>
-          <p className={styles.successMessage}>Torneio criado com sucesso!</p>
-          <small>Redirecionando...</small>
+          <div className={styles.successIconLarge}>🏆</div>
+          <h2 className={styles.successTitle}>{successData?.name ?? 'Torneio'}</h2>
+          <p className={styles.successSubtitle}>Torneio criado com sucesso!</p>
+
+          <div className={styles.inviteCard}>
+            <span className={styles.inviteLabel}>Código de Convite</span>
+            <span className={styles.inviteCode}>{successData?.inviteCode}</span>
+            <span className={styles.inviteHint}>Compartilhe com seus amigos para eles entrarem</span>
+          </div>
+
+          <div className={styles.successActions}>
+            <button
+              type="button"
+              className={`${styles.actionBtn}${copied ? ` ${styles.actionBtnCopied}` : ''}`}
+              onClick={handleCopy}
+            >
+              {copied ? '✓ Copiado!' : '📋 Copiar código'}
+            </button>
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.whatsappBtn}
+              onClick={handleShareClick}
+            >
+              📲 Convidar pelo WhatsApp
+            </a>
+          </div>
+
+          <small className={styles.redirectHint}>Entrando no torneio em instantes…</small>
         </div>
       ) : (
         <div className={styles.contentMain}>

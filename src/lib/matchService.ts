@@ -70,8 +70,9 @@ export async function updateMatchResult(
 /**
  * Calcula a classificação de um torneio a partir dos matches finalizados
  * Cálculo automático: vitórias, empates, derrotas, gols, pontos
+ * @param roundFilter - se informado, considera apenas partidas deste round
  */
-export async function getTournamentStandings(tournamentId: string): Promise<StandingsRow[]> {
+export async function getTournamentStandings(tournamentId: string, roundFilter?: number): Promise<StandingsRow[]> {
   try {
     // Busca dados dos participantes do torneio
     const { data: participants, error: participantsError } = await supabase
@@ -92,12 +93,18 @@ export async function getTournamentStandings(tournamentId: string): Promise<Stan
 
     if (participantsError) throw participantsError
 
-    // Busca matches finalizados
-    const { data: matches, error: matchesError } = await supabase
+    // Busca matches finalizados (opcionalmente filtrado por round)
+    let query = supabase
       .from('matches')
       .select('*')
       .eq('tournament_id', tournamentId)
       .eq('status', 'finished')
+
+    if (roundFilter !== undefined) {
+      query = query.eq('round', roundFilter)
+    }
+
+    const { data: matches, error: matchesError } = await query
 
     if (matchesError) throw matchesError
 

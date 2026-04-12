@@ -103,6 +103,33 @@
   font-weight: 600;
 }
 
+.inPlayoffZone {
+  border-left: 3px solid #4caf50;
+  background: rgba(76, 175, 80, 0.06) !important;
+}
+
+.inPlayoffZone .position strong {
+  color: #2e7d32;
+}
+
+.playoffLegend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #2e7d32;
+}
+
+.playoffDot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: #4caf50;
+  flex-shrink: 0;
+}
+
 .legend {
   padding: 12px;
   background: #f8f9fa;

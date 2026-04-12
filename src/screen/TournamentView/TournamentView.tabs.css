@@ -114,3 +114,89 @@
     padding: 16px;
   }
 }
+
+/* ============================================
+   CAMPEONATO: Banner de transição de fase
+   ============================================ */
+.playoffBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 16px 0;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.12) 0%, rgba(46, 125, 50, 0.08) 100%);
+  border: 1.5px solid #4caf50;
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.playoffBannerContent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.playoffBannerIcon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.playoffBannerContent strong {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  display: block;
+}
+
+.playoffBannerContent p {
+  margin: 2px 0 0 0;
+  font-size: 13px;
+  color: #2e7d32;
+}
+
+.playoffBannerBtn {
+  padding: 10px 20px;
+  background: #4caf50;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.playoffBannerBtn:hover:not(:disabled) {
+  background: #2e7d32;
+}
+
+.playoffBannerBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Título de fase (Liga / Semifinais / Final) */
+.matchesPhaseTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin: 20px 0 8px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+@media (max-width: 600px) {
+  .playoffBanner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .playoffBannerBtn {
+    width: 100%;
+  }
+}

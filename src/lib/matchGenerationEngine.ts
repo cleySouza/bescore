@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient'
 import type { Database } from '../types/supabase'
 import type { TournamentSettings, TournamentFormat } from '../types/tournament'
 import { validateSettingsForFormat } from '../types/tournament'
+import { getTournamentStandings } from './matchService'
 
 type Match = Database['public']['Tables']['matches']['Insert']
 
@@ -67,6 +68,11 @@ export async function generateMatchesByFormat(
         settings.qualifiedCount || 2,
         settings.bracketGroups || 2
       )
+      break
+    case 'campeonato':
+      matches = generateRoundRobinMatches(participantIds, false)
+      // round robin gera round=1 internamente; força round: 1 explicitamente
+      matches = matches.map((m) => ({ ...m, round: 1 }))
       break
     default:
       throw new Error(`Formato desconhecido: ${format}`)
@@ -280,4 +286,69 @@ function generateMixedMatches(
   matches.push(...adjustedKnockout)
 
   return matches
+}
+
+/**
+ * ============================================
+ * CAMPEONATO: Gerar Fase Final (Playoff)
+ * ============================================
+ * Pega os top N da classificação da liga (round 1) e gera
+ * partidas de mata-mata (round 2).
+ *
+ * Bracket:
+ *   top4: 1º vs 4º  +  2º vs 3º
+ *   top2: 1º vs 2º
+ */
+export async function generatePlayoffMatches(tournamentId: string): Promise<void> {
+  // 1. Buscar settings do torneio para saber o playoffCutoff
+  const { data: tournament, error: tournamentError } = await supabase
+    .from('tournaments')
+    .select('settings')
+    .eq('id', tournamentId)
+    .single()
+
+  if (tournamentError || !tournament) {
+    throw new Error('Torneio não encontrado')
+  }
+
+  const settings = tournament.settings as { playoffCutoff?: number } | null
+  const cutoff = settings?.playoffCutoff ?? 2
+
+  // 2. Buscar classificação atual (apenas liga - round 1)
+  const standings = await getTournamentStandings(tournamentId, 1)
+
+  if (standings.length < cutoff) {
+    throw new Error(`São necessários pelo menos ${cutoff} participantes classificados`)
+  }
+
+  // 3. Montar chaves do playoff
+  const topN = standings.slice(0, cutoff).map((s) => s.participant_id)
+
+  const playoffMatches: Array<{
+    tournament_id: string
+    home_participant_id: string
+    away_participant_id: string
+    round: number
+    status: 'pending'
+  }> = []
+
+  if (cutoff === 4) {
+    // Semifinais: 1º vs 4º, 2º vs 3º
+    playoffMatches.push(
+      { tournament_id: tournamentId, home_participant_id: topN[0], away_participant_id: topN[3], round: 2, status: 'pending' },
+      { tournament_id: tournamentId, home_participant_id: topN[1], away_participant_id: topN[2], round: 2, status: 'pending' }
+    )
+  } else {
+    // Final direta: 1º vs 2º
+    playoffMatches.push(
+      { tournament_id: tournamentId, home_participant_id: topN[0], away_participant_id: topN[1], round: 2, status: 'pending' }
+    )
+  }
+
+  // 4. Inserir partidas da fase final
+  const { error: insertError } = await supabase.from('matches').insert(playoffMatches)
+
+  if (insertError) {
+    throw new Error(`Falha ao inserir partidas da fase final: ${insertError.message}`)
+  }
 }
