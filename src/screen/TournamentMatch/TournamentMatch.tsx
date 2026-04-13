@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import {
@@ -25,6 +25,11 @@ interface ParticipantWithProfile extends Participant {
   } | null
 }
 
+function getRoundRobinRoundCount(participantCount: number): number {
+  if (participantCount <= 1) return 0
+  return participantCount % 2 === 0 ? participantCount - 1 : participantCount
+}
+
 function TournamentMatch() {
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
@@ -40,6 +45,13 @@ function TournamentMatch() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [generatingPlayoff, setGeneratingPlayoff] = useState(false)
   const [managedParticipant, setManagedParticipant] = useState<ManagedParticipant | null>(null)
+
+  // Accordion state
+  const [openRound, setOpenRound] = useState<number | null>(null)
+  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null)
+  const accordionInitRef = useRef<string | null>(null)
+
+  const tournamentId = tournament?.id
 
   useEffect(() => {
     if (!tournament) {
@@ -57,6 +69,17 @@ function TournamentMatch() {
         ])
         setParticipants(participantsData as ParticipantWithProfile[])
         setMatches(matchesData)
+
+        // Initialize accordion once per tournament (not on every refresh)
+        if (accordionInitRef.current !== tournament.id) {
+          const rounds = [...new Set(matchesData.map((m) => m.round))].sort((a, b) => a - b)
+          const firstPending = rounds.find((r) =>
+            matchesData.some((m) => m.round === r && m.status === 'pending')
+          )
+          setOpenRound(firstPending ?? rounds[0] ?? null)
+          setExpandedMatchId(null)
+          accordionInitRef.current = tournament.id
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar dados')
       } finally {
@@ -65,7 +88,19 @@ function TournamentMatch() {
     }
 
     loadData()
-  }, [tournament, setCurrentView, refreshKey])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tournamentId, setCurrentView, refreshKey])
+
+  // Group matches by round
+  const matchesByRound = useMemo(() => {
+    const map = new Map<number, MatchWithTeams[]>()
+    for (const m of matches) {
+      const arr = map.get(m.round) ?? []
+      arr.push(m)
+      map.set(m.round, arr)
+    }
+    return map
+  }, [matches])
 
   if (!tournament || !user) return null
 
@@ -73,23 +108,32 @@ function TournamentMatch() {
   const tournamentSettings = tournament.settings as TournamentSettings | null
   const isCampeonato = tournamentSettings?.format === 'campeonato'
   const playoffCutoff = isCampeonato ? (tournamentSettings?.playoffCutoff ?? 2) : undefined
+  const leagueRoundCount = isCampeonato ? getRoundRobinRoundCount(participants.length) : 0
 
-  const pendingMatches = matches.filter((m) => m.status === 'pending')
-  const finishedMatches = matches.filter((m) => m.status === 'finished')
-  const leagueMatches = matches.filter((m) => m.round === 1)
-  const playoffMatches = matches.filter((m) => m.round === 2)
+  const pendingCount = matches.filter((m) => m.status === 'pending').length
+  const leagueMatches = isCampeonato
+    ? matches.filter((m) => m.round !== null && m.round <= leagueRoundCount)
+    : matches
+  const playoffMatches = isCampeonato
+    ? matches.filter((m) => m.round !== null && m.round > leagueRoundCount)
+    : []
   const hasPlayoffStarted = playoffMatches.length > 0
   const isLeagueFinished =
-    isCampeonato &&
-    leagueMatches.length > 0 &&
-    leagueMatches.every((m) => m.status === 'finished')
+    isCampeonato && leagueMatches.length > 0 && leagueMatches.every((m) => m.status === 'finished')
 
-  const round1Pending = pendingMatches.filter((m) => m.round === 1)
-  const round1Finished = finishedMatches.filter((m) => m.round === 1)
-  const round2Pending = pendingMatches.filter((m) => m.round === 2)
-  const round2Finished = finishedMatches.filter((m) => m.round === 2)
+  const getRoundLabel = (round: number): string => {
+    if (isCampeonato) {
+      if (round <= leagueRoundCount) return `⚽ Rodada ${round}`
+      if (round === leagueRoundCount + 1) return playoffCutoff === 4 ? '🏆 Semifinais' : '🏆 Final'
+      return `🏆 Fase Final ${round - leagueRoundCount}`
+    }
+    return `Rodada ${round}`
+  }
 
-  const handleMatchResultUpdated = () => setRefreshKey((prev) => prev + 1)
+  const handleMatchResultUpdated = () => {
+    setExpandedMatchId(null)
+    setRefreshKey((prev) => prev + 1)
+  }
 
   const handleGeneratePlayoff = async () => {
     setGeneratingPlayoff(true)
@@ -117,6 +161,158 @@ function TournamentMatch() {
     }
   }
 
+  // ── Render helpers ────────────────────────────────────────────────────────
+
+  const renderRoundList = () => {
+    if (matches.length === 0) {
+      return (
+        <div className={styles.emptyState}>
+          <div className={styles.emptyIcon}>🎮</div>
+          <p className={styles.emptyText}>Nenhum jogo gerado ainda</p>
+        </div>
+      )
+    }
+
+    return (
+      <div className={styles.roundsList}>
+        {Array.from(matchesByRound.entries())
+          .sort(([a], [b]) => a - b)
+          .map(([round, roundMatches]) => {
+            const pendingInRound = roundMatches.filter((m) => m.status === 'pending').length
+            const isOpen = openRound === round
+            return (
+              <div key={round} className={styles.roundAccordion}>
+                <button
+                  className={`${styles.roundHeader} ${isOpen ? styles.roundHeaderOpen : ''}`}
+                  onClick={() => {
+                    setOpenRound((prev) => (prev === round ? null : round))
+                    setExpandedMatchId(null)
+                  }}
+                  aria-expanded={isOpen}
+                >
+                  <div className={styles.roundHeaderLeft}>
+                    <span className={styles.roundLabel}>{getRoundLabel(round)}</span>
+                    {pendingInRound > 0 ? (
+                      <span className={styles.pendingBadge}>
+                        {pendingInRound} pendente{pendingInRound !== 1 ? 's' : ''}
+                      </span>
+                    ) : (
+                      <span className={styles.doneBadge}>✓ Completa</span>
+                    )}
+                  </div>
+                  <span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`}>›</span>
+                </button>
+
+                {isOpen && (
+                  <div className={styles.roundBody}>
+                    {roundMatches.map((m) => {
+                      const isExpanded = expandedMatchId === m.id
+                      return (
+                        <div key={m.id}>
+                          <button
+                            className={`${styles.matchRow} ${m.status === 'finished' ? styles.matchRowFinished : ''} ${isExpanded ? styles.matchRowActive : ''}`}
+                            onClick={() =>
+                              setExpandedMatchId((prev) => (prev === m.id ? null : m.id))
+                            }
+                          >
+                            <div className={styles.matchTeamCell}>
+                              <span className={styles.matchClub}>
+                                {m.homeTeam?.team_name || 'TBD'}
+                              </span>
+                              <span className={styles.matchNick}>
+                                {m.homeTeam?.profile?.nickname || '—'}
+                              </span>
+                            </div>
+
+                            <div className={styles.matchScoreCell}>
+                              {m.status === 'finished' ? (
+                                <span className={styles.resultScore}>
+                                  {m.home_score} – {m.away_score}
+                                </span>
+                              ) : (
+                                <span className={styles.vsLabel}>vs</span>
+                              )}
+                            </div>
+
+                            <div className={`${styles.matchTeamCell} ${styles.matchTeamAway}`}>
+                              <span className={styles.matchClub}>
+                                {m.awayTeam?.team_name || 'TBD'}
+                              </span>
+                              <span className={styles.matchNick}>
+                                {m.awayTeam?.profile?.nickname || '—'}
+                              </span>
+                            </div>
+
+                            <span className={styles.expandIcon} aria-hidden>
+                              {isExpanded ? '▲' : '▼'}
+                            </span>
+                          </button>
+
+                          {isExpanded && (
+                            <div className={styles.matchCardWrap}>
+                              <MatchCard match={m} onResultUpdated={handleMatchResultUpdated} />
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+      </div>
+    )
+  }
+
+  const renderAdminPanel = () => (
+    <div className={styles.adminPanel}>
+      <h4 className={styles.adminPanelTitle}>⚙️ Ajustes Administrativos</h4>
+      <div className={styles.adminParticipantList}>
+        {participants.map((p) => (
+          <div key={p.id} className={styles.adminParticipantRow}>
+            <span className={styles.adminParticipantName}>
+              {p.team_name || p.profile?.nickname || 'Participante'}
+            </span>
+            <button
+              className={styles.manageBtn}
+              onClick={() => setManagedParticipant(p as ManagedParticipant)}
+            >
+              ⚙️ Gerenciar
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className={styles.dangerZone}>
+        <h5 className={styles.dangerZoneTitle}>🚨 Zona de Perigo</h5>
+        <button className={styles.dangerBtn} onClick={handleCancelTournament}>
+          Cancelar Torneio
+        </button>
+      </div>
+    </div>
+  )
+
+  // ── JSX ───────────────────────────────────────────────────────────────────
+
+  const playoffBanner = isCreator && isLeagueFinished && !hasPlayoffStarted && (
+    <div className={styles.playoffBanner}>
+      <div className={styles.playoffBannerContent}>
+        <span className={styles.playoffBannerIcon}>🏆</span>
+        <div>
+          <strong>Liga Finalizada!</strong>
+          <p>Os top {playoffCutoff} estão classificados para a Fase Final.</p>
+        </div>
+      </div>
+      <button
+        className={styles.playoffBannerBtn}
+        onClick={handleGeneratePlayoff}
+        disabled={generatingPlayoff}
+      >
+        {generatingPlayoff ? 'Gerando...' : `Gerar ${playoffCutoff === 4 ? 'Semifinais' : 'Final'}`}
+      </button>
+    </div>
+  )
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -134,169 +330,63 @@ function TournamentMatch() {
       <main className={styles.main}>
         {error && <div className={styles.errorMessage}>{error}</div>}
 
-        {/* Playoff banner */}
-        {isCreator && isLeagueFinished && !hasPlayoffStarted && (
-          <div className={styles.playoffBanner}>
-            <div className={styles.playoffBannerContent}>
-              <span className={styles.playoffBannerIcon}>🏆</span>
-              <div>
-                <strong>Liga Finalizada!</strong>
-                <p>Os top {playoffCutoff} estão classificados para a Fase Final.</p>
-              </div>
-            </div>
-            <button
-              className={styles.playoffBannerBtn}
-              onClick={handleGeneratePlayoff}
-              disabled={generatingPlayoff}
-            >
-              {generatingPlayoff ? 'Gerando...' : `Gerar ${playoffCutoff === 4 ? 'Semifinais' : 'Final'}`}
-            </button>
-          </div>
-        )}
+        {playoffBanner}
 
-        {/* Tabs */}
-        <div className={styles.tabsNav}>
-          <button
-            className={`${styles.tab} ${activeTab === 'matches' ? styles.active : ''}`}
-            onClick={() => setActiveTab('matches')}
-          >
-            🎮 Jogos {pendingMatches.length > 0 && `(${pendingMatches.length})`}
-          </button>
-          <button
-            className={`${styles.tab} ${activeTab === 'standings' ? styles.active : ''}`}
-            onClick={() => setActiveTab('standings')}
-          >
-            📊 Classificação
-          </button>
+        {/* ── DESKTOP: dual-column dashboard ─────────────────────────── */}
+        <div className={styles.dashboardGrid}>
+          <div className={styles.leftColumn}>
+            <h2 className={styles.columnTitle}>
+              🎮 Jogos
+              {pendingCount > 0 && (
+                <span className={styles.pendingCountBadge}>{pendingCount} pendentes</span>
+              )}
+            </h2>
+            {loading ? (
+              <div className={styles.loadingMessage}>Carregando jogos...</div>
+            ) : (
+              renderRoundList()
+            )}
+          </div>
+
+          <div className={styles.rightColumn}>
+            <h2 className={styles.columnTitle}>📊 Classificação</h2>
+            <StandingsTable onDataUpdate={handleMatchResultUpdated} playoffCutoff={playoffCutoff} />
+            {isCreator && participants.length > 0 && renderAdminPanel()}
+          </div>
         </div>
 
-        <div className={styles.tabContent}>
+        {/* ── MOBILE: tab layout ──────────────────────────────────────── */}
+        <div className={styles.mobileLayout}>
+          <div className={styles.tabsNav}>
+            <button
+              className={`${styles.tab} ${activeTab === 'matches' ? styles.tabActive : ''}`}
+              onClick={() => setActiveTab('matches')}
+            >
+              🎮 Jogos {pendingCount > 0 && `(${pendingCount})`}
+            </button>
+            <button
+              className={`${styles.tab} ${activeTab === 'standings' ? styles.tabActive : ''}`}
+              onClick={() => setActiveTab('standings')}
+            >
+              📊 Classificação
+            </button>
+          </div>
+
           {activeTab === 'matches' && (
-            <section className={styles.matchesSection}>
+            <div className={styles.mobileTabContent}>
               {loading ? (
                 <div className={styles.loadingMessage}>Carregando jogos...</div>
-              ) : matches.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <div className={styles.emptyIcon}>🎮</div>
-                  <p className={styles.emptyText}>Nenhum jogo gerado ainda</p>
-                </div>
               ) : (
-                <div className={styles.matchesList}>
-                  {isCampeonato ? (
-                    <>
-                      {(round1Pending.length > 0 || round1Finished.length > 0) && (
-                        <div>
-                          <h3 className={styles.phaseTitle}>⚽ Fase de Liga</h3>
-                          {round1Pending.length > 0 && (
-                            <div>
-                              <h4 className={styles.groupTitle}>Pendentes ({round1Pending.length})</h4>
-                              <div className={styles.matchesGrid}>
-                                {round1Pending.map((m) => (
-                                  <MatchCard key={m.id} match={m} onResultUpdated={handleMatchResultUpdated} />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {round1Finished.length > 0 && (
-                            <div>
-                              <h4 className={styles.groupTitle}>Encerrados ({round1Finished.length})</h4>
-                              <div className={styles.matchesGrid}>
-                                {round1Finished.map((m) => (
-                                  <MatchCard key={m.id} match={m} onResultUpdated={handleMatchResultUpdated} />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {hasPlayoffStarted && (
-                        <div>
-                          <h3 className={styles.phaseTitle}>
-                            🏆 {playoffCutoff === 4 ? 'Semifinais' : 'Final'}
-                          </h3>
-                          {round2Pending.length > 0 && (
-                            <div>
-                              <h4 className={styles.groupTitle}>Pendentes ({round2Pending.length})</h4>
-                              <div className={styles.matchesGrid}>
-                                {round2Pending.map((m) => (
-                                  <MatchCard key={m.id} match={m} onResultUpdated={handleMatchResultUpdated} />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {round2Finished.length > 0 && (
-                            <div>
-                              <h4 className={styles.groupTitle}>Encerrados ({round2Finished.length})</h4>
-                              <div className={styles.matchesGrid}>
-                                {round2Finished.map((m) => (
-                                  <MatchCard key={m.id} match={m} onResultUpdated={handleMatchResultUpdated} />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      {pendingMatches.length > 0 && (
-                        <div>
-                          <h4 className={styles.groupTitle}>Pendentes ({pendingMatches.length})</h4>
-                          <div className={styles.matchesGrid}>
-                            {pendingMatches.map((m) => (
-                              <MatchCard key={m.id} match={m} onResultUpdated={handleMatchResultUpdated} />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {finishedMatches.length > 0 && (
-                        <div>
-                          <h4 className={styles.groupTitle}>Encerrados ({finishedMatches.length})</h4>
-                          <div className={styles.matchesGrid}>
-                            {finishedMatches.map((m) => (
-                              <MatchCard key={m.id} match={m} onResultUpdated={handleMatchResultUpdated} />
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
+                renderRoundList()
               )}
-            </section>
+            </div>
           )}
 
           {activeTab === 'standings' && (
-            <section className={styles.standingsSection}>
+            <div className={styles.mobileTabContent}>
               <StandingsTable onDataUpdate={handleMatchResultUpdated} playoffCutoff={playoffCutoff} />
-
-              {isCreator && participants.length > 0 && (
-                <div className={styles.adminPanel}>
-                  <h4 className={styles.adminPanelTitle}>⚙️ Ajustes Administrativos</h4>
-                  <div className={styles.adminParticipantList}>
-                    {participants.map((p) => (
-                      <div key={p.id} className={styles.adminParticipantRow}>
-                        <span className={styles.adminParticipantName}>
-                          {p.team_name || p.profile?.nickname || 'Participante'}
-                        </span>
-                        <button
-                          className={styles.manageBtn}
-                          onClick={() => setManagedParticipant(p as ManagedParticipant)}
-                        >
-                          ⚙️ Gerenciar
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className={styles.dangerZone}>
-                    <h5 className={styles.dangerZoneTitle}>🚨 Zona de Perigo</h5>
-                    <button className={styles.dangerBtn} onClick={handleCancelTournament}>
-                      Cancelar Torneio
-                    </button>
-                  </div>
-                </div>
-              )}
-            </section>
+              {isCreator && participants.length > 0 && renderAdminPanel()}
+            </div>
           )}
         </div>
       </main>

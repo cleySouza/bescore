@@ -71,8 +71,6 @@ export async function generateMatchesByFormat(
       break
     case 'campeonato':
       matches = generateRoundRobinMatches(participantIds, false)
-      // round robin gera round=1 internamente; força round: 1 explicitamente
-      matches = matches.map((m) => ({ ...m, round: 1 }))
       break
     default:
       throw new Error(`Formato desconhecido: ${format}`)
@@ -123,37 +121,55 @@ export async function generateMatchesByFormat(
  * ============================================
  * Todos vs todos. Com opção de turno e returno.
  */
-function generateRoundRobinMatches(participantIds: string[], hasReturnMatch: boolean): Match[] {
-  const matches: Match[] = []
-  let round = 1
+function getRoundRobinRoundCount(participantCount: number): number {
+  if (participantCount <= 1) return 0
+  return participantCount % 2 === 0 ? participantCount - 1 : participantCount
+}
 
-  // Turno (primeira volta)
-  for (let i = 0; i < participantIds.length; i++) {
-    for (let j = i + 1; j < participantIds.length; j++) {
+function generateRoundRobinMatches(participantIds: string[], hasReturnMatch: boolean): Match[] {
+  if (participantIds.length < 2) return []
+
+  const matches: Match[] = []
+  const rotation: Array<string | null> = [...participantIds]
+
+  if (rotation.length % 2 !== 0) {
+    rotation.push(null)
+  }
+
+  const totalRounds = getRoundRobinRoundCount(participantIds.length)
+  const matchesPerRound = rotation.length / 2
+
+  for (let roundIndex = 0; roundIndex < totalRounds; roundIndex++) {
+    for (let matchIndex = 0; matchIndex < matchesPerRound; matchIndex++) {
+      const home = rotation[matchIndex]
+      const away = rotation[rotation.length - 1 - matchIndex]
+
+      if (!home || !away) continue
+
+      const shouldFlipHomeAway = roundIndex % 2 === 1 && matchIndex === 0
+
       matches.push({
-        home_participant_id: participantIds[i],
-        away_participant_id: participantIds[j],
-        round: round,
+        home_participant_id: shouldFlipHomeAway ? away : home,
+        away_participant_id: shouldFlipHomeAway ? home : away,
+        round: roundIndex + 1,
         status: 'pending',
       })
     }
+
+    const fixed = rotation[0]
+    const moved = rotation.pop() ?? null
+    rotation.splice(1, 0, moved)
+    rotation[0] = fixed
   }
 
-  // Returno (segunda volta, se habilitado)
   if (hasReturnMatch) {
-    round++
-    for (let i = 0; i < participantIds.length; i++) {
-      for (let j = 0; j < participantIds.length; j++) {
-        if (i !== j && i < j) {
-          matches.push({
-            home_participant_id: participantIds[j],
-            away_participant_id: participantIds[i],
-            round: round,
-            status: 'pending',
-          })
-        }
-      }
-    }
+    const returnMatches = matches.map((match) => ({
+      home_participant_id: match.away_participant_id,
+      away_participant_id: match.home_participant_id,
+      round: (match.round ?? 0) + totalRounds,
+      status: 'pending' as const,
+    }))
+    matches.push(...returnMatches)
   }
 
   return matches
@@ -321,8 +337,20 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
   const settings = tournament.settings as { playoffCutoff?: number } | null
   const cutoff = settings?.playoffCutoff ?? 2
 
-  // 2. Buscar classificação atual (apenas liga - round 1)
-  const standings = await getTournamentStandings(tournamentId, 1)
+  const { data: currentMatches, error: matchesError } = await supabase
+    .from('matches')
+    .select('round')
+    .eq('tournament_id', tournamentId)
+
+  if (matchesError) {
+    throw new Error(`Falha ao buscar rodadas atuais: ${matchesError.message}`)
+  }
+
+  const nextRound = Math.max(...(currentMatches?.map((match) => match.round ?? 0) ?? [0])) + 1
+
+  // 2. Buscar classificação atual da liga antes do playoff.
+  // Neste momento ainda não existem partidas de playoff registradas.
+  const standings = await getTournamentStandings(tournamentId)
 
   if (standings.length < cutoff) {
     throw new Error(`São necessários pelo menos ${cutoff} participantes classificados`)
@@ -342,13 +370,13 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
   if (cutoff === 4) {
     // Semifinais: 1º vs 4º, 2º vs 3º
     playoffMatches.push(
-      { tournament_id: tournamentId, home_participant_id: topN[0], away_participant_id: topN[3], round: 2, status: 'pending' },
-      { tournament_id: tournamentId, home_participant_id: topN[1], away_participant_id: topN[2], round: 2, status: 'pending' }
+      { tournament_id: tournamentId, home_participant_id: topN[0], away_participant_id: topN[3], round: nextRound, status: 'pending' },
+      { tournament_id: tournamentId, home_participant_id: topN[1], away_participant_id: topN[2], round: nextRound, status: 'pending' }
     )
   } else {
     // Final direta: 1º vs 2º
     playoffMatches.push(
-      { tournament_id: tournamentId, home_participant_id: topN[0], away_participant_id: topN[1], round: 2, status: 'pending' }
+      { tournament_id: tournamentId, home_participant_id: topN[0], away_participant_id: topN[1], round: nextRound, status: 'pending' }
     )
   }
 

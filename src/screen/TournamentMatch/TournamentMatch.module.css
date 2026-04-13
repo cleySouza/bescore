@@ -1,7 +1,665 @@
+/* ============================================================
+   LAYOUT BASE
+   ============================================================ */
+
 .container {
   min-height: 100vh;
   background: #f8fafc;
 }
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.backBtn {
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.backBtn:hover {
+  background: #e8e8e8;
+}
+
+.headerContent {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gameType {
+  background: #f0f4ff;
+  color: #667eea;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.statusBadge {
+  font-size: 13px;
+  font-weight: 700;
+  color: #dc2626;
+  background: #fee2e2;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.spacer {
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.main {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.errorMessage {
+  background: #fff0f0;
+  color: #c00;
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #fcc;
+  font-size: 14px;
+}
+
+/* ============================================================
+   PLAYOFF BANNER
+   ============================================================ */
+
+.playoffBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(135deg, #fef9c3 0%, #fde68a 100%);
+  border: 1.5px solid #fbbf24;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.playoffBannerContent {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.playoffBannerIcon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.playoffBannerContent strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: #92400e;
+  display: block;
+}
+
+.playoffBannerContent p {
+  font-size: 13px;
+  color: #78350f;
+  margin: 3px 0 0 0;
+}
+
+.playoffBannerBtn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.playoffBannerBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+}
+
+.playoffBannerBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   DESKTOP: DUAL-COLUMN DASHBOARD GRID
+   ============================================================ */
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Left column: accordion round list */
+.leftColumn {
+  min-width: 0;
+}
+
+/* Right column: sticky standings */
+.rightColumn {
+  position: sticky;
+  top: 76px; /* below sticky header */
+  align-self: start;
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* subtle scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
+}
+
+.rightColumn::-webkit-scrollbar {
+  width: 4px;
+}
+
+.rightColumn::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.rightColumn::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 2px;
+}
+
+/* Column title */
+.columnTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #374151;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pendingCountBadge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ============================================================
+   MOBILE: TAB LAYOUT (hidden on desktop)
+   ============================================================ */
+
+.mobileLayout {
+  display: none;
+}
+
+.tabsNav {
+  display: flex;
+  gap: 4px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 5px;
+  margin-bottom: 16px;
+}
+
+.tab {
+  flex: 1;
+  padding: 9px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.tab:hover {
+  background: #f0f4ff;
+  color: #667eea;
+}
+
+.tabActive {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.28);
+}
+
+.mobileTabContent {
+  /* natural flow */
+}
+
+/* ============================================================
+   ACCORDION: ROUND LIST
+   ============================================================ */
+
+.roundsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.roundAccordion {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: box-shadow 0.15s ease;
+}
+
+.roundAccordion:focus-within {
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+/* Round header button */
+.roundHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease;
+  gap: 10px;
+}
+
+.roundHeader:hover {
+  background: #f8fafc;
+}
+
+.roundHeaderOpen {
+  background: #f0f4ff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.roundHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.roundLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a1a;
+  white-space: nowrap;
+}
+
+.pendingBadge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #d97706;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.doneBadge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #16a34a;
+  background: rgba(22, 163, 74, 0.08);
+  border: 1px solid rgba(22, 163, 74, 0.18);
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* Chevron icon */
+.chevron {
+  font-size: 22px;
+  color: #94a3b8;
+  display: inline-block;
+  transition: transform 0.2s ease;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+/* Round body */
+.roundBody {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   MATCH ROW (compact horizontal item)
+   ============================================================ */
+
+.matchRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px 10px 16px;
+  background: transparent;
+  border: none;
+  border-top: 1px solid #f1f5f9;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s ease;
+}
+
+.matchRow:hover {
+  background: #f8fafc;
+}
+
+.matchRowActive {
+  background: #eef2ff;
+}
+
+.matchRowFinished .matchClub {
+  color: #6b7280;
+}
+
+/* Team cell (home and away) */
+.matchTeamCell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.matchTeamAway {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.matchClub {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.matchNick {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+/* Score / VS cell */
+.matchScoreCell {
+  flex-shrink: 0;
+  min-width: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.resultScore {
+  font-size: 15px;
+  font-weight: 800;
+  color: #667eea;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.vsLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: #d1d5db;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.expandIcon {
+  font-size: 8px;
+  color: #d1d5db;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+/* Expanded MatchCard panel */
+.matchCardWrap {
+  padding: 16px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* ============================================================
+   LOADING / EMPTY STATES
+   ============================================================ */
+
+.loadingMessage {
+  text-align: center;
+  padding: 40px 20px;
+  color: #667eea;
+  font-size: 15px;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 48px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.emptyIcon {
+  font-size: 48px;
+}
+
+.emptyText {
+  font-size: 16px;
+  font-weight: 600;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ============================================================
+   ADMIN PANEL (right column / mobile standings tab)
+   ============================================================ */
+
+.adminPanel {
+  border: 1.5px dashed #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  background: #fafafa;
+}
+
+.adminPanelTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 12px 0;
+}
+
+.adminParticipantList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.adminParticipantRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 10px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+}
+
+.adminParticipantName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manageBtn {
+  background: none;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 3px 8px;
+  color: #94a3b8;
+  transition: all 0.12s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.manageBtn:hover {
+  background: #f0f4ff;
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.dangerZone {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.dangerZoneTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #dc2626;
+  margin: 0 0 8px 0;
+}
+
+.dangerBtn {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1.5px solid #dc2626;
+  color: #dc2626;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dangerBtn:hover {
+  background: #dc2626;
+  color: white;
+}
+
+/* ============================================================
+   RESPONSIVE — MOBILE (≤ 900px)
+   ============================================================ */
+
+@media (max-width: 900px) {
+  .dashboardGrid {
+    display: none;
+  }
+
+  .mobileLayout {
+    display: block;
+  }
+
+  .main {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 12px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  .backBtn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .spacer {
+    display: none;
+  }
+
+  .main {
+    padding: 12px;
+  }
+
+  .matchClub,
+  .matchNick {
+    max-width: 90px;
+  }
+}
+
 
 .header {
   display: flex;
