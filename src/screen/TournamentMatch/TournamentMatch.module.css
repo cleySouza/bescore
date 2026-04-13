@@ -188,21 +188,13 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-gray-200) transparent;
+  scrollbar-width: none;
 }
 
 .rightColumn::-webkit-scrollbar {
-  width: 4px;
-}
-
-.rightColumn::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.rightColumn::-webkit-scrollbar-thumb {
-  background: var(--color-gray-200);
-  border-radius: 2px;
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .columnTitle {

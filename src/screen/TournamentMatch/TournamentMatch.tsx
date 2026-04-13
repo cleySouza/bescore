@@ -442,7 +442,6 @@ function TournamentMatch() {
           </div>
 
           <div className={styles.rightColumn}>
-            <h2 className={styles.columnTitle}>Classificação</h2>
             <StandingsTable onDataUpdate={handleMatchResultUpdated} playoffCutoff={playoffCutoff} />
             {isCreator && participants.length > 0 && renderAdminPanel()}
           </div>

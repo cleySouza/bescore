@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useAtomValue } from 'jotai'
-import { activeTournamentAtom } from '../atoms/tournamentAtoms'
-import { supabase } from '../lib/supabaseClient'
-import { getTournamentMatches, getTournamentStandings } from '../lib/matchService'
-import type { MatchWithTeams, StandingsRow } from '../types/tournament'
+import { activeTournamentAtom } from '../../atoms/tournamentAtoms'
+import { supabase } from '../../lib/supabaseClient'
+import { getTournamentMatches, getTournamentStandings } from '../../lib/matchService'
+import type { MatchWithTeams, StandingsRow } from '../../types/tournament'
 import styles from './StandingsTable.module.css'
 
 interface StandingsTableProps {
@@ -120,9 +120,9 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
     <div className={styles.container}>
       <div className={styles.board}>
         <div className={styles.headerRow}>
-          <div className={styles.headerTitle}>Classificação</div>
+          <h2 className={styles.headerTitle}>Classificação</h2>
           <div className={styles.headerStats}>
-            <span>P</span>
+            <span className={styles.pointsHeader}>P</span>
             <span>J</span>
             <span>V</span>
             <span>E</span>

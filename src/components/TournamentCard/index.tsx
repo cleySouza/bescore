@@ -1,4 +1,4 @@
-import type { TournamentWithParticipants } from '../atoms/tournamentAtoms'
+import type { TournamentWithParticipants } from '../../atoms/tournamentAtoms'
 import styles from './TournamentCard.module.css'
 
 interface TournamentCardProps {

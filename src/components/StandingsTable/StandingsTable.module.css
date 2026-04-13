@@ -5,41 +5,47 @@
 }
 
 .board {
-  background: var(--color-white);
-  border: 2px solid color-mix(in srgb, var(--color-dark) 70%, transparent 30%);
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  --position-col: 52px;
+  --team-col: minmax(260px, 1.6fr);
+  --stat-col: minmax(44px, 64px);
+  --gol-col: minmax(72px, 88px);
+  --form-col: minmax(128px, 1fr);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .headerRow {
   display: grid;
-  grid-template-columns: minmax(260px, 1.6fr) minmax(520px, 1fr);
-  gap: 20px;
+  grid-template-columns: var(--position-col) var(--team-col) repeat(5, var(--stat-col)) var(--gol-col) var(--stat-col) var(--form-col);
+  gap: 0;
   align-items: center;
-  padding: 14px 18px 10px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0));
+  padding: 6px 2px;
+  background: var(--color-white);
+  border-radius: 10px;
 }
 
 .headerTitle {
+  grid-column: 1 / 3;
   display: flex;
   align-items: center;
-  min-height: 74px;
-  padding: 0 22px;
-  background: #f7f6f2;
-  border-radius: 18px;
+  margin: 0;
+  padding-left: 10px;
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--color-dark-100);
+  letter-spacing: 0.04em;
 }
 
 .headerStats {
+  grid-column: 3 / -1;
   display: grid;
-  grid-template-columns: repeat(7, minmax(38px, 58px)) minmax(128px, 1fr);
+  grid-template-columns: repeat(5, var(--stat-col)) var(--gol-col) var(--stat-col) var(--form-col);
   gap: 0;
   align-items: center;
   justify-items: center;
+  text-align: center;
   font-family: var(--font-display);
   font-size: 17px;
   color: var(--color-dark);
@@ -48,14 +54,22 @@
 .rows {
   display: flex;
   flex-direction: column;
+  border: 2px solid color-mix(in srgb, var(--color-dark) 70%, transparent 30%);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
 }
 
 .row {
   display: grid;
-  grid-template-columns: 52px minmax(260px, 1.6fr) repeat(7, minmax(38px, 58px)) minmax(128px, 1fr);
+  grid-template-columns: var(--position-col) var(--team-col) repeat(5, var(--stat-col)) var(--gol-col) var(--stat-col) var(--form-col);
   align-items: stretch;
-  border-top: 1px solid color-mix(in srgb, var(--color-dark) 60%, transparent 40%);
+  border-top: 1px solid color-mix(in srgb, var(--color-dark) 12%, transparent 88%);
   background: var(--color-white);
+}
+
+.row:first-child {
+  border-top: none;
 }
 
 .rowClassified .positionCell {
@@ -172,6 +186,11 @@
   font-size: 18px;
   color: var(--color-dark);
   background: var(--color-white);
+}
+
+.pointsHeader,
+.statCell[data-label='P'] {
+  font-weight: 700;
 }
 
 .row .statCell:nth-child(4),
@@ -300,7 +319,7 @@
   .headerRow,
   .rows,
   .footer {
-    min-width: 980px;
+    min-width: 1020px;
   }
 }
 
@@ -317,16 +336,20 @@
 
   .headerRow {
     grid-template-columns: 1fr;
-    padding: 12px;
+    background-color: var(--color-white);
   }
 
   .headerTitle {
-    min-height: 64px;
     font-size: 24px;
+    font-family: Poppins, sans-serif;
+    border: 0;
+    padding: 0;
+    margin: 0;
   }
 
   .headerStats {
     display: none;
+    background-color: var(--color-white);
   }
 
   .row {

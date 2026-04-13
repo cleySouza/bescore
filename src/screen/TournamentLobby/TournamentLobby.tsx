@@ -290,7 +290,10 @@ function TournamentLobby() {
 
       <TournamentConfig
         participantCount={participantCount}
-        participants={participants}
+        participants={participants.map((participant) => ({
+          ...participant,
+          user_id: participant.user_id ?? '',
+        }))}
         onClose={() => setShowConfigModal(false)}
         onMatchesGenerated={handleMatchesGenerated}
       />

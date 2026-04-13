@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useAtomValue } from 'jotai'
-import { userAtom } from '../atoms/sessionAtom'
-import { activeTournamentAtom } from '../atoms/tournamentAtoms'
-import { updateMatchResult } from '../lib/matchService'
-import type { MatchWithTeams } from '../types/tournament'
+import { userAtom } from '../../atoms/sessionAtom'
+import { activeTournamentAtom } from '../../atoms/tournamentAtoms'
+import { updateMatchResult } from '../../lib/matchService'
+import type { MatchWithTeams } from '../../types/tournament'
 import styles from './MatchCard.module.css'
 
 interface MatchCardProps {

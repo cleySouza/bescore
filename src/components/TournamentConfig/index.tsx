@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useAtomValue } from 'jotai'
-import { userAtom } from '../atoms/sessionAtom'
-import { activeTournamentAtom, showConfigModalAtom } from '../atoms/tournamentAtoms'
-import { generateMatchesByFormat } from '../lib/matchGenerationEngine'
-import { updateParticipantTeamName } from '../lib/tournamentService'
-import type { TournamentFormat, TournamentSettings } from '../types/tournament'
+import { userAtom } from '../../atoms/sessionAtom'
+import { activeTournamentAtom, showConfigModalAtom } from '../../atoms/tournamentAtoms'
+import { generateMatchesByFormat } from '../../lib/matchGenerationEngine'
+import { updateParticipantTeamName } from '../../lib/tournamentService'
+import type { TournamentFormat, TournamentSettings } from '../../types/tournament'
 import styles from './TournamentConfig.module.css'
 
 interface LobbyParticipant {
   id: string
   team_name: string | null
-  user_id: string
+  user_id: string | null
   profile?: {
     nickname: string | null
     avatar_url: string | null
