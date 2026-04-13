@@ -3,11 +3,12 @@
  * Theme colors that can be used across the application
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
 
 :root {
   /* Typography */
   --font-primary: 'Inter', sans-serif;
+  --font-display: 'Poppins', sans-serif;
 
   /* Grayscale */
   --color-gray-100: #f0f0f0;
@@ -51,9 +52,3 @@ body {
   font-family: var(--font-primary);
 }
 
-/* Dark mode (for future use) */
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Colors can be overridden here for dark mode */
-  }
-}

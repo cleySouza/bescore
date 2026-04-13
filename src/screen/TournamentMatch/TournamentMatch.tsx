@@ -12,6 +12,7 @@ import { getTournamentMatches } from '../../lib/matchService'
 import { generatePlayoffMatches } from '../../lib/matchGenerationEngine'
 import type { Participant } from '../../atoms/tournamentAtoms'
 import type { MatchWithTeams, TournamentSettings } from '../../types/tournament'
+import Accordion from '../../components/Accordion/Accordion'
 import MatchCard from '../../components/MatchCard'
 import StandingsTable from '../../components/StandingsTable'
 import ManageParticipantModal, { type ManagedParticipant } from '../TournamentView/components/ManageParticipantModal'
@@ -189,7 +190,7 @@ function TournamentMatch() {
 
   const getRoundLabel = (round: number): string => {
     if (isCampeonato) {
-      if (round <= leagueRoundCount) return `⚽ Rodada ${round}`
+      if (round <= leagueRoundCount) return `Rodada ${round}`
       if (round === leagueRoundCount + 1) return playoffCutoff === 4 ? '🏆 Semifinais' : '🏆 Final'
       return `🏆 Fase Final ${round - leagueRoundCount}`
     }
@@ -252,19 +253,22 @@ function TournamentMatch() {
       <div className={styles.roundsList}>
         {filteredRoundEntries.map(([round, roundMatches]) => {
             const pendingInRound = roundMatches.filter((m) => m.status === 'pending').length
+            const isRoundComplete = pendingInRound === 0
             const isOpen = openRound === round
             return (
-              <div key={round} className={styles.roundAccordion}>
-                <button
-                  className={`${styles.roundHeader} ${isOpen ? styles.roundHeaderOpen : ''}`}
-                  onClick={() => {
-                    setOpenRound((prev) => (prev === round ? null : round))
-                    setExpandedMatchId(null)
-                  }}
-                  aria-expanded={isOpen}
-                >
+              <Accordion
+                key={round}
+                className={isRoundComplete ? styles.roundAccordionComplete : undefined}
+                isOpen={isOpen}
+                onToggle={() => {
+                  setOpenRound((prev) => (prev === round ? null : round))
+                  setExpandedMatchId(null)
+                }}
+                header={(
                   <div className={styles.roundHeaderLeft}>
-                    <span className={styles.roundLabel}>{getRoundLabel(round)}</span>
+                    <span className={`${styles.roundLabel} ${isRoundComplete ? styles.roundLabelComplete : ''}`}>
+                      {getRoundLabel(round)}
+                    </span>
                     {pendingInRound > 0 ? (
                       <span className={styles.pendingBadge}>
                         {pendingInRound} pendente{pendingInRound !== 1 ? 's' : ''}
@@ -273,65 +277,60 @@ function TournamentMatch() {
                       <span className={styles.doneBadge}>✓ Completa</span>
                     )}
                   </div>
-                  <span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ''}`}>›</span>
-                </button>
+                )}
+              >
+                {roundMatches.map((m) => {
+                  const isExpanded = expandedMatchId === m.id
+                  return (
+                    <div key={m.id}>
+                      <button
+                        className={`${styles.matchRow} ${m.status === 'finished' ? styles.matchRowFinished : ''} ${isExpanded ? styles.matchRowActive : ''}`}
+                        onClick={() =>
+                          setExpandedMatchId((prev) => (prev === m.id ? null : m.id))
+                        }
+                      >
+                        <div className={styles.matchTeamCell}>
+                          <span className={styles.matchClub}>
+                            {m.homeTeam?.team_name || 'TBD'}
+                          </span>
+                          <span className={styles.matchNick}>
+                            {m.homeTeam?.profile?.nickname || '—'}
+                          </span>
+                        </div>
 
-                {isOpen && (
-                  <div className={styles.roundBody}>
-                    {roundMatches.map((m) => {
-                      const isExpanded = expandedMatchId === m.id
-                      return (
-                        <div key={m.id}>
-                          <button
-                            className={`${styles.matchRow} ${m.status === 'finished' ? styles.matchRowFinished : ''} ${isExpanded ? styles.matchRowActive : ''}`}
-                            onClick={() =>
-                              setExpandedMatchId((prev) => (prev === m.id ? null : m.id))
-                            }
-                          >
-                            <div className={styles.matchTeamCell}>
-                              <span className={styles.matchClub}>
-                                {m.homeTeam?.team_name || 'TBD'}
-                              </span>
-                              <span className={styles.matchNick}>
-                                {m.homeTeam?.profile?.nickname || '—'}
-                              </span>
-                            </div>
-
-                            <div className={styles.matchScoreCell}>
-                              {m.status === 'finished' ? (
-                                <span className={styles.resultScore}>
-                                  {m.home_score} – {m.away_score}
-                                </span>
-                              ) : (
-                                <span className={styles.vsLabel}>vs</span>
-                              )}
-                            </div>
-
-                            <div className={`${styles.matchTeamCell} ${styles.matchTeamAway}`}>
-                              <span className={styles.matchClub}>
-                                {m.awayTeam?.team_name || 'TBD'}
-                              </span>
-                              <span className={styles.matchNick}>
-                                {m.awayTeam?.profile?.nickname || '—'}
-                              </span>
-                            </div>
-
-                            <span className={styles.expandIcon} aria-hidden>
-                              {isExpanded ? '▲' : '▼'}
+                        <div className={styles.matchScoreCell}>
+                          {m.status === 'finished' ? (
+                            <span className={styles.resultScore}>
+                              {m.home_score} – {m.away_score}
                             </span>
-                          </button>
-
-                          {isExpanded && (
-                            <div className={styles.matchCardWrap}>
-                              <MatchCard match={m} onResultUpdated={handleMatchResultUpdated} />
-                            </div>
+                          ) : (
+                            <span className={styles.vsLabel}>vs</span>
                           )}
                         </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
+
+                        <div className={`${styles.matchTeamCell} ${styles.matchTeamAway}`}>
+                          <span className={styles.matchClub}>
+                            {m.awayTeam?.team_name || 'TBD'}
+                          </span>
+                          <span className={styles.matchNick}>
+                            {m.awayTeam?.profile?.nickname || '—'}
+                          </span>
+                        </div>
+
+                        <span className={styles.expandIcon} aria-hidden>
+                          {isExpanded ? '▲' : '▼'}
+                        </span>
+                      </button>
+
+                      {isExpanded && (
+                        <div className={styles.matchCardWrap}>
+                          <MatchCard match={m} onResultUpdated={handleMatchResultUpdated} />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </Accordion>
             )
           })}
       </div>
@@ -429,7 +428,7 @@ function TournamentMatch() {
         <div className={styles.dashboardGrid}>
           <div className={styles.leftColumn}>
             <h2 className={styles.columnTitle}>
-              🎮 
+              Próximas partidas:
               {pendingCount > 0 && (
                 <span className={styles.pendingCountBadge}>{pendingCount} pendentes</span>
               )}

@@ -171,7 +171,7 @@
 
 .dashboardGrid {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: 500px 1fr;
   gap: 24px;
   align-items: start;
 }
@@ -188,7 +188,6 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
   scrollbar-width: thin;
   scrollbar-color: var(--color-gray-200) transparent;
 }
@@ -207,7 +206,7 @@
 }
 
 .columnTitle {
-  font-size: 15px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--color-dark-100);
   margin: 0 0 12px 0;
@@ -216,6 +215,11 @@
   gap: 8px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  background-color: var(--color-white);
+  padding: 8px 12px;
+  border-radius: 10px;
+  justify-content: space-between;
+  font-family: 'Poppins', sans-serif;
 }
 
 .pendingCountBadge {
@@ -234,19 +238,18 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: var(--color-var(--color-white));
-  border: 1px solid var(--color-gray-200);
+  background: var(--color-white);
+  /* border: 1px solid var(--color-gray-200); */
   border-radius: 10px;
   padding: 4px;
   margin-bottom: 12px;
-  width: 100%;
 }
 
 .legOption {
   flex: 1;
   border: none;
   background: transparent;
-  color: var(--color-gray-300);
+  color: var(--color-dark);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -258,12 +261,12 @@
 
 .legOption:hover {
   background: var(--color-be-100);
-  color: var(--color-var(--color-white));
+  color: var(--color-white);
 }
 
 .legOptionActive {
   background: var(--color-dark-100);
-  color: var(--color-var(--color-white));
+  color: var(--color-white);
 }
 
 .legOptionActive:hover {
@@ -313,10 +316,6 @@
   box-shadow: 0 2px 8px color-mix(in srgb, var(--color-be) 30%, transparent 70%);
 }
 
-.mobileTabContent {
-  /* natural flow */
-}
-
 /* ============================================================
    ACCORDION
    ============================================================ */
@@ -327,44 +326,10 @@
   gap: 8px;
 }
 
-.roundAccordion {
-  background: var(--color-var(--color-white));
-  border: 1px solid var(--color-gray-200);
-  border-radius: 10px;
-  overflow: hidden;
-  transition: box-shadow 0.15s ease;
-}
-
-.roundAccordion:focus-within {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-be) 25%, transparent 75%);
-}
-
-.roundHeader {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.12s ease;
-  gap: 10px;
-}
-
-.roundHeader:hover {
-  background: var(--color-gray-100);
-}
-
-.roundHeaderOpen {
-  background: color-mix(in srgb, var(--color-be) 10%, var(--color-var(--color-white)) 90%);
-  border-bottom: 1px solid var(--color-gray-200);
-}
-
 .roundHeaderLeft {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   flex: 1;
   min-width: 0;
@@ -372,9 +337,14 @@
 
 .roundLabel {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
+  font-family: 'Poppins', sans-serif;
   color: var(--color-dark);
   white-space: nowrap;
+}
+
+.roundLabelComplete {
+  color: var(--color-success);
 }
 
 .pendingBadge {
@@ -399,22 +369,8 @@
   white-space: nowrap;
 }
 
-.chevron {
-  font-size: 22px;
-  color: var(--color-gray-300);
-  display: inline-block;
-  transition: transform 0.2s ease;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.chevronOpen {
-  transform: rotate(90deg);
-}
-
-.roundBody {
-  display: flex;
-  flex-direction: column;
+.roundAccordionComplete {
+  border: 1px solid var(--color-success);
 }
 
 /* ============================================================
@@ -434,10 +390,6 @@
   cursor: pointer;
   text-align: left;
   transition: background 0.1s ease;
-}
-
-.matchRow:hover {
-  background: var(--color-gray-100);
 }
 
 .matchRowActive {

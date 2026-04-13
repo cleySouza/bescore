@@ -108,14 +108,14 @@
   color: #c62828;
   font-weight: 700;
   cursor: default;
-  var(--color-white)-space: nowrap;
+  white-space: nowrap;
 }
 
 .penaltyPositive {
   color: var(--color-success);
   font-weight: 700;
   cursor: default;
-  var(--color-white)-space: nowrap;
+  white-space: nowrap;
 }
 
 .penaltyZero {
