@@ -39,8 +39,8 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
 
   const savedSettings = tournament?.settings as TournamentSettings | null
   const initialFormat: TournamentFormat = savedSettings?.format ?? 'roundRobin'
-  const [format, setFormat] = useState<TournamentFormat>(initialFormat)
-  const [settings, setSettings] = useState<TournamentSettings>({
+  const [format] = useState<TournamentFormat>(initialFormat)
+  const [settings] = useState<TournamentSettings>({
     format: initialFormat,
     hasReturnMatch: savedSettings?.hasReturnMatch ?? false,
     qualifiedCount: savedSettings?.qualifiedCount ?? 2,

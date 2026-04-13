@@ -1,4 +1,4 @@
-import { useAtomValue, useSetAtom } from 'jotai'
+import { useAtomValue } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import { currentViewAtom } from '../../atoms/tournamentAtoms'
 import { signOut } from '../../lib/authGoogle'
@@ -13,7 +13,6 @@ import styles from './LoggedIn.module.css'
 export function LoggedIn() {
   const user = useAtomValue(userAtom)
   const currentView = useAtomValue(currentViewAtom)
-  const setCurrentView = useSetAtom(currentViewAtom)
 
   const handleLogout = async () => {
     try {

@@ -80,7 +80,7 @@
 .teamCell,
 .statCell,
 .formCell {
-  min-height: 58px;
+  /* min-height: 58px; */
   border-right: 1px solid color-mix(in srgb, var(--color-dark) 60%, transparent 40%);
 }
 
@@ -103,8 +103,8 @@
 }
 
 .avatar {
-  width: 44px;
-  height: 44px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid color-mix(in srgb, var(--color-dark) 20%, transparent 80%);
@@ -112,8 +112,8 @@
 }
 
 .avatarFallback {
-  width: 44px;
-  height: 44px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -121,7 +121,7 @@
   background: linear-gradient(135deg, var(--color-be) 0%, var(--color-be-100) 100%);
   color: var(--color-white);
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
   flex-shrink: 0;
 }

@@ -36,7 +36,7 @@ function ManageParticipantModal({ participant, onClose, onSaved }: ManagePartici
     setError(null)
     try {
       await updateParticipantAdmin(participant.id, {
-        team_name: teamName.trim() || null,
+        team_name: teamName.trim() || undefined,
         penalty_points: penaltyPoints,
         penalty_reason: penaltyReason.trim() || null,
       })
