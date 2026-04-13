@@ -45,7 +45,7 @@ function Dashboard() {
     const tournament = myTournaments.find((t) => t.id === tournamentId)
     if (tournament) {
       setActiveTournament(tournament)
-      setCurrentView('tournament')
+      setCurrentView(tournament.status === 'active' ? 'tournament-match' : 'tournament-lobby')
     }
   }
 

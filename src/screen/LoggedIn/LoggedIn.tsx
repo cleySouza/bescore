@@ -4,7 +4,8 @@ import { currentViewAtom } from '../../atoms/tournamentAtoms'
 import { signOut } from '../../lib/authGoogle'
 import { Header } from '../../components/Header/Header'
 import Dashboard from '../Dashboard/Dashboard'
-import TournamentView from '../TournamentView/TournamentView'
+import TournamentLobby from '../TournamentLobby/TournamentLobby'
+import TournamentMatch from '../TournamentMatch/TournamentMatch'
 import CreateTournament from '../CreateTournament/CreateTournament'
 import JoinByCode from '../JoinByCode/JoinByCode'
 import styles from './LoggedIn.module.css'
@@ -27,7 +28,8 @@ export function LoggedIn() {
       <Header user={user} onLogout={handleLogout} />
       <main className={styles.main}>
         {currentView === 'dashboard' && <Dashboard />}
-        {currentView === 'tournament' && <TournamentView onBackToDashboard={() => setCurrentView('dashboard')} />}
+        {currentView === 'tournament-lobby' && <TournamentLobby />}
+        {currentView === 'tournament-match' && <TournamentMatch />}
         {currentView === 'create-tournament' && <CreateTournament />}
         {currentView === 'join-by-code' && <JoinByCode />}
       </main>

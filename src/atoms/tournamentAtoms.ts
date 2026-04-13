@@ -34,8 +34,10 @@ export const showConfigModalAtom = atom<boolean>(false)
 // Aba ativa em TournamentView: 'matches' ou 'standings'
 export const activeTournamentTabAtom = atom<'matches' | 'standings'>('matches')
 
-// View atual: 'dashboard' ou 'tournament'
-export const currentViewAtom = atom<'dashboard' | 'tournament'>('dashboard')
+// View atual
+export const currentViewAtom = atom<
+  'dashboard' | 'tournament-lobby' | 'tournament-match' | 'create-tournament' | 'join-by-code'
+>('dashboard')
 
 // --- Conexões Recentes ---
 
