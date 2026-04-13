@@ -53,7 +53,7 @@
   align-items: center;
   justify-content: center;
   padding: 25px;
-  background-color: var(--color-white);
+  background-color: var(--color-var(--color-white));
 }
 
 /* Main Content Grid - 2 columns */
@@ -78,7 +78,7 @@
 
 /* Form Section — branco por cima do shell */
 .formSection {
-  background: var(--color-white);
+  background: var(--color-var(--color-white));
   border-radius: 11px;
   padding: 24px;
   display: flex;
@@ -110,7 +110,7 @@
   font-size: 14px;
   font-family: inherit;
   color: var(--color-dark);
-  background: var(--color-white);
+  background: var(--color-var(--color-white));
   transition: border-color 0.2s;
 }
 
@@ -190,7 +190,7 @@
   justify-content: center;
   gap: 2px;
   padding: 9px 6px;
-  background: var(--color-white);
+  background: var(--color-var(--color-white));
   color: var(--color-gray-300);
   border: none;
   border-right: 1px solid var(--color-gray-200);
@@ -214,7 +214,7 @@
 
 .pillOptionActive {
   background: var(--color-dark);
-  color: var(--color-white);
+  color: var(--color-var(--color-white));
 }
 
 .pillOptionSub {
@@ -330,7 +330,7 @@
   font-size: 14px;
   font-family: var(--font-primary);
   color: var(--color-dark);
-  background: var(--color-white);
+  background: var(--color-var(--color-white));
   height: 100%;
   padding: 0;
   appearance: textfield;
@@ -345,7 +345,7 @@
 
 .stepperInput:focus {
   outline: none;
-  background: var(--color-white);
+  background: var(--color-var(--color-white));
 }
 
 .stepperInput:disabled {
@@ -411,7 +411,7 @@
   border-radius: 100px;
   padding: 4px;
   cursor: pointer;
-  background: var(--color-white);
+  background: var(--color-var(--color-white));
   font-family: var(--font-primary);
   transition: background 0.2s ease, border-color 0.2s ease;
 }
@@ -470,7 +470,7 @@
 /* Error Message */
 .errorMessage {
   padding: 10px 14px;
-  background: var(--color-white);
+  background: var(--color-var(--color-white));
   color: var(--color-red);
   border-radius: 6px;
   font-size: 12px;
@@ -587,7 +587,7 @@
   font-weight: 600;
   cursor: pointer;
   background: var(--color-dark-100);
-  color: var(--color-white);
+  color: var(--color-var(--color-white));
   transition: all 0.2s;
   display: flex;
   align-items: center;
@@ -634,7 +634,7 @@
 }
 
 .previewSection {
-  background: var(--color-white);
+  background: var(--color-var(--color-white));
   border-radius: 11px;
   display: flex;
   flex-direction: column;
@@ -741,7 +741,7 @@
   font-weight: 600;
   font-family: var(--font-primary);
   cursor: pointer;
-  background: var(--color-white);
+  background: var(--color-var(--color-white));
   color: var(--color-dark);
   transition: border-color 0.2s ease, color 0.2s ease;
 }
@@ -766,7 +766,7 @@
   font-weight: 600;
   font-family: var(--font-primary);
   cursor: pointer;
-  background: var(--color-white);
+  background: var(--color-var(--color-white));
   color: var(--color-dark);
   text-decoration: none;
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
@@ -775,7 +775,7 @@
 .whatsappBtn:hover {
   background: var(--color-be);
   border-color: var(--color-be);
-  color: var(--color-white);
+  color: var(--color-var(--color-white));
 }
 
 .redirectHint {

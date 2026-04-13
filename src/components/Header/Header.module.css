@@ -3,7 +3,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  background: var(--color-white);
+  background: var(--color-var(--color-white));
   border-bottom: 1px solid var(--color-gray-200);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   flex-wrap: wrap;
@@ -41,14 +41,14 @@
 
 .logoutBtn {
   background: var(--color-red);
-  color: var(--color-white);
+  color: var(--color-var(--color-white));
   border: none;
   padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   transition: background 0.3s;
-  white-space: nowrap;
+  var(--color-white)-space: nowrap;
 }
 
 .logoutBtn:hover {

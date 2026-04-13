@@ -7,7 +7,7 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
+  background: var(--color-white);
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -15,7 +15,7 @@
 
 .table thead {
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--color-gray-200);
 }
 
 .table th {
@@ -23,19 +23,19 @@
   text-align: left;
   font-size: 12px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--color-dark);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .table td {
   padding: 12px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-gray-100);
   font-size: 14px;
 }
 
 .even {
-  background: white;
+  background: var(--color-white);
 }
 
 .odd {
@@ -49,7 +49,7 @@
 
 .position strong {
   font-size: 16px;
-  color: #667eea;
+  color: var(--color-be);
 }
 
 .team {
@@ -65,18 +65,18 @@
 
 .teamName {
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--color-dark);
 }
 
 .teamCell small {
   font-size: 12px;
-  color: #999;
+  color: var(--color-gray-300);
 }
 
 .stat {
   width: 40px;
   text-align: center;
-  color: #666;
+  color: var(--color-gray-300);
   font-weight: 500;
 }
 
@@ -90,16 +90,16 @@
 
 .points strong {
   font-size: 16px;
-  color: #667eea;
+  color: var(--color-be);
 }
 
 .positive {
-  color: #4caf50;
+  color: var(--color-success);
   font-weight: 600;
 }
 
 .negative {
-  color: #ff6b6b;
+  color: var(--color-red-100);
   font-weight: 600;
 }
 
@@ -108,18 +108,18 @@
   color: #c62828;
   font-weight: 700;
   cursor: default;
-  white-space: nowrap;
+  var(--color-white)-space: nowrap;
 }
 
 .penaltyPositive {
-  color: #2e7d32;
+  color: var(--color-success);
   font-weight: 700;
   cursor: default;
-  white-space: nowrap;
+  var(--color-white)-space: nowrap;
 }
 
 .penaltyZero {
-  color: #ccc;
+  color: var(--color-gray-200);
 }
 
 .penaltyIcon {
@@ -127,12 +127,12 @@
 }
 
 .inPlayoffZone {
-  border-left: 3px solid #4caf50;
+  border-left: 3px solid var(--color-success);
   background: rgba(76, 175, 80, 0.06) !important;
 }
 
 .inPlayoffZone .position strong {
-  color: #2e7d32;
+  color: var(--color-success);
 }
 
 .playoffLegend {
@@ -141,7 +141,7 @@
   gap: 8px;
   padding: 8px 12px;
   font-size: 12px;
-  color: #2e7d32;
+  color: var(--color-success);
 }
 
 .playoffDot {
@@ -149,17 +149,17 @@
   width: 10px;
   height: 10px;
   border-radius: 2px;
-  background: #4caf50;
+  background: var(--color-success);
   flex-shrink: 0;
 }
 
 .legend {
   padding: 12px;
-  background: #f8f9fa;
+  background: var(--color-gray-100);
   border-radius: 8px;
   text-align: center;
-  color: #666;
-  border-left: 4px solid #667eea;
+  color: var(--color-gray-300);
+  border-left: 4px solid var(--color-be);
 }
 
 .legend small {
@@ -167,18 +167,18 @@
 }
 
 .error {
-  background: #fff5f5;
-  color: #c00;
+  background: var(--color-red-100);
+  color: var(--color-red);
   padding: 12px;
   border-radius: 6px;
   font-size: 14px;
-  border-left: 4px solid #ff6b6b;
+  border-left: 4px solid var(--color-red-100);
 }
 
 .empty {
   padding: 40px 20px;
   text-align: center;
-  color: #999;
+  color: var(--color-gray-300);
 }
 
 @media (max-width: 900px) {
@@ -227,18 +227,18 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
     padding: 12px;
-    border-bottom: 1px solid #e0e0e0;
-    background: white;
+    border-bottom: 1px solid var(--color-gray-200);
+    background: var(--color-white);
     margin-bottom: 4px;
     border-radius: 8px;
   }
 
   .even {
-    background: white;
+    background: var(--color-white);
   }
 
   .odd {
-    background: white;
+    background: var(--color-white);
   }
 
   .table td {
@@ -253,7 +253,7 @@
     content: attr(data-label);
     font-size: 10px;
     font-weight: 700;
-    color: #999;
+    color: var(--color-gray-300);
     text-transform: uppercase;
   }
 
@@ -322,7 +322,7 @@
     left: 6px;
     font-weight: 700;
     text-transform: uppercase;
-    color: #999;
+    color: var(--color-gray-300);
     font-size: 11px;
   }
 

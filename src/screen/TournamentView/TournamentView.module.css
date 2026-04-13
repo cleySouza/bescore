@@ -1,6 +1,6 @@
 .container {
   min-height: 100vh;
-  background: #f8fafc;
+  background: var(--color-gray-100);
 }
 
 .header {
@@ -8,27 +8,27 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px;
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-gray-200);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   gap: 16px;
 }
 
 .backBtn {
   padding: 8px 12px;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
+  background: var(--color-gray-100);
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--color-dark);
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
+  var(--color-white)-space: nowrap;
 }
 
 .backBtn:hover {
-  background: #e8e8e8;
+  background: var(--color-gray-200);
 }
 
 .headerContent {
@@ -43,20 +43,20 @@
   font-size: 24px;
   font-weight: 700;
   margin: 0;
-  color: #1a1a1a;
-  white-space: nowrap;
+  color: var(--color-dark);
+  var(--color-white)-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .gameType {
   background: #f0f4ff;
-  color: #667eea;
+  color: var(--color-be);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
-  white-space: nowrap;
+  var(--color-white)-space: nowrap;
 }
 
 .spacer {
@@ -78,8 +78,8 @@
 
 .infoCard,
 .setupBtn {
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   padding: 16px;
   display: flex;
@@ -90,25 +90,25 @@
 .setupBtn {
   cursor: pointer;
   transition: all 0.3s ease;
-  border: 2px solid #667eea;
+  border: 2px solid var(--color-be);
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
   font-size: 16px;
   font-weight: 600;
-  color: #667eea;
+  color: var(--color-be);
   align-items: center;
   justify-content: center;
 }
 
 .setupBtn:hover {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--gradient-primary);
+  color: var(--color-white);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .infoLabel {
   font-size: 12px;
   font-weight: 600;
-  color: #999;
+  color: var(--color-gray-300);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -116,7 +116,7 @@
 .codeDisplay {
   font-size: 24px;
   font-weight: 700;
-  color: #667eea;
+  color: var(--color-be);
   font-family: 'Monaco', 'Courier New', monospace;
   letter-spacing: 2px;
   word-break: break-all;
@@ -124,18 +124,18 @@
 
 .infoHint {
   font-size: 12px;
-  color: #999;
+  color: var(--color-gray-300);
 }
 
 .statusBadge {
   font-size: 16px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--color-dark);
 }
 
 .errorMessage {
-  background: #fff0f0;
-  color: #c00;
+  background: var(--color-red-100);
+  color: var(--color-red);
   padding: 16px;
   border-radius: 8px;
   margin-bottom: 20px;
@@ -143,8 +143,8 @@
 }
 
 .participantsSection {
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
   border-radius: 12px;
   padding: 24px;
 }
@@ -153,13 +153,13 @@
   font-size: 20px;
   font-weight: 700;
   margin: 0 0 20px 0;
-  color: #1a1a1a;
+  color: var(--color-dark);
 }
 
 .loadingMessage {
   text-align: center;
   padding: 40px 20px;
-  color: #667eea;
+  color: var(--color-be);
   font-size: 16px;
 }
 
@@ -180,13 +180,13 @@
 .emptyText {
   font-size: 18px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--color-dark);
   margin: 0;
 }
 
 .emptySubtext {
   font-size: 14px;
-  color: #666;
+  color: var(--color-gray-300);
   margin: 0;
   max-width: 400px;
 }
@@ -199,8 +199,8 @@
 
 .copyBtn {
   padding: 10px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--gradient-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 6px;
   font-size: 14px;
@@ -225,15 +225,15 @@
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background: #f9f9f9;
-  border: 1px solid #e5e5e5;
+  background: var(--color-gray-100);
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   transition: all 0.2s ease;
 }
 
 .participantCard:hover {
   background: #f0f4ff;
-  border-color: #667eea;
+  border-color: var(--color-be);
 }
 
 .avatar {
@@ -241,14 +241,14 @@
   height: 48px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--color-gray-200);
 }
 
 .avatarPlaceholder {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #ddd;
+  background: var(--color-gray-200);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -264,17 +264,17 @@
 .teamName {
   font-size: 14px;
   font-weight: 600;
-  color: #1a1a1a;
-  white-space: nowrap;
+  color: var(--color-dark);
+  var(--color-white)-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .userName {
   font-size: 12px;
-  color: #999;
+  color: var(--color-gray-300);
   display: block;
-  white-space: nowrap;
+  var(--color-white)-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -287,12 +287,12 @@
 /* Botão de gerenciar participante (criador) */
 .manageBtn {
   background: none;
-  border: 1.5px solid #ddd;
+  border: 1.5px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
   padding: 4px 8px;
-  color: #888;
+  color: var(--color-gray-300);
   transition: all 0.15s ease;
   flex-shrink: 0;
   line-height: 1;
@@ -300,23 +300,23 @@
 
 .manageBtn:hover {
   background: #f0f4ff;
-  border-color: #667eea;
-  color: #667eea;
+  border-color: var(--color-be);
+  color: var(--color-be);
 }
 
 /* Painel administrativo na aba Classificação */
 .adminPanel {
   margin-top: 24px;
-  border: 1.5px dashed #ddd;
+  border: 1.5px dashed var(--color-gray-200);
   border-radius: 10px;
   padding: 16px;
-  background: #fafafa;
+  background: var(--color-gray-100);
 }
 
 .adminPanelTitle {
   font-size: 13px;
   font-weight: 700;
-  color: #888;
+  color: var(--color-gray-300);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin: 0 0 12px 0;
@@ -334,20 +334,20 @@
   justify-content: space-between;
   gap: 12px;
   padding: 8px 12px;
-  background: #fff;
-  border: 1px solid #eee;
+  background: var(--color-var(--color-white));
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
 }
 
 .adminParticipantName {
   font-size: 14px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--color-dark);
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  var(--color-white)-space: nowrap;
 }
 
 @media (max-width: 768px) {
@@ -495,12 +495,12 @@
   border-radius: 8px;
   border: none;
   background: var(--color-primary, #6366f1);
-  color: #fff;
+  color: var(--color-var(--color-white));
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.2s, background 0.2s;
-  white-space: nowrap;
+  var(--color-white)-space: nowrap;
 }
 
 .joinBtn:disabled {
@@ -570,5 +570,5 @@
 
 .dangerBtn:hover {
   background: #c62828;
-  color: #fff;
+  color: var(--color-var(--color-white));
 }

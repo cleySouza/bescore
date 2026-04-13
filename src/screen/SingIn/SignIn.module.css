@@ -6,7 +6,7 @@
   min-height: 100vh;
   padding: 20px;
   text-align: center;
-  background: var(--color-white);
+  background: var(--color-var(--color-white));
   color: var(--color-dark);
 }
 
@@ -32,7 +32,7 @@
 }
 
 .googleLoginBtn {
-  background: var(--color-white);
+  background: var(--color-var(--color-white));
   border: none;
   padding: 8px 18px;
   border-radius: 8px;

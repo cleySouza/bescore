@@ -169,8 +169,13 @@ function TournamentMatch() {
       return
     }
 
+    // Respect explicit "all collapsed" state chosen by the user.
+    if (openRound === null) {
+      return
+    }
+
     const visibleRounds = filteredRoundEntries.map(([round]) => round)
-    if (openRound !== null && visibleRounds.includes(openRound)) {
+    if (visibleRounds.includes(openRound)) {
       return
     }
 
@@ -424,7 +429,7 @@ function TournamentMatch() {
         <div className={styles.dashboardGrid}>
           <div className={styles.leftColumn}>
             <h2 className={styles.columnTitle}>
-              🎮 Jogos
+              🎮 
               {pendingCount > 0 && (
                 <span className={styles.pendingCountBadge}>{pendingCount} pendentes</span>
               )}

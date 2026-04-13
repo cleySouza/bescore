@@ -8,8 +8,8 @@
 .tabsNav {
   display: flex;
   gap: 0;
-  border-bottom: 2px solid #e0e0e0;
-  background: white;
+  border-bottom: 2px solid var(--color-gray-200);
+  background: var(--color-white);
   border-radius: 8px 8px 0 0;
   padding: 0;
   overflow-x: auto;
@@ -22,26 +22,26 @@
   border-bottom: 3px solid transparent;
   font-size: 14px;
   font-weight: 600;
-  color: #999;
+  color: var(--color-gray-300);
   cursor: pointer;
   transition: all 0.3s ease;
-  white-space: nowrap;
+  var(--color-white)-space: nowrap;
   flex-shrink: 0;
 }
 
 .tab:hover {
-  color: #667eea;
+  color: var(--color-be);
   background: rgba(102, 126, 234, 0.05);
 }
 
 .tab.active {
-  color: #667eea;
-  border-bottom-color: #667eea;
+  color: var(--color-be);
+  border-bottom-color: var(--color-be);
   background: rgba(102, 126, 234, 0.02);
 }
 
 .tabContent {
-  background: white;
+  background: var(--color-white);
   border-radius: 0 0 8px 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -64,10 +64,10 @@
 .matchesSubtitle {
   font-size: 16px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--color-dark);
   margin: 0 0 12px;
   padding-bottom: 8px;
-  border-bottom: 2px solid #f0f0f0;
+  border-bottom: 2px solid var(--color-gray-100);
 }
 
 .matchesGrid {
@@ -126,7 +126,7 @@
   margin: 0 0 16px 0;
   padding: 16px 20px;
   background: linear-gradient(135deg, rgba(76, 175, 80, 0.12) 0%, rgba(46, 125, 50, 0.08) 100%);
-  border: 1.5px solid #4caf50;
+  border: 1.5px solid var(--color-success);
   border-radius: 12px;
   flex-wrap: wrap;
 }
@@ -145,32 +145,32 @@
 .playoffBannerContent strong {
   font-size: 16px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--color-dark);
   display: block;
 }
 
 .playoffBannerContent p {
   margin: 2px 0 0 0;
   font-size: 13px;
-  color: #2e7d32;
+  color: var(--color-success);
 }
 
 .playoffBannerBtn {
   padding: 10px 20px;
-  background: #4caf50;
-  color: #fff;
+  background: var(--color-success);
+  color: var(--color-var(--color-white));
   border: none;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  white-space: nowrap;
+  var(--color-white)-space: nowrap;
   transition: background 0.2s ease;
   flex-shrink: 0;
 }
 
 .playoffBannerBtn:hover:not(:disabled) {
-  background: #2e7d32;
+  background: var(--color-success);
 }
 
 .playoffBannerBtn:disabled {
@@ -182,12 +182,12 @@
 .matchesPhaseTitle {
   font-size: 15px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--color-dark);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   margin: 20px 0 8px 0;
   padding-bottom: 8px;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--color-gray-200);
 }
 
 @media (max-width: 600px) {

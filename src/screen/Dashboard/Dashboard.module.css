@@ -19,7 +19,7 @@
   font-size: 28px;
   font-weight: 700;
   margin: 0;
-  color: #1a1a1a;
+  color: var(--color-dark);
 }
 
 .actions {
@@ -39,19 +39,19 @@
 }
 
 .joinBtn {
-  background: #f5f5f5;
-  color: #1a1a1a;
-  border: 1px solid #ddd;
+  background: var(--color-gray-100);
+  color: var(--color-dark);
+  border: 1px solid var(--color-gray-200);
 }
 
 .joinBtn:hover {
-  background: #e8e8e8;
-  border-color: #999;
+  background: var(--color-gray-200);
+  border-color: var(--color-gray-300);
 }
 
 .createBtn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--gradient-primary);
+  color: var(--color-white);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
@@ -120,33 +120,33 @@
 
 .loadingMessage {
   background: #f0f4ff;
-  color: #667eea;
+  color: var(--color-be);
 }
 
 .errorMessage {
   background: #fee;
-  color: #c00;
+  color: var(--color-red);
   border: 1px solid #fcc;
 }
 
 .emptyState {
   text-align: center;
   padding: 60px 20px;
-  border: 2px dashed #ddd;
+  border: 2px dashed var(--color-gray-200);
   border-radius: 12px;
-  background: #f9f9f9;
+  background: var(--color-gray-100);
 }
 
 .emptyState p {
   font-size: 18px;
-  color: #666;
+  color: var(--color-gray-300);
   margin-bottom: 20px;
 }
 
 .emptyCreateBtn {
   padding: 12px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--gradient-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 8px;
   font-size: 16px;
