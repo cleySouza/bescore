@@ -63,13 +63,6 @@ function MatchCard({ match, onResultUpdated }: MatchCardProps) {
     }
   }
 
-  // ─── DEV ONLY ────────────────────────────────────────────────────────────────
-  const handleRandomScore = () => {
-    setHomeScore(Math.floor(Math.random() * 5))
-    setAwayScore(Math.floor(Math.random() * 5))
-  }
-  // ─────────────────────────────────────────────────────────────────────────────
-
   return (
     <div className={styles.card}>
       <div className={styles.cardHeader}>
@@ -187,34 +180,13 @@ function MatchCard({ match, onResultUpdated }: MatchCardProps) {
       {error && <div className={styles.error}>{error}</div>}
 
       {canEdit && (
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button
-            className={styles.confirmBtn}
-            onClick={handleConfirm}
-            disabled={loading}
-            style={{ flex: 1 }}
-          >
-            {loading ? '⏳ Confirmando...' : '✓ Confirmar Resultado'}
-          </button>
-          {/* DEV ONLY */}
-          <button
-            onClick={handleRandomScore}
-            disabled={loading}
-            title="Preencher placar aleatório (Dev Mode)"
-            style={{
-              padding: '0.4rem 0.6rem',
-              background: '#2d2d5e',
-              color: '#a0a0ff',
-              border: '1px dashed #5555aa',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '0.8rem',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            🎲 Aleatório
-          </button>
-        </div>
+        <button
+          className={styles.confirmBtn}
+          onClick={handleConfirm}
+          disabled={loading}
+        >
+          {loading ? '⏳ Confirmando...' : '✓ Confirmar Resultado'}
+        </button>
       )}
     </div>
   )

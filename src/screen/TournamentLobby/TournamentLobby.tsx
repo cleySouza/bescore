@@ -80,11 +80,13 @@ function TournamentLobby() {
 
   const handleMatchesGenerated = async () => {
     if (tournament) {
-      setActiveTournament({ ...tournament, status: 'active' })
+      const updated = { ...tournament, status: 'active' }
+      setActiveTournament(updated)
+      setMyTournaments((prev) => prev.map((t) => (t.id === tournament.id ? { ...t, status: 'active' } : t)))
     }
     setShowConfigModal(false)
     setCurrentView('tournament-match')
-    fetchMyTournaments(user.id).then(setMyTournaments).catch(() => {})
+    fetchMyTournaments(user!.id).then(setMyTournaments).catch(() => {})
   }
 
   const handleDeleteTournament = async () => {
