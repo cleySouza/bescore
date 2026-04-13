@@ -429,7 +429,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                 className={`${styles.tab} ${activeTab === 'standings' ? styles.active : ''}`}
                 onClick={() => setActiveTab('standings')}
               >
-                📊 Classificação
+                Classificação
               </button>
             </div>
 

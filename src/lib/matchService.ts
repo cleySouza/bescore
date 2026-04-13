@@ -166,7 +166,7 @@ export async function getTournamentStandings(tournamentId: string, roundFilter?:
 
     // Processa matches
     matches?.forEach((match) => {
-      if (!match.home_score || match.home_score === null || !match.away_score || match.away_score === null) return // Ignora matches sem scores completos
+      if (match.home_score === null || match.away_score === null) return // Ignora matches sem scores completos
       if (!match.home_participant_id || !match.away_participant_id) return // Ignora matches incompletos
 
       const homeRow = standings.get(match.home_participant_id)

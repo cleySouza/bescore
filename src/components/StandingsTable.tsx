@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { useAtomValue } from 'jotai'
 import { activeTournamentAtom } from '../atoms/tournamentAtoms'
 import { supabase } from '../lib/supabaseClient'
-import { getTournamentStandings } from '../lib/matchService'
-import type { StandingsRow } from '../types/tournament'
+import { getTournamentMatches, getTournamentStandings } from '../lib/matchService'
+import type { MatchWithTeams, StandingsRow } from '../types/tournament'
 import styles from './StandingsTable.module.css'
 
 interface StandingsTableProps {
@@ -11,9 +11,45 @@ interface StandingsTableProps {
   playoffCutoff?: number
 }
 
+type FormResult = 'win' | 'draw' | 'loss'
+
+function getInitials(name: string | null | undefined) {
+  if (!name) return 'BS'
+  const parts = name.trim().split(/\s+/).slice(0, 2)
+  return parts.map((part) => part[0]?.toUpperCase() ?? '').join('') || 'BS'
+}
+
+function getRecentForm(participantId: string, matches: MatchWithTeams[]): FormResult[] {
+  return matches
+    .filter(
+      (match) =>
+        match.status === 'finished' &&
+        match.home_score !== null &&
+        match.away_score !== null &&
+        (match.home_participant_id === participantId || match.away_participant_id === participantId)
+    )
+    .sort((left, right) => {
+      const leftStamp = left.updated_at ?? left.created_at ?? ''
+      const rightStamp = right.updated_at ?? right.created_at ?? ''
+      return rightStamp.localeCompare(leftStamp)
+    })
+    .slice(0, 5)
+    .map((match) => {
+      const isHome = match.home_participant_id === participantId
+      const goalsFor = isHome ? match.home_score ?? 0 : match.away_score ?? 0
+      const goalsAgainst = isHome ? match.away_score ?? 0 : match.home_score ?? 0
+
+      if (goalsFor > goalsAgainst) return 'win'
+      if (goalsFor < goalsAgainst) return 'loss'
+      return 'draw'
+    })
+    .reverse()
+}
+
 function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
   const tournament = useAtomValue(activeTournamentAtom)
   const [standings, setStandings] = useState<StandingsRow[]>([])
+  const [matches, setMatches] = useState<MatchWithTeams[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -23,8 +59,12 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
     const loadStandings = async () => {
       try {
         setError(null)
-        const data = await getTournamentStandings(tournament.id)
-        setStandings(data)
+        const [standingsData, matchesData] = await Promise.all([
+          getTournamentStandings(tournament.id),
+          getTournamentMatches(tournament.id),
+        ])
+        setStandings(standingsData)
+        setMatches(matchesData)
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Erro ao carregar classificação'
         setError(message)
@@ -78,83 +118,108 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
 
   return (
     <div className={styles.container}>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th className={styles.position}>Pos</th>
-            <th className={styles.team}>Time</th>
-            <th className={styles.stat}>J</th>
-            <th className={styles.stat}>V</th>
-            <th className={styles.stat}>E</th>
-            <th className={styles.stat}>D</th>
-            <th className={styles.stat}>GF</th>
-            <th className={styles.stat}>GA</th>
-            <th className={styles.stat}>SG</th>
-            <th className={styles.stat} title="Ajuste de pontos (punição/bônus)">Adj</th>
-            <th className={styles.points}>Pts</th>
-          </tr>
-        </thead>
-        <tbody>
+      <div className={styles.board}>
+        <div className={styles.headerRow}>
+          <div className={styles.headerTitle}>Classificação</div>
+          <div className={styles.headerStats}>
+            <span>P</span>
+            <span>J</span>
+            <span>V</span>
+            <span>E</span>
+            <span>D</span>
+            <span>Gol</span>
+            <span>SG</span>
+            <span>Desempenho</span>
+          </div>
+        </div>
+
+        <div className={styles.rows}>
           {standings.map((row, idx) => {
             const isInPlayoffZone = playoffCutoff !== undefined && idx + 1 <= playoffCutoff
+            const recentForm = getRecentForm(row.participant_id, matches)
+
             return (
-              <tr
+              <div
                 key={row.participant_id}
-                className={[
-                  idx % 2 === 0 ? styles.even : styles.odd,
-                  isInPlayoffZone ? styles.inPlayoffZone : '',
-                ].join(' ')}
+                className={`${styles.row} ${isInPlayoffZone ? styles.rowClassified : ''}`}
               >
-                <td className={styles.position}>
-                  <strong>{row.position}</strong>
-                </td>
-                <td className={styles.team}>
-                  <div className={styles.teamCell}>
-                    <span className={styles.teamName}>{row.team_name || 'Equipe'}</span>
-                    <small>{row.user_nickname || 'Usuário'}</small>
-                  </div>
-                </td>
-                <td className={styles.stat}>{row.total_matches}</td>
-                <td className={styles.stat}>{row.wins}</td>
-                <td className={styles.stat}>{row.draws}</td>
-                <td className={styles.stat}>{row.losses}</td>
-                <td className={styles.stat}>{row.goals_for}</td>
-                <td className={styles.stat}>{row.goals_against}</td>
-                <td className={`${styles.stat} ${row.goal_difference >= 0 ? styles.positive : styles.negative}`}>
-                  {row.goal_difference > 0 ? '+' : ''}{row.goal_difference}
-                </td>
-                <td className={styles.stat}>
-                  {row.penalty_points !== 0 ? (
-                    <span
-                      className={row.penalty_points < 0 ? styles.penaltyNegative : styles.penaltyPositive}
-                      title={row.penalty_reason ?? undefined}
-                    >
-                      {row.penalty_points > 0 ? '+' : ''}{row.penalty_points}
-                      {row.penalty_reason && <span className={styles.penaltyIcon}> ⚠️</span>}
-                    </span>
+                <div className={styles.positionCell}>{row.position}</div>
+
+                <div className={styles.teamCell}>
+                  {row.user_avatar_url ? (
+                    <img src={row.user_avatar_url} alt="" className={styles.avatar} />
                   ) : (
-                    <span className={styles.penaltyZero}>—</span>
+                    <div className={styles.avatarFallback}>{getInitials(row.team_name || row.user_nickname)}</div>
                   )}
-                </td>
-                <td className={styles.points}>
-                  <strong>{row.points}</strong>
-                </td>
-              </tr>
+
+                  <div className={styles.identity}>
+                    <strong className={styles.teamName}>{row.team_name || 'Equipe'}</strong>
+                    <div className={styles.metaRow}>
+                      <span className={styles.userName}>{row.user_nickname || 'Usuário'}</span>
+                      {row.penalty_points !== 0 && (
+                        <span
+                          className={row.penalty_points > 0 ? styles.adjustPositive : styles.adjustNegative}
+                          title={row.penalty_reason ?? undefined}
+                        >
+                          {row.penalty_points > 0 ? '+' : ''}{row.penalty_points} adj
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.statCell} data-label="P">{row.points}</div>
+                <div className={styles.statCell} data-label="J">{row.total_matches}</div>
+                <div className={styles.statCell} data-label="V">{row.wins}</div>
+                <div className={styles.statCell} data-label="E">{row.draws}</div>
+                <div className={styles.statCell} data-label="D">{row.losses}</div>
+                <div className={styles.statCell} data-label="Gol">{row.goals_for}:{row.goals_against}</div>
+                <div
+                  className={`${styles.statCell} ${row.goal_difference >= 0 ? styles.goalPositive : styles.goalNegative}`}
+                  data-label="SG"
+                >
+                  {row.goal_difference > 0 ? '+' : ''}{row.goal_difference}
+                </div>
+
+                <div className={styles.formCell} data-label="Desempenho">
+                  {recentForm.length > 0 ? (
+                    recentForm.map((result, formIndex) => (
+                      <span
+                        key={`${row.participant_id}-${formIndex}`}
+                        className={`${styles.formBadge} ${styles[`formBadge${result[0].toUpperCase()}${result.slice(1)}`]}`}
+                        title={result === 'win' ? 'Vitória' : result === 'draw' ? 'Empate' : 'Derrota'}
+                      >
+                        {result === 'win' ? '✓' : result === 'draw' ? '−' : '×'}
+                      </span>
+                    ))
+                  ) : (
+                    <span className={styles.noForm}>—</span>
+                  )}
+                </div>
+              </div>
             )
           })}
-        </tbody>
-      </table>
-
-      <div className={styles.legend}>
-        <small>J = Jogos | V = Vitórias | E = Empates | D = Derrotas | GF = Gols Favor | GA = Gols Contra | SG = Saldo | Adj = Ajuste | Pts = Pontos</small>
-      </div>
-
-      {playoffCutoff !== undefined && (
-        <div className={styles.playoffLegend}>
-          <span className={styles.playoffDot} />
-          <small>Top {playoffCutoff} avançam para a Fase Final</small>
         </div>
-      )}
+
+        <div className={styles.footer}>
+          <div className={styles.rules}>
+            <strong className={styles.footerTitle}>Quando dois (ou mais) times empatam em pontos, as regras de desempate são:</strong>
+            <ul className={styles.rulesList}>
+              <li>Vitórias</li>
+              <li>Saldo de gols</li>
+              <li>Gols-pró</li>
+              <li>Confronto direto</li>
+            </ul>
+          </div>
+
+          {playoffCutoff !== undefined && (
+            <div className={styles.classifiedLegend}>
+              <span className={styles.classifiedDot} />
+              <span>Classificado</span>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

@@ -159,12 +159,12 @@ function CreateTournament() {
       // Silently ignore — user can copy manually
     })
     if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current)
-    redirectTimerRef.current = setTimeout(() => setCurrentView('tournament'), 1500)
+    redirectTimerRef.current = setTimeout(() => setCurrentView('tournament-lobby'), 1500)
   }
 
   const handleShareClick = () => {
     if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current)
-    redirectTimerRef.current = setTimeout(() => setCurrentView('tournament'), 1500)
+    redirectTimerRef.current = setTimeout(() => setCurrentView('tournament-lobby'), 1500)
   }
 
   const handleBack = () => {
@@ -255,7 +255,7 @@ function CreateTournament() {
 
       // Redirecionar após 3s (ou 1.5s se o usuário interagiu com os botões de compartilhar)
       redirectTimerRef.current = setTimeout(() => {
-        setCurrentView('tournament')
+        setCurrentView('tournament-lobby')
       }, 3000)
 
       // Limpar formulário
