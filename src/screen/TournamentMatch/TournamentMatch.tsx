@@ -14,8 +14,11 @@ import type { Participant } from '../../atoms/tournamentAtoms'
 import type { MatchWithTeams, TournamentSettings } from '../../types/tournament'
 import Accordion from '../../components/Accordion/Accordion'
 import MatchCard from '../../components/MatchCard'
-import StandingsTable from '../../components/StandingsTable'
 import ManageParticipantModal, { type ManagedParticipant } from '../TournamentView/components/ManageParticipantModal'
+import MatchesSection from './components/MatchesSection'
+import FinalPhaseSection from './components/FinalPhaseSection'
+import StandingsSection from './components/StandingsSection'
+import ScoutsSection from './components/ScoutsSection'
 import styles from './TournamentMatch.module.css'
 
 interface ParticipantWithProfile extends Participant {
@@ -33,6 +36,12 @@ function getRoundRobinRoundCount(participantCount: number, hasReturnMatch = fals
 }
 
 type LegFilter = 'first' | 'second'
+type PhaseFilter = 'league' | 'playoff'
+
+interface SideSummary {
+  teamName: string
+  nickname: string
+}
 
 function TournamentMatch() {
   const user = useAtomValue(userAtom)
@@ -49,7 +58,9 @@ function TournamentMatch() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [generatingPlayoff, setGeneratingPlayoff] = useState(false)
   const [managedParticipant, setManagedParticipant] = useState<ManagedParticipant | null>(null)
+  const [showAdminModal, setShowAdminModal] = useState(false)
   const [legFilter, setLegFilter] = useState<LegFilter>('first')
+  const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>('league')
 
   // Accordion state
   const [openRound, setOpenRound] = useState<number | null>(null)
@@ -134,10 +145,30 @@ function TournamentMatch() {
 
   useEffect(() => {
     setLegFilter('first')
+    setPhaseFilter('league')
   }, [tournamentId])
+
+  useEffect(() => {
+    if (!hasPlayoffStarted && phaseFilter === 'playoff') {
+      setPhaseFilter('league')
+    }
+  }, [hasPlayoffStarted, phaseFilter])
 
   const filteredRoundEntries = useMemo(() => {
     const entries = Array.from(matchesByRound.entries()).sort(([a], [b]) => a - b)
+
+    if (isCampeonato && phaseFilter === 'playoff') {
+      return entries.filter(([round]) => round > leagueRoundCount)
+    }
+
+    if (isCampeonato) {
+      const leagueEntries = entries.filter(([round]) => round <= leagueRoundCount)
+      if (!hasReturnMatch) return leagueEntries
+      return leagueEntries.filter(([round]) => {
+        if (legFilter === 'first') return round <= leagueBaseRoundCount
+        return round > leagueBaseRoundCount
+      })
+    }
 
     if (!hasReturnMatch) {
       return entries
@@ -155,6 +186,7 @@ function TournamentMatch() {
     })
   }, [
     matchesByRound,
+    phaseFilter,
     hasReturnMatch,
     legFilter,
     isCampeonato,
@@ -207,6 +239,7 @@ function TournamentMatch() {
     setError(null)
     try {
       await generatePlayoffMatches(tournament.id)
+      setPhaseFilter('playoff')
       setRefreshKey((prev) => prev + 1)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao gerar fase final')
@@ -338,7 +371,7 @@ function TournamentMatch() {
   }
 
   const renderLegSwitch =
-    hasReturnMatch && matches.length > 0 ? (
+    hasReturnMatch && matches.length > 0 && (!isCampeonato || phaseFilter === 'league') ? (
       <div className={styles.legSwitch} role="group" aria-label="Filtrar turnos">
         <button
           type="button"
@@ -353,6 +386,66 @@ function TournamentMatch() {
           onClick={() => setLegFilter('second')}
         >
           Returno
+        </button>
+      </div>
+    ) : null
+
+  const getMatchSideSummary = (match: MatchWithTeams, side: 'home' | 'away'): SideSummary => {
+    const team = side === 'home' ? match.homeTeam : match.awayTeam
+    return {
+      teamName: team?.team_name || 'A definir',
+      nickname: team?.profile?.nickname || '—',
+    }
+  }
+
+  const getFinishedWinner = (match: MatchWithTeams): SideSummary | null => {
+    if (match.status !== 'finished' || match.home_score === null || match.away_score === null) {
+      return null
+    }
+    if (match.home_score === match.away_score) return null
+    return match.home_score > match.away_score
+      ? getMatchSideSummary(match, 'home')
+      : getMatchSideSummary(match, 'away')
+  }
+
+  const getFinishedLoser = (match: MatchWithTeams): SideSummary | null => {
+    if (match.status !== 'finished' || match.home_score === null || match.away_score === null) {
+      return null
+    }
+    if (match.home_score === match.away_score) return null
+    return match.home_score < match.away_score
+      ? getMatchSideSummary(match, 'home')
+      : getMatchSideSummary(match, 'away')
+  }
+
+  const playoffFinalMatch = useMemo(() => {
+    const playoffRounds = [...new Set(playoffMatches.map((m) => m.round))].sort((a, b) => a - b)
+    const finalsRoundMatches = playoffRounds.length > 1
+      ? playoffMatches.filter((m) => m.round === playoffRounds[1])
+      : playoffMatches
+    return finalsRoundMatches[0]
+  }, [playoffMatches])
+
+  const playoffChampion = playoffFinalMatch ? getFinishedWinner(playoffFinalMatch) : null
+  const playoffVice = playoffFinalMatch ? getFinishedLoser(playoffFinalMatch) : null
+
+  const renderPhaseSwitch =
+    isCampeonato && (isLeagueFinished || hasPlayoffStarted) ? (
+      <div className={styles.phaseSwitch} role="group" aria-label="Filtrar fases">
+        <button
+          type="button"
+          className={`${styles.phaseOption} ${phaseFilter === 'league' ? styles.phaseOptionActive : ''}`}
+          onClick={() => setPhaseFilter('league')}
+        >
+          Primeira fase
+        </button>
+        <button
+          type="button"
+          className={`${styles.phaseOption} ${phaseFilter === 'playoff' ? styles.phaseOptionActive : ''}`}
+          onClick={() => setPhaseFilter('playoff')}
+          disabled={!hasPlayoffStarted}
+        >
+          Segunda fase
         </button>
       </div>
     ) : null
@@ -383,6 +476,16 @@ function TournamentMatch() {
       </div>
     </div>
   )
+
+  const renderAdminButton = isCreator && participants.length > 0 ? (
+    <button
+      type="button"
+      className={styles.adminOpenBtn}
+      onClick={() => setShowAdminModal(true)}
+    >
+      ⚙️ Ajustes administrativos
+    </button>
+  ) : null
 
   // ── JSX ───────────────────────────────────────────────────────────────────
 
@@ -423,27 +526,36 @@ function TournamentMatch() {
         {error && <div className={styles.errorMessage}>{error}</div>}
 
         {playoffBanner}
+        {renderPhaseSwitch}
 
         {/* ── DESKTOP: dual-column dashboard ─────────────────────────── */}
         <div className={styles.dashboardGrid}>
           <div className={styles.leftColumn}>
-            <h2 className={styles.columnTitle}>
-              Próximas partidas:
-              {pendingCount > 0 && (
-                <span className={styles.pendingCountBadge}>{pendingCount} pendentes</span>
-              )}
-            </h2>
-            {renderLegSwitch}
-            {loading ? (
-              <div className={styles.loadingMessage}>Carregando jogos...</div>
+            {isCampeonato && phaseFilter === 'playoff' ? (
+              <FinalPhaseSection
+                pendingCount={pendingCount}
+                loading={loading}
+                content={renderRoundList()}
+              />
             ) : (
-              renderRoundList()
+              <MatchesSection
+                pendingCount={pendingCount}
+                legSwitch={renderLegSwitch}
+                loading={loading}
+                content={renderRoundList()}
+              />
             )}
           </div>
 
           <div className={styles.rightColumn}>
-            <StandingsTable onDataUpdate={handleMatchResultUpdated} playoffCutoff={playoffCutoff} />
-            {isCreator && participants.length > 0 && renderAdminPanel()}
+            {isCampeonato && phaseFilter === 'playoff' ? (
+              <ScoutsSection champion={playoffChampion} vice={playoffVice} />
+            ) : (
+              <StandingsSection
+                onDataUpdate={handleMatchResultUpdated}
+                playoffCutoff={playoffCutoff}
+              />
+            )}
           </div>
         </div>
 
@@ -466,23 +578,58 @@ function TournamentMatch() {
 
           {activeTab === 'matches' && (
             <div className={styles.mobileTabContent}>
-              {renderLegSwitch}
-              {loading ? (
-                <div className={styles.loadingMessage}>Carregando jogos...</div>
+              {isCampeonato && phaseFilter === 'playoff' ? (
+                <FinalPhaseSection
+                  pendingCount={pendingCount}
+                  loading={loading}
+                  content={renderRoundList()}
+                />
               ) : (
-                renderRoundList()
+                <MatchesSection
+                  pendingCount={pendingCount}
+                  legSwitch={renderLegSwitch}
+                  loading={loading}
+                  content={renderRoundList()}
+                />
               )}
             </div>
           )}
 
           {activeTab === 'standings' && (
             <div className={styles.mobileTabContent}>
-              <StandingsTable onDataUpdate={handleMatchResultUpdated} playoffCutoff={playoffCutoff} />
-              {isCreator && participants.length > 0 && renderAdminPanel()}
+              {isCampeonato && phaseFilter === 'playoff' ? (
+                <ScoutsSection champion={playoffChampion} vice={playoffVice} />
+              ) : (
+                <StandingsSection
+                  onDataUpdate={handleMatchResultUpdated}
+                  playoffCutoff={playoffCutoff}
+                />
+              )}
             </div>
           )}
         </div>
+
+        {renderAdminButton}
       </main>
+
+      {showAdminModal && (
+        <div className={styles.adminModalOverlay} onClick={() => setShowAdminModal(false)}>
+          <div className={styles.adminModal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.adminModalHeader}>
+              <h3 className={styles.adminModalTitle}>Ajustes Administrativos</h3>
+              <button
+                type="button"
+                className={styles.adminModalCloseBtn}
+                onClick={() => setShowAdminModal(false)}
+                aria-label="Fechar ajustes administrativos"
+              >
+                ✕
+              </button>
+            </div>
+            {renderAdminPanel()}
+          </div>
+        </div>
+      )}
 
       {managedParticipant && (
         <ManageParticipantModal
