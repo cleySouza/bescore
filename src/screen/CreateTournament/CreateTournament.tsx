@@ -12,6 +12,20 @@ import { createTournament, fetchMyTournaments, getTournamentById, joinTournament
 import { PreviewCard, TeamSelectModal } from './components'
 import styles from './CreateTournament.module.css'
 
+function mapCreateFormatToTournamentFormat(format: string) {
+  switch (format) {
+    case 'mata-mata':
+      return 'knockout' as const
+    case 'grupos':
+      return 'groupsCrossed' as const
+    case 'campeonato':
+      return 'campeonato' as const
+    case 'liga':
+    default:
+      return 'roundRobin' as const
+  }
+}
+
 function CreateTournament() {
   const user = useAtomValue(userAtom)
   const setMyTournaments = useSetAtom(myTournamentsAtom)
@@ -29,7 +43,7 @@ function CreateTournament() {
     autoTeams: true,
     adminDraft: true,    // true = admin escolhe times; false = participante escolhe na inscrição
     adminScores: true,   // true = só admin lança placares; false = jogadores lançam próprias partidas
-    matchType: 'PA',
+    matchType: 'single' as 'single' | 'double',
     willPlay: true,
     teamNames: '',
     selectedTeamIds: [] as string[],
@@ -67,6 +81,9 @@ function CreateTournament() {
     setFormData((prev) => ({
       ...prev,
       [name]: name === 'maxParticipants' ? parseInt(value) : value,
+      ...(name === 'format' && !['liga', 'mata-mata', 'grupos', 'campeonato'].includes(value)
+        ? { matchType: 'single' as const }
+        : {}),
     }))
     setLocalError(null)
   }
@@ -161,7 +178,7 @@ function CreateTournament() {
       autoTeams: true,
       adminDraft: true,
       adminScores: true,
-      matchType: 'PA',
+      matchType: 'single',
       willPlay: true,
       teamNames: '',
       selectedTeamIds: [],
@@ -203,7 +220,8 @@ function CreateTournament() {
       const newTournament = await createTournament(formData.name, user.id, formData.gameType, {
         isPrivate: formData.isPrivate,
         maxParticipants: formData.maxParticipants,
-        format: formData.format === 'campeonato' ? 'campeonato' : 'roundRobin',
+        format: mapCreateFormatToTournamentFormat(formData.format),
+        hasReturnMatch: formData.matchType === 'double',
         ...(formData.adminDraft && selectedTeamsPreview.length > 0
           ? {
               selectedTeamNames: selectedTeamsPreview.map((t) => t.name),
@@ -250,7 +268,7 @@ function CreateTournament() {
         autoTeams: true,
         adminDraft: true,
         adminScores: true,
-        matchType: 'PA',
+        matchType: 'single',
         willPlay: true,
         teamNames: '',
         selectedTeamIds: [],
@@ -356,7 +374,7 @@ function CreateTournament() {
                 </div>
 
                 {/* Fase Final — só visível quando format === 'campeonato' */}
-                <div className={`${styles.collapsibleSection}${formData.format !== 'campeonato' ? ` ${styles.collapsed}` : ''}`}>
+                {formData.format === 'campeonato' && (
                   <div className={styles.fieldGroup}>
                     <label className={styles.fieldLabel}>Fase Final</label>
                     <div className={styles.pillSelect}>
@@ -364,8 +382,7 @@ function CreateTournament() {
                         type="button"
                         className={`${styles.pillOption}${formData.playoffCutoff === 'top4' ? ` ${styles.pillOptionActive}` : ''}`}
                         onClick={() => setFormData((prev) => ({ ...prev, playoffCutoff: 'top4' }))}
-                        disabled={loading || formData.format !== 'campeonato'}
-                        tabIndex={formData.format === 'campeonato' ? 0 : -1}
+                        disabled={loading}
                       >
                         TOP 4
                         <span className={styles.pillOptionSub}>Semi + Final</span>
@@ -374,8 +391,7 @@ function CreateTournament() {
                         type="button"
                         className={`${styles.pillOption}${formData.playoffCutoff === 'top2' ? ` ${styles.pillOptionActive}` : ''}`}
                         onClick={() => setFormData((prev) => ({ ...prev, playoffCutoff: 'top2' }))}
-                        disabled={loading || formData.format !== 'campeonato'}
-                        tabIndex={formData.format === 'campeonato' ? 0 : -1}
+                        disabled={loading}
                       >
                         TOP 2
                         <span className={styles.pillOptionSub}>Final Direta</span>
@@ -389,7 +405,7 @@ function CreateTournament() {
                       </span>
                     )}
                   </div>
-                </div>
+                )}
 
                 {/* Jogo Select */}
                 <div className={styles.fieldGroup}>
@@ -491,6 +507,27 @@ function CreateTournament() {
 
                 {/* Toggles Section */}
                 <div className={styles.togglesSection}>
+                  <div className={styles.toggleGroup}>
+                    <div className={styles.toggleGroupLabel}>RETURNO</div>
+                    <button
+                      type="button"
+                      className={`${styles.slideToggle} ${formData.matchType === 'double' ? styles.active : ''}`}
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          matchType: prev.matchType === 'double' ? 'single' : 'double',
+                        }))
+                      }
+                      disabled={loading}
+                      aria-pressed={formData.matchType === 'double'}
+                    >
+                      <span className={styles.slideKnob} />
+                      <span className={styles.slideLabel}>
+                        {formData.matchType === 'double' ? 'SIM' : 'NÃO'}
+                      </span>
+                    </button>
+                  </div>
+
                   {/* TIMES */}
                   <div className={`${styles.toggleGroup} ${styles.collapsibleSection}${!formData.adminDraft ? ` ${styles.collapsed}` : ''}`}>
                     <div className={styles.toggleGroupLabel}>TIMES</div>
@@ -621,6 +658,7 @@ function CreateTournament() {
                   autoTeams={formData.autoTeams}
                   format={formData.format}
                   playoffCutoff={formData.playoffCutoff}
+                  hasReturnMatch={formData.matchType === 'double'}
                   tournamentImage={tournamentImage}
                   onImageChange={handleImageChange}
                 />

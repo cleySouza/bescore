@@ -25,10 +25,13 @@ interface ParticipantWithProfile extends Participant {
   } | null
 }
 
-function getRoundRobinRoundCount(participantCount: number): number {
+function getRoundRobinRoundCount(participantCount: number, hasReturnMatch = false): number {
   if (participantCount <= 1) return 0
-  return participantCount % 2 === 0 ? participantCount - 1 : participantCount
+  const baseCount = participantCount % 2 === 0 ? participantCount - 1 : participantCount
+  return hasReturnMatch ? baseCount * 2 : baseCount
 }
+
+type LegFilter = 'first' | 'second'
 
 function TournamentMatch() {
   const user = useAtomValue(userAtom)
@@ -45,6 +48,7 @@ function TournamentMatch() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [generatingPlayoff, setGeneratingPlayoff] = useState(false)
   const [managedParticipant, setManagedParticipant] = useState<ManagedParticipant | null>(null)
+  const [legFilter, setLegFilter] = useState<LegFilter>('first')
 
   // Accordion state
   const [openRound, setOpenRound] = useState<number | null>(null)
@@ -107,8 +111,14 @@ function TournamentMatch() {
   const isCreator = tournament.creator_id === user.id
   const tournamentSettings = tournament.settings as TournamentSettings | null
   const isCampeonato = tournamentSettings?.format === 'campeonato'
+  const hasReturnMatch = tournamentSettings?.hasReturnMatch ?? false
   const playoffCutoff = isCampeonato ? (tournamentSettings?.playoffCutoff ?? 2) : undefined
-  const leagueRoundCount = isCampeonato ? getRoundRobinRoundCount(participants.length) : 0
+  const leagueBaseRoundCount = isCampeonato ? getRoundRobinRoundCount(participants.length, false) : 0
+  const leagueRoundCount = isCampeonato
+    ? getRoundRobinRoundCount(participants.length, hasReturnMatch)
+    : 0
+  const maxRound = matches.length > 0 ? Math.max(...matches.map((m) => m.round ?? 0)) : 0
+  const regularSplitRound = isCampeonato ? leagueBaseRoundCount : Math.floor(maxRound / 2)
 
   const pendingCount = matches.filter((m) => m.status === 'pending').length
   const leagueMatches = isCampeonato
@@ -120,6 +130,57 @@ function TournamentMatch() {
   const hasPlayoffStarted = playoffMatches.length > 0
   const isLeagueFinished =
     isCampeonato && leagueMatches.length > 0 && leagueMatches.every((m) => m.status === 'finished')
+
+  useEffect(() => {
+    setLegFilter('first')
+  }, [tournamentId])
+
+  const filteredRoundEntries = useMemo(() => {
+    const entries = Array.from(matchesByRound.entries()).sort(([a], [b]) => a - b)
+
+    if (!hasReturnMatch) {
+      return entries
+    }
+
+    return entries.filter(([round]) => {
+      if (isCampeonato) {
+        if (round > leagueRoundCount) return false
+        if (legFilter === 'first') return round <= leagueBaseRoundCount
+        return round > leagueBaseRoundCount && round <= leagueRoundCount
+      }
+
+      if (legFilter === 'first') return round <= regularSplitRound
+      return round > regularSplitRound
+    })
+  }, [
+    matchesByRound,
+    hasReturnMatch,
+    legFilter,
+    isCampeonato,
+    leagueRoundCount,
+    leagueBaseRoundCount,
+    regularSplitRound,
+  ])
+
+  useEffect(() => {
+    if (filteredRoundEntries.length === 0) {
+      setOpenRound(null)
+      setExpandedMatchId(null)
+      return
+    }
+
+    const visibleRounds = filteredRoundEntries.map(([round]) => round)
+    if (openRound !== null && visibleRounds.includes(openRound)) {
+      return
+    }
+
+    const firstPending = filteredRoundEntries.find(([, roundMatches]) =>
+      roundMatches.some((match) => match.status === 'pending')
+    )
+
+    setOpenRound(firstPending?.[0] ?? visibleRounds[0])
+    setExpandedMatchId(null)
+  }, [filteredRoundEntries, openRound])
 
   const getRoundLabel = (round: number): string => {
     if (isCampeonato) {
@@ -173,11 +234,18 @@ function TournamentMatch() {
       )
     }
 
+    if (filteredRoundEntries.length === 0) {
+      return (
+        <div className={styles.emptyState}>
+          <div className={styles.emptyIcon}>🗂️</div>
+          <p className={styles.emptyText}>Nenhuma partida neste filtro</p>
+        </div>
+      )
+    }
+
     return (
       <div className={styles.roundsList}>
-        {Array.from(matchesByRound.entries())
-          .sort(([a], [b]) => a - b)
-          .map(([round, roundMatches]) => {
+        {filteredRoundEntries.map(([round, roundMatches]) => {
             const pendingInRound = roundMatches.filter((m) => m.status === 'pending').length
             const isOpen = openRound === round
             return (
@@ -265,6 +333,26 @@ function TournamentMatch() {
     )
   }
 
+  const renderLegSwitch =
+    hasReturnMatch && matches.length > 0 ? (
+      <div className={styles.legSwitch} role="group" aria-label="Filtrar turnos">
+        <button
+          type="button"
+          className={`${styles.legOption} ${legFilter === 'first' ? styles.legOptionActive : ''}`}
+          onClick={() => setLegFilter('first')}
+        >
+          Turno
+        </button>
+        <button
+          type="button"
+          className={`${styles.legOption} ${legFilter === 'second' ? styles.legOptionActive : ''}`}
+          onClick={() => setLegFilter('second')}
+        >
+          Returno
+        </button>
+      </div>
+    ) : null
+
   const renderAdminPanel = () => (
     <div className={styles.adminPanel}>
       <h4 className={styles.adminPanelTitle}>⚙️ Ajustes Administrativos</h4>
@@ -341,6 +429,7 @@ function TournamentMatch() {
                 <span className={styles.pendingCountBadge}>{pendingCount} pendentes</span>
               )}
             </h2>
+            {renderLegSwitch}
             {loading ? (
               <div className={styles.loadingMessage}>Carregando jogos...</div>
             ) : (
@@ -374,6 +463,7 @@ function TournamentMatch() {
 
           {activeTab === 'matches' && (
             <div className={styles.mobileTabContent}>
+              {renderLegSwitch}
               {loading ? (
                 <div className={styles.loadingMessage}>Carregando jogos...</div>
               ) : (

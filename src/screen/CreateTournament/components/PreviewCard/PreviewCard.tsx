@@ -10,6 +10,7 @@ interface PreviewCardProps {
   autoTeams?: boolean
   format?: string
   playoffCutoff?: 'top4' | 'top2'
+  hasReturnMatch?: boolean
 }
 
 const GAME_ICONS: Record<string, string> = {
@@ -37,6 +38,7 @@ export const PreviewCard = ({
   autoTeams = true,
   format = 'liga',
   playoffCutoff = 'top4',
+  hasReturnMatch = false,
 }: PreviewCardProps) => {
   const gameIcon = GAME_ICONS[gameType] || '🎮'
 
@@ -55,7 +57,18 @@ export const PreviewCard = ({
     : 'Torneio gerenciado por Admin externo.'
 
   const isCampeonato = format === 'campeonato'
+  const isKnockout = format === 'mata-mata'
+  const isGroups = format === 'grupos'
   const playoffN = playoffCutoff === 'top4' ? 4 : 2
+  const leagueRule = hasReturnMatch
+    ? 'Todos se enfrentam em turno e returno.'
+    : 'Todos se enfrentam em turno único.'
+  const knockoutRule = hasReturnMatch
+    ? 'Os confrontos de mata-mata terão ida e volta.'
+    : 'Os confrontos de mata-mata serão em jogo único.'
+  const groupsRule = hasReturnMatch
+    ? 'Os confrontos entre grupos terão ida e volta.'
+    : 'Os confrontos entre grupos serão em turno único.'
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -95,8 +108,26 @@ export const PreviewCard = ({
         ))}
         {isCampeonato ? (
           <>
-            <li key="camp-rule1">Todos jogam contra todos em turno único.</li>
+            <li key="camp-rule1">{leagueRule}</li>
             <li key="camp-rule2">Os {playoffN} melhores avançam para o mata-mata.</li>
+          </>
+        ) : isKnockout ? (
+          <>
+            <li key="knockout-rule">{knockoutRule}</li>
+            <li key="draft-rule">{draftRule}</li>
+            {autoTeamsRule && <li key="autoteams-rule">{autoTeamsRule}</li>}
+          </>
+        ) : isGroups ? (
+          <>
+            <li key="groups-rule">{groupsRule}</li>
+            <li key="draft-rule">{draftRule}</li>
+            {autoTeamsRule && <li key="autoteams-rule">{autoTeamsRule}</li>}
+          </>
+        ) : format === 'liga' ? (
+          <>
+            <li key="league-rule">{leagueRule}</li>
+            <li key="draft-rule">{draftRule}</li>
+            {autoTeamsRule && <li key="autoteams-rule">{autoTeamsRule}</li>}
           </>
         ) : (
           <>

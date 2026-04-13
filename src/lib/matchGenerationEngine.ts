@@ -57,20 +57,25 @@ export async function generateMatchesByFormat(
       matches = generateRoundRobinMatches(participantIds, settings.hasReturnMatch || false)
       break
     case 'knockout':
-      matches = generateKnockoutMatches(participantIds)
+      matches = generateKnockoutMatches(participantIds, settings.hasReturnMatch || false)
       break
     case 'groupsCrossed':
-      matches = generateGroupsCrossedMatches(participantIds, settings.bracketGroups || 2)
+      matches = generateGroupsCrossedMatches(
+        participantIds,
+        settings.bracketGroups || 2,
+        settings.hasReturnMatch || false
+      )
       break
     case 'mixed':
       matches = generateMixedMatches(
         participantIds,
         settings.qualifiedCount || 2,
-        settings.bracketGroups || 2
+        settings.bracketGroups || 2,
+        settings.hasReturnMatch || false
       )
       break
     case 'campeonato':
-      matches = generateRoundRobinMatches(participantIds, false)
+      matches = generateRoundRobinMatches(participantIds, settings.hasReturnMatch || false)
       break
     default:
       throw new Error(`Formato desconhecido: ${format}`)
@@ -175,13 +180,29 @@ function generateRoundRobinMatches(participantIds: string[], hasReturnMatch: boo
   return matches
 }
 
+function addReturnLegs(matches: Match[]): Match[] {
+  if (matches.length === 0) return matches
+
+  const maxRound = Math.max(...matches.map((match) => match.round ?? 0))
+
+  return [
+    ...matches,
+    ...matches.map((match) => ({
+      home_participant_id: match.away_participant_id,
+      away_participant_id: match.home_participant_id,
+      round: (match.round ?? 0) + maxRound,
+      status: 'pending' as const,
+    })),
+  ]
+}
+
 /**
  * ============================================
  * FORMAT: KNOCKOUT (Mata-Mata)
  * ============================================
  * Gera chaves de eliminação com suporte a BYEs se necessário.
  */
-function generateKnockoutMatches(participantIds: string[]): Match[] {
+function generateKnockoutMatches(participantIds: string[], hasReturnMatch = false): Match[] {
   const matches: Match[] = []
 
   // Calcular próxima potência de 2
@@ -234,7 +255,7 @@ function generateKnockoutMatches(participantIds: string[]): Match[] {
       .map(() => [null, null])
   }
 
-  return matches
+  return hasReturnMatch ? addReturnLegs(matches) : matches
 }
 
 /**
@@ -243,7 +264,11 @@ function generateKnockoutMatches(participantIds: string[]): Match[] {
  * ============================================
  * Divide em grupos, cada membro de um enfrenta todos do outro.
  */
-function generateGroupsCrossedMatches(participantIds: string[], groupCount: number): Match[] {
+function generateGroupsCrossedMatches(
+  participantIds: string[],
+  groupCount: number,
+  hasReturnMatch = false
+): Match[] {
   const matches: Match[] = []
 
   // Dividir participantes em grupos
@@ -275,7 +300,7 @@ function generateGroupsCrossedMatches(participantIds: string[], groupCount: numb
     }
   }
 
-  return matches
+  return hasReturnMatch ? addReturnLegs(matches) : matches
 }
 
 /**
@@ -287,18 +312,19 @@ function generateGroupsCrossedMatches(participantIds: string[], groupCount: numb
 function generateMixedMatches(
   participantIds: string[],
   qualifiedCount: number,
-  groupCount: number
+  groupCount: number,
+  hasReturnMatch = false
 ): Match[] {
   const matches: Match[] = []
 
   // Fase 1: Grupos Cruzados
-  const groupMatches = generateGroupsCrossedMatches(participantIds, groupCount)
+  const groupMatches = generateGroupsCrossedMatches(participantIds, groupCount, hasReturnMatch)
   matches.push(...groupMatches)
 
   // Fase 2: Mata-Mata com os qualificados
   // Em uma implementação completa, isso seria dinâmico baseado nos resultados dos grupos
   const qualifiedIds = participantIds.slice(0, qualifiedCount)
-  const knockoutMatches = generateKnockoutMatches(qualifiedIds)
+  const knockoutMatches = generateKnockoutMatches(qualifiedIds, hasReturnMatch)
 
   // Aumentar round das matches de knockout
   const adjustedKnockout = knockoutMatches.map((m) => ({

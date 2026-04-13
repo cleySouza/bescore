@@ -24,7 +24,18 @@ export async function createTournament(
   name: string,
   userId: string,
   gameType?: string,
-  initialSettings?: Pick<TournamentSettings, 'isPrivate' | 'maxParticipants' | 'format' | 'playoffCutoff'>
+  initialSettings?: Partial<
+    Pick<
+      TournamentSettings,
+      | 'isPrivate'
+      | 'maxParticipants'
+      | 'format'
+      | 'playoffCutoff'
+      | 'hasReturnMatch'
+      | 'selectedTeamNames'
+      | 'teamAssignMode'
+    >
+  >
 ): Promise<Tournament> {
   const inviteCode = generateInviteCode()
 
