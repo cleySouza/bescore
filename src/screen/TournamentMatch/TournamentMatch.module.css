@@ -564,29 +564,31 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 10px 14px 10px 16px;
+  gap: 10px;
+  padding: 12px 16px;
   background: transparent;
   border: none;
-  border-top: 1px solid var(--color-gray-100);
   cursor: pointer;
   text-align: left;
   transition: background 0.1s ease;
 }
 
 .matchRowActive {
-  background: color-mix(in srgb, var(--color-be) 10%, var(--color-var(--color-white)) 90%);
+  background: color-mix(in srgb, var(--color-be) 8%, var(--color-white) 92%);
 }
 
-.matchRowFinished .matchClub {
-  color: var(--color-gray-300);
-}
-
-.matchTeamCell {
+.matchRowMain {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 30px auto 30px minmax(120px, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.matchTeamBlock {
+  position: relative;
+  height: 30px;
   min-width: 0;
 }
 
@@ -596,53 +598,104 @@
 }
 
 .matchClub {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 500;
+  font-family: 'Poppins', sans-serif;
+  height: 30px;
+  display: flex;
+  align-items: center;
   color: var(--color-dark);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 120px;
 }
 
-.matchNick {
-  font-size: 11px;
-  color: var(--color-gray-300);
+.matchBrand {
+  position: absolute;
+  top: 26px;
+  left: 0;
+  font-size: 8px;
+  color: #a514f6;
+  font-weight: 500;
+  font-family: 'Poppins', sans-serif;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  max-width: 100%;
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 120px;
 }
 
-.matchScoreCell {
-  flex-shrink: 0;
-  min-width: 64px;
+.matchTeamAway .matchBrand {
+  left: 0;
+  right: auto;
+}
+
+.matchCrest {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.resultScore {
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--color-be);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
-}
-
-.vsLabel {
+  background: #1f2024;
+  color: var(--color-white);
   font-size: 11px;
   font-weight: 700;
-  color: var(--color-gray-300);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+}
+
+.matchScoreGroup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.scoreBox {
+  width: 25px;
+  height: 25px;
+  border-radius: 8px;
+  background: var(--color-dark-100);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-white);
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+}
+
+.scoreCross {
+  font-size: 30px;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--color-dark);
 }
 
 .expandIcon {
-  font-size: 8px;
-  color: var(--color-gray-300);
+  font-size: 14px;
+  color: #a514f6;
   flex-shrink: 0;
-  margin-left: 4px;
+}
+
+.matchRowDivider {
+  height: 2px;
+  width: min(78%, 860px);
+  margin: 0 auto;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-dark) 8%, transparent 92%) 10%,
+    color-mix(in srgb, var(--color-dark) 26%, transparent 74%) 50%,
+    color-mix(in srgb, var(--color-dark) 8%, transparent 92%) 90%,
+    transparent 100%
+  );
+  border-radius: 2px;
 }
 
 .matchCardWrap {
@@ -890,7 +943,32 @@
   }
 
   .matchClub,
-  .matchNick {
+  .matchBrand {
     max-width: 90px;
+  }
+
+  .matchRow {
+    padding: 12px;
+  }
+
+  .matchRowMain {
+    grid-template-columns: minmax(90px, 1fr) 40px auto 40px minmax(90px, 1fr);
+    gap: 6px;
+  }
+
+  .matchCrest,
+  .scoreBox {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    font-size: 12px;
+  }
+
+  .scoreCross {
+    font-size: 28px;
+  }
+
+  .matchClub {
+    font-size: 14px;
   }
 }

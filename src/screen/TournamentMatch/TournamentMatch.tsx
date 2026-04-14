@@ -43,6 +43,16 @@ interface SideSummary {
   nickname: string
 }
 
+function getTeamInitials(name: string | null | undefined) {
+  if (!name) return 'TM'
+  return name
+    .split(/\s+/)
+    .map((chunk) => chunk[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
+
 function TournamentMatch() {
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
@@ -312,7 +322,7 @@ function TournamentMatch() {
                   </div>
                 )}
               >
-                {roundMatches.map((m) => {
+                {roundMatches.map((m, index) => {
                   const isExpanded = expandedMatchId === m.id
                   return (
                     <div key={m.id}>
@@ -322,38 +332,38 @@ function TournamentMatch() {
                           setExpandedMatchId((prev) => (prev === m.id ? null : m.id))
                         }
                       >
-                        <div className={styles.matchTeamCell}>
-                          <span className={styles.matchClub}>
-                            {m.homeTeam?.team_name || 'TBD'}
-                          </span>
-                          <span className={styles.matchNick}>
-                            {m.homeTeam?.profile?.nickname || '—'}
-                          </span>
-                        </div>
+                        <div className={styles.matchRowMain}>
+                          <div className={styles.matchTeamBlock}>
+                            <span className={styles.matchClub}>{m.homeTeam?.team_name || 'TBD'}</span>
+                            <span className={styles.matchBrand}>{m.homeTeam?.profile?.nickname || 'csbeep'}</span>
+                          </div>
 
-                        <div className={styles.matchScoreCell}>
-                          {m.status === 'finished' ? (
-                            <span className={styles.resultScore}>
-                              {m.home_score} – {m.away_score}
+                          <span className={styles.matchCrest}>{getTeamInitials(m.homeTeam?.team_name)}</span>
+
+                          <div className={styles.matchScoreGroup}>
+                            <span className={styles.scoreBox}>
+                              {m.home_score !== null ? m.home_score : ''}
                             </span>
-                          ) : (
-                            <span className={styles.vsLabel}>vs</span>
-                          )}
-                        </div>
+                            <span className={styles.scoreCross}>x</span>
+                            <span className={styles.scoreBox}>
+                              {m.away_score !== null ? m.away_score : ''}
+                            </span>
+                          </div>
 
-                        <div className={`${styles.matchTeamCell} ${styles.matchTeamAway}`}>
-                          <span className={styles.matchClub}>
-                            {m.awayTeam?.team_name || 'TBD'}
-                          </span>
-                          <span className={styles.matchNick}>
-                            {m.awayTeam?.profile?.nickname || '—'}
-                          </span>
+                          <span className={styles.matchCrest}>{getTeamInitials(m.awayTeam?.team_name)}</span>
+
+                          <div className={`${styles.matchTeamBlock} ${styles.matchTeamAway}`}>
+                            <span className={styles.matchClub}>{m.awayTeam?.team_name || 'TBD'}</span>
+                            <span className={styles.matchBrand}>{m.awayTeam?.profile?.nickname || 'csbeep'}</span>
+                          </div>
                         </div>
 
                         <span className={styles.expandIcon} aria-hidden>
                           {isExpanded ? '▲' : '▼'}
                         </span>
                       </button>
+
+                      {index < roundMatches.length - 1 && <div className={styles.matchRowDivider} />}
 
                       {isExpanded && (
                         <div className={styles.matchCardWrap}>
