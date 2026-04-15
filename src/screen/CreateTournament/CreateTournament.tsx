@@ -225,6 +225,7 @@ function CreateTournament() {
         ...(formData.adminDraft && selectedTeamsPreview.length > 0
           ? {
               selectedTeamNames: selectedTeamsPreview.map((t) => t.name),
+              selectedTeamShields: Object.fromEntries(selectedTeamsPreview.map((t) => [t.name, t.logo])),
               teamAssignMode: formData.autoTeams ? 'auto' : ('manual' as const),
             }
           : {}),

@@ -9,6 +9,7 @@ import {
 } from '../../atoms/tournamentAtoms'
 import { fetchMyTournaments, getTournamentParticipants, cancelTournament } from '../../lib/tournamentService'
 import { getTournamentMatches } from '../../lib/matchService'
+import { fetchStrapiClubCatalog } from '../../lib/strapiClubService'
 import { generatePlayoffMatches } from '../../lib/matchGenerationEngine'
 import type { Participant } from '../../atoms/tournamentAtoms'
 import type { MatchWithTeams, TournamentSettings } from '../../types/tournament'
@@ -53,6 +54,31 @@ function getTeamInitials(name: string | null | undefined) {
     .toUpperCase()
 }
 
+interface TeamCrestProps {
+  teamName: string | null | undefined
+  shieldsMap: Record<string, string>
+}
+
+function TeamCrest({ teamName, shieldsMap }: TeamCrestProps) {
+  const name = teamName || 'TBD'
+  const shieldUrl = teamName ? shieldsMap[teamName] : undefined
+  const [imgError, setImgError] = useState(false)
+
+  if (shieldUrl && !imgError) {
+    return (
+      <span className={styles.matchCrest}>
+        <img
+          src={shieldUrl}
+          alt={name}
+          className={styles.matchCrestImg}
+          onError={() => setImgError(true)}
+        />
+      </span>
+    )
+  }
+  return <span className={styles.matchCrest}>{getTeamInitials(teamName)}</span>
+}
+
 function TournamentMatch() {
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
@@ -71,6 +97,7 @@ function TournamentMatch() {
   const [showAdminModal, setShowAdminModal] = useState(false)
   const [legFilter, setLegFilter] = useState<LegFilter>('first')
   const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>('league')
+  const [strapiShieldsMap, setStrapiShieldsMap] = useState<Record<string, string>>({})
 
   // Accordion state
   const [openRound, setOpenRound] = useState<number | null>(null)
@@ -117,6 +144,24 @@ function TournamentMatch() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tournamentId, setCurrentView, refreshKey])
 
+  // Carregar escudos do Strapi (funciona para torneios novos e antigos)
+  useEffect(() => {
+    let cancelled = false
+    fetchStrapiClubCatalog()
+      .then(({ teamData }) => {
+        if (cancelled) return
+        const map: Record<string, string> = {}
+        for (const clubs of Object.values(teamData)) {
+          for (const club of clubs) {
+            if (club.logo) map[club.name] = club.logo
+          }
+        }
+        setStrapiShieldsMap(map)
+      })
+      .catch(() => { /* silencioso — fallback para iniciais */ })
+    return () => { cancelled = true }
+  }, [])
+
   // Group matches by round
   const matchesByRound = useMemo(() => {
     const map = new Map<number, MatchWithTeams[]>()
@@ -132,6 +177,11 @@ function TournamentMatch() {
 
   const isCreator = tournament.creator_id === user.id
   const tournamentSettings = tournament.settings as TournamentSettings | null
+  // Merge: settings salvos (torneios novos) + catálogo Strapi ao vivo (todos os torneios)
+  const shieldsMap: Record<string, string> = {
+    ...strapiShieldsMap,
+    ...(tournamentSettings?.selectedTeamShields ?? {}),
+  }
   const isCampeonato = tournamentSettings?.format === 'campeonato'
   const hasReturnMatch = tournamentSettings?.hasReturnMatch ?? false
   const playoffCutoff = isCampeonato ? (tournamentSettings?.playoffCutoff ?? 2) : undefined
@@ -338,7 +388,7 @@ function TournamentMatch() {
                             <span className={styles.matchBrand}>{m.homeTeam?.profile?.nickname || 'csbeep'}</span>
                           </div>
 
-                          <span className={styles.matchCrest}>{getTeamInitials(m.homeTeam?.team_name)}</span>
+                          <TeamCrest teamName={m.homeTeam?.team_name} shieldsMap={shieldsMap} />
 
                           <div className={styles.matchScoreGroup}>
                             <span className={styles.scoreBox}>
@@ -350,7 +400,7 @@ function TournamentMatch() {
                             </span>
                           </div>
 
-                          <span className={styles.matchCrest}>{getTeamInitials(m.awayTeam?.team_name)}</span>
+                          <TeamCrest teamName={m.awayTeam?.team_name} shieldsMap={shieldsMap} />
 
                           <div className={`${styles.matchTeamBlock} ${styles.matchTeamAway}`}>
                             <span className={styles.matchClub}>{m.awayTeam?.team_name || 'TBD'}</span>
