@@ -533,14 +533,14 @@
 .randomizeBtn {
   padding: 8px 14px;
   background: linear-gradient(135deg, var(--color-success), var(--color-success));
-  color: var(--color-var(--color-white));
+  color: var(--color-white);
   border: none;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  var(--color-white)-space: nowrap;
+  white-space: nowrap;
 }
 
 .randomizeBtn:hover:not(:disabled) {
@@ -582,7 +582,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--color-var(--color-white));
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   padding: 8px 12px;
@@ -616,7 +616,7 @@
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
-  var(--color-white)-space: nowrap;
+  white-space: nowrap;
   flex-shrink: 0;
 }
 
@@ -671,7 +671,7 @@
   text-align: left;
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s, color 0.2s;
-  var(--color-white)-space: nowrap;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -742,7 +742,7 @@
 }
 
 .teamPickerClose:hover {
-  color: var(--color-var(--color-white));
+  color: var(--color-white);
   background: rgba(255, 255, 255, 0.1);
 }
 

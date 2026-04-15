@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react'
 import styles from './TeamSelectModal.module.css'
-import type { League, Club, TeamDataMap } from './TEAM_DATA_MOCK'
+import { fetchStrapiClubCatalog, type Continent, type League, type Club, type TeamDataMap } from '../../../../lib/strapiClubService'
 
 interface TeamSelectModalProps {
-  /** IDs already selected (controlled from parent formData) */
   selectedIds: string[]
-  /** Maximum number of teams the admin can define */
   maxTeams: number
   onConfirm: (clubs: Club[]) => void
   onClose: () => void
@@ -17,21 +15,37 @@ export function TeamSelectModal({
   onConfirm,
   onClose,
 }: TeamSelectModalProps) {
-  const [leagues, setLeagues] = useState<League[]>([])
+  const [continents, setContinents] = useState<Continent[]>([])
+  const [leaguesByContinent, setLeaguesByContinent] = useState<{ [k: string]: League[] }>({})
   const [teamData, setTeamData] = useState<TeamDataMap>({})
   const [dataReady, setDataReady] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
-  const [step, setStep] = useState<'leagues' | 'clubs'>('leagues')
+  const [step, setStep] = useState<'continents' | 'leagues' | 'clubs'>('continents')
+  const [activeContinent, setActiveContinent] = useState<Continent | null>(null)
   const [activeLeague, setActiveLeague] = useState<League | null>(null)
   const [selected, setSelected] = useState<string[]>(initialSelected)
 
-  // Dynamic import — keeps the mock out of the initial bundle
   useEffect(() => {
-    import('./TEAM_DATA_MOCK').then(({ LEAGUES, TEAM_DATA }) => {
-      setLeagues(LEAGUES)
-      setTeamData(TEAM_DATA)
-      setDataReady(true)
-    })
+    let cancelled = false
+    const load = async () => {
+      setDataReady(false)
+      setLoadError(null)
+      try {
+        const { continents: c, leaguesByContinent: lbc, teamData: td } = await fetchStrapiClubCatalog()
+        if (cancelled) return
+        setContinents(c)
+        setLeaguesByContinent(lbc)
+        setTeamData(td)
+      } catch (error) {
+        if (cancelled) return
+        setLoadError(error instanceof Error ? error.message : 'Erro ao carregar catálogo')
+      } finally {
+        if (!cancelled) setDataReady(true)
+      }
+    }
+    load()
+    return () => { cancelled = true }
   }, [])
 
   const isLimitReached = selected.length >= maxTeams
@@ -44,21 +58,41 @@ export function TeamSelectModal({
     })
   }
 
+  const handleContinentClick = (continent: Continent) => {
+    setActiveContinent(continent)
+    setStep('leagues')
+  }
+
   const handleLeagueClick = (league: League) => {
     setActiveLeague(league)
     setStep('clubs')
   }
 
   const handleBack = () => {
-    setStep('leagues')
-    setActiveLeague(null)
+    if (step === 'clubs') {
+      setStep('leagues')
+      setActiveLeague(null)
+    } else {
+      setStep('continents')
+      setActiveContinent(null)
+    }
   }
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose()
   }
 
+  const leaguesInContinent = activeContinent ? (leaguesByContinent[activeContinent.id] ?? []) : []
   const clubs: Club[] = activeLeague ? (teamData[activeLeague.id] ?? []) : []
+
+  const slideClass =
+    step === 'leagues' ? styles.onLeagues :
+    step === 'clubs'   ? styles.onClubs   : ''
+
+  const headerTitle =
+    step === 'continents' ? 'Continente' :
+    step === 'leagues'    ? (activeContinent?.name ?? 'Ligas') :
+    (activeLeague?.name ?? 'Clubes')
 
   return (
     <div className={styles.overlay} onClick={handleOverlayClick}>
@@ -66,36 +100,56 @@ export function TeamSelectModal({
 
         {/* ── Header ── */}
         <div className={styles.header}>
-          {step === 'clubs' && (
+          {step !== 'continents' && (
             <button className={styles.backBtn} type="button" onClick={handleBack}>
               ← Voltar
             </button>
           )}
-
-          <h2 className={styles.headerTitle}>
-            {step === 'leagues' ? 'Escolher Liga' : activeLeague?.name ?? 'Clubes'}
-          </h2>
-
+          <h2 className={styles.headerTitle}>{headerTitle}</h2>
           <span className={`${styles.counter} ${selected.length > 0 ? styles.counterActive : ''}`}>
             {selected.length} / {maxTeams} selecionados
           </span>
-
-          <button className={styles.closeBtn} type="button" onClick={onClose} aria-label="Fechar">
-            ×
-          </button>
+          <button className={styles.closeBtn} type="button" onClick={onClose} aria-label="Fechar">×</button>
         </div>
 
         {/* ── Slides ── */}
         <div className={styles.slideWrap}>
           {!dataReady ? (
-            <div className={styles.loading}>Carregando times…</div>
+            <div className={styles.loading}>Carregando…</div>
+          ) : loadError ? (
+            <div className={styles.loading}>{loadError}</div>
           ) : (
-            <div className={`${styles.slides} ${step === 'clubs' ? styles.onClubs : ''}`}>
+            <div className={`${styles.slides} ${slideClass}`}>
 
-              {/* Step 1 — Leagues */}
+              {/* Slide 0 — Continentes */}
+              <div className={styles.slide} aria-hidden={step !== 'continents'}>
+                <div className={styles.leagueGrid}>
+                  {continents.map((continent) => (
+                    <button
+                      key={continent.id}
+                      type="button"
+                      className={styles.leagueCard}
+                      onClick={() => handleContinentClick(continent)}
+                    >
+                      <LogoWithFallback
+                        src={continent.logo}
+                        alt={continent.name}
+                        color="#5c2df5"
+                        size={40}
+                        className={styles.leagueLogo}
+                        initialsClass={styles.leagueInitials}
+                        label={continent.name}
+                      />
+                      <span className={styles.leagueName}>{continent.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Slide 1 — Ligas */}
               <div className={styles.slide} aria-hidden={step !== 'leagues'}>
                 <div className={styles.leagueGrid}>
-                  {leagues.map((league) => (
+                  {leaguesInContinent.map((league) => (
                     <button
                       key={league.id}
                       type="button"
@@ -117,7 +171,7 @@ export function TeamSelectModal({
                 </div>
               </div>
 
-              {/* Step 2 — Clubs */}
+              {/* Slide 2 — Clubes */}
               <div className={styles.slide} aria-hidden={step !== 'clubs'}>
                 <div className={styles.clubGrid}>
                   {clubs.map((club) => {
@@ -172,7 +226,7 @@ export function TeamSelectModal({
                 .filter((c): c is Club => c !== undefined)
               onConfirm(confirmedClubs)
             }}
-            disabled={selected.length !== maxTeams}
+            disabled={selected.length !== maxTeams || !!loadError}
           >
             Confirmar
           </button>

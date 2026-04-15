@@ -12,7 +12,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  background: var(--color-var(--color-white));
+  background: var(--color-white);
   border-bottom: 1px solid var(--color-gray-200);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   gap: 16px;
@@ -109,7 +109,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--color-mid) 30%, var(--color-var(--color-white)) 70%) 0%, var(--color-mid) 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-mid) 30%, var(--color-white) 70%) 0%, var(--color-mid) 100%);
   border: 1.5px solid var(--color-gold-100);
   border-radius: 12px;
   padding: 16px 20px;
@@ -144,7 +144,7 @@
 .playoffBannerBtn {
   padding: 10px 20px;
   background: var(--gradient-primary);
-  color: var(--color-var(--color-white));
+  color: var(--color-white);
   border: none;
   border-radius: 8px;
   font-size: 14px;
@@ -453,7 +453,7 @@
 
 .legOptionActive:hover {
   background: var(--color-be);
-  color: var(--color-var(--color-white));
+  color: var(--color-white);
 }
 
 /* ============================================================
@@ -467,7 +467,7 @@
 .tabsNav {
   display: flex;
   gap: 4px;
-  background: var(--color-var(--color-white));
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: 10px;
   padding: 5px;
@@ -494,7 +494,7 @@
 
 .tabActive {
   background: var(--gradient-primary);
-  color: var(--color-var(--color-white));
+  color: var(--color-white);
   box-shadow: 0 2px 8px color-mix(in srgb, var(--color-be) 30%, transparent 70%);
 }
 
@@ -813,7 +813,7 @@
   border: 1.5px dashed var(--color-gray-200);
   border-radius: 10px;
   padding: 16px;
-  background: var(--color-var(--color-white));
+  background: var(--color-white);
 }
 
 .adminPanelTitle {
@@ -837,7 +837,7 @@
   justify-content: space-between;
   gap: 10px;
   padding: 7px 10px;
-  background: var(--color-var(--color-white));
+  background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: 7px;
 }
@@ -899,7 +899,7 @@
 
 .dangerBtn:hover {
   background: var(--color-red);
-  color: var(--color-var(--color-white));
+  color: var(--color-white);
 }
 
 /* ============================================================

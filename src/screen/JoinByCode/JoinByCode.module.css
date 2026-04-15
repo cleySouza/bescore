@@ -38,7 +38,7 @@
 }
 
 .form {
-  background: var(--color-var(--color-white));
+  background: var(--color-white);
   border-radius: 12px;
   padding: 24px;
   max-width: 500px;
