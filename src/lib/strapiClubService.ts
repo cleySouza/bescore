@@ -226,5 +226,13 @@ export async function fetchStrapiClubCatalog(): Promise<{
     })
   }
 
+  // Seleções (isNational) sempre por último em cada continente
+  for (const key of Object.keys(leaguesByContinent)) {
+    leaguesByContinent[key].sort((a, b) => {
+      if (a.isNational === b.isNational) return 0
+      return a.isNational ? 1 : -1
+    })
+  }
+
   return { continents, leaguesByContinent, teamData }
 }

@@ -135,7 +135,7 @@ export function TeamSelectModal({
                         src={continent.logo}
                         alt={continent.name}
                         color="#5c2df5"
-                        size={40}
+                        size={60}
                         className={styles.leagueLogo}
                         initialsClass={styles.leagueInitials}
                         label={continent.name}
@@ -160,7 +160,7 @@ export function TeamSelectModal({
                         src={league.logo}
                         alt={league.name}
                         color={league.color}
-                        size={40}
+                        size={60}
                         className={styles.leagueLogo}
                         initialsClass={styles.leagueInitials}
                         label={league.name}
@@ -191,7 +191,7 @@ export function TeamSelectModal({
                             src={club.logo}
                             alt={club.name}
                             color={club.color}
-                            size={44}
+                            size={60}
                             className={styles.clubLogo}
                             initialsClass={styles.clubInitials}
                             label={club.name}
