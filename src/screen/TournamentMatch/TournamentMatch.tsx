@@ -89,10 +89,13 @@ function getStatusLabel(status: string | null | undefined) {
 }
 
 function formatTimelineDate(input: string | null | undefined) {
-  if (!input) return '--/--/----'
+  if (!input) return '--/--'
   const date = new Date(input)
-  if (Number.isNaN(date.getTime())) return '--/--/----'
-  return date.toLocaleDateString('pt-BR')
+  if (Number.isNaN(date.getTime())) return '--/--'
+
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  return `${day}/${month}`
 }
 
 interface TeamCrestProps {
@@ -205,6 +208,8 @@ function TournamentMatch() {
   // Accordion state
   const [openRound, setOpenRound] = useState<number | null>(null)
   const accordionInitRef = useRef<string | null>(null)
+  const recentTimelineRef = useRef<HTMLDivElement | null>(null)
+  const recentTimelineIndexRef = useRef(0)
 
   const tournamentId = tournament?.id
 
@@ -434,6 +439,40 @@ function TournamentMatch() {
     setLegFilter('first')
     setPhaseFilter('league')
   }, [tournamentId])
+
+  useEffect(() => {
+    recentTimelineIndexRef.current = 0
+  }, [tournamentId])
+
+  useEffect(() => {
+    const timelineList = recentTimelineRef.current
+    if (!timelineList || recentTimelineMatches.length <= 1) {
+      return
+    }
+
+    const AUTO_SCROLL_DELAY = 3600
+
+    const tick = () => {
+      if (window.innerWidth > 900) {
+        return
+      }
+
+      const cards = Array.from(timelineList.children) as HTMLElement[]
+      if (cards.length <= 1) {
+        return
+      }
+
+      const nextIndex = (recentTimelineIndexRef.current + 1) % cards.length
+      recentTimelineIndexRef.current = nextIndex
+      cards[nextIndex]?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' })
+    }
+
+    const intervalId = window.setInterval(tick, AUTO_SCROLL_DELAY)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [recentTimelineMatches])
 
   useEffect(() => {
     if (!hasPlayoffStarted && phaseFilter === 'playoff') {
@@ -823,7 +862,7 @@ function TournamentMatch() {
         {recentTimelineMatches.length > 0 && (
           <section className={styles.recentTimeline}>
             <h2 className={styles.recentTimelineTitle}>Resultado ultimas partidas</h2>
-            <div className={styles.recentTimelineList}>
+            <div ref={recentTimelineRef} className={styles.recentTimelineList}>
               {recentTimelineMatches.map((match) => {
                 const loggedIsHome = match.home_participant_id === match.loggedParticipantId
                 const myTeam = loggedIsHome ? match.homeTeam : match.awayTeam

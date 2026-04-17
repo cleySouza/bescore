@@ -173,7 +173,7 @@
   flex-wrap: nowrap;
   justify-content: center;
   gap: 14px;
-  overflow-x: auto;
+  overflow-x: visible;
   overflow-y: hidden;
   padding-bottom: 4px;
 }
@@ -216,6 +216,7 @@
 }
 
 .recentMeta {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -233,7 +234,9 @@
   display: block;
   margin-top: 2px;
   font-size: 13px;
+  line-height: 1.2;
   color: var(--color-dark);
+  white-space: nowrap;
 }
 
 .recentScoreWrap {
@@ -1118,6 +1121,28 @@
   .main {
     padding: 16px;
   }
+
+  .recentTimelineList {
+    justify-content: flex-start;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 4px 8px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .recentTimelineList::-webkit-scrollbar {
+    display: none;
+  }
+
+  .recentCard {
+    flex: 0 0 min(76vw, 320px);
+    width: min(76vw, 320px);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1156,8 +1181,41 @@
   }
 
   .recentCard {
-    gap: 10px;
+    gap: 5px;
     padding: 9px 10px;
+    flex: 0 0 min(72vw, 292px);
+    width: min(72vw, 292px);
+    overflow: hidden;
+  }
+
+  .recentMeta {
+    min-width: 60px;
+  }
+
+  .recentMetaDate {
+    font-size: 11px;
+  }
+
+  .recentScoreWrap {
+    gap: 5px;
+  }
+
+  .timelineCrest {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    font-size: 10px;
+  }
+
+  .recentScoreBox {
+    width: 26px;
+    height: 26px;
+    font-size: 14px;
+    border-radius: 6px;
+  }
+
+  .recentScoreCross {
+    font-size: 18px;
   }
 
   .recentThumb {
@@ -1167,7 +1225,7 @@
   }
 
   .recentScoreWrap {
-    gap: 6px;
+    gap: 5px;
   }
 
   .recentScoreBox {
