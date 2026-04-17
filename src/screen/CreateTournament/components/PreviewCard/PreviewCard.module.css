@@ -52,6 +52,7 @@
   background: transparent;
   opacity: 0;
   transition: opacity 0.2s ease;
+  pointer-events: auto;
 }
 
 .imagePlaceholder:hover .uploadLabel {

@@ -454,6 +454,18 @@ export async function seedMockParticipants(tournamentId: string): Promise<void> 
     console.error('Erro ao injetar participantes mock:', error.message)
     throw new Error(`Falha ao injetar participantes: ${error.message}`)
   }
+
+  // Regra do fluxo de draft: nomes/clubes so aparecem apos sorteio.
+  // Portanto, apos seed mock, garantimos que nenhum participante fique com team_name preenchido.
+  const { error: clearTeamsError } = await supabase
+    .from('participants')
+    .update({ team_name: null })
+    .eq('tournament_id', tournamentId)
+
+  if (clearTeamsError) {
+    console.error('Erro ao limpar times apos seed mock:', clearTeamsError.message)
+    throw new Error(`Falha ao limpar times apos seed: ${clearTeamsError.message}`)
+  }
 }
 // ─────────────────────────────────────────────────────────────────────────────
 

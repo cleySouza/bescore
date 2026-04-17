@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
-import { useAtomValue } from 'jotai'
+import { useState, useEffect, useRef } from 'react'
+import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
-import { activeTournamentAtom, showConfigModalAtom } from '../../atoms/tournamentAtoms'
+import { activeTournamentAtom, globalToastAtom, showConfigModalAtom } from '../../atoms/tournamentAtoms'
 import { generateMatchesByFormat } from '../../lib/matchGenerationEngine'
 import { updateParticipantTeamName } from '../../lib/tournamentService'
 import type { TournamentFormat, TournamentSettings } from '../../types/tournament'
@@ -25,6 +25,15 @@ const FALLBACK_CLUBS = [
   'Roma', 'Napoli', 'Tottenham', 'Manchester United',
 ]
 
+function getTeamInitials(name: string) {
+  return name
+    .split(/[\s\-_&]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('') || 'TM'
+}
+
 interface TournamentConfigProps {
   participantCount: number
   participants: LobbyParticipant[]
@@ -36,8 +45,10 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
   const showModal = useAtomValue(showConfigModalAtom)
+  const setGlobalToast = useSetAtom(globalToastAtom)
 
   const savedSettings = tournament?.settings as TournamentSettings | null
+  const isAutoAssignment = (savedSettings?.teamAssignMode ?? 'auto') === 'auto'
   const initialFormat: TournamentFormat = savedSettings?.format ?? 'roundRobin'
   const [format] = useState<TournamentFormat>(initialFormat)
   const [settings] = useState<TournamentSettings>({
@@ -52,13 +63,35 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
   const [editableNames, setEditableNames] = useState<Record<string, string>>({})
   const [randomizeFeedback, setRandomizeFeedback] = useState<string | null>(null)
   const [pickerOpenFor, setPickerOpenFor] = useState<string | null>(null)
+  const [participantQuery, setParticipantQuery] = useState('')
+  const [teamPickerQuery, setTeamPickerQuery] = useState('')
+  const wasModalOpenRef = useRef(false)
 
-  // Sincroniza nomes quando o modal abre ou os participantes mudam
+  // Inicializa nomes somente ao ABRIR o modal (evita reset apos sortear no modo AUTO)
   useEffect(() => {
-    if (showModal) {
-      setEditableNames(Object.fromEntries(participants.map((p) => [p.id, p.team_name ?? ''])))
+    const modalJustOpened = showModal && !wasModalOpenRef.current
+
+    if (modalJustOpened) {
+      const hasLocalAssignments = Object.values(editableNames).some(
+        (name) => (name ?? '').trim().length > 0
+      )
+
+      if (!hasLocalAssignments) {
+        setEditableNames(
+          Object.fromEntries(
+            participants.map((p) => [p.id, isAutoAssignment ? '' : (p.team_name ?? '')])
+          )
+        )
+      }
+
+      setParticipantQuery('')
+      setTeamPickerQuery('')
+      setPickerOpenFor(null)
+      setRandomizeFeedback(null)
     }
-  }, [showModal, participants])
+
+    wasModalOpenRef.current = showModal
+  }, [showModal, participants, isAutoAssignment, editableNames])
 
   if (!user || !tournament || !showModal) {
     return null
@@ -73,12 +106,26 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
   // Bloqueia configuração se o torneio não está mais em rascunho
   const isDraft = tournament.status === 'draft'
 
-  const isManualMode = savedSettings?.teamAssignMode === 'manual'
-  const teamPool = savedSettings?.selectedTeamNames ?? FALLBACK_CLUBS
+  const selectedTeamNames = Array.isArray(savedSettings?.selectedTeamNames)
+    ? savedSettings.selectedTeamNames.filter(
+        (name): name is string => typeof name === 'string' && name.trim().length > 0
+      )
+    : []
+
+  const teamPool = selectedTeamNames.length > 0 ? selectedTeamNames : FALLBACK_CLUBS
+  const teamShields =
+    typeof savedSettings?.selectedTeamShields === 'object' && savedSettings?.selectedTeamShields
+      ? (savedSettings.selectedTeamShields as Record<string, string>)
+      : {}
+
+  const closeTeamPicker = () => {
+    setPickerOpenFor(null)
+    setTeamPickerQuery('')
+  }
 
   const handleRandomize = () => {
-    const preSelected = savedSettings?.selectedTeamNames
-    const source = preSelected && preSelected.length >= participants.length
+    const preSelected = selectedTeamNames
+    const source = preSelected.length >= participants.length
       ? preSelected
       : FALLBACK_CLUBS
     const shuffled = [...source].sort(() => Math.random() - 0.5)
@@ -87,16 +134,56 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
       newNames[p.id] = shuffled[i % source.length]
     })
     setEditableNames(newNames)
-    const feedbackMsg = preSelected && preSelected.length >= participants.length
+    const feedbackMsg = preSelected.length >= participants.length
       ? `Times sorteados dos ${preSelected.length} clubes pré-selecionados ✅`
       : 'Times sorteados do pool genérico 🌍'
-    setRandomizeFeedback(feedbackMsg)
+    setRandomizeFeedback(null)
+    setGlobalToast({ message: `✅ ${feedbackMsg}`, type: 'success' })
+  }
+
+  const handleClearTeams = () => {
+    if (!window.confirm('Remover todos os times atribuídos antes do sorteio?')) return
+    const cleared = { ...editableNames }
+    participants.forEach((p) => {
+      cleared[p.id] = ''
+    })
+    setEditableNames(cleared)
+    setRandomizeFeedback('Times limpos. Você pode redefinir e sortear novamente.')
     setTimeout(() => setRandomizeFeedback(null), 2500)
   }
 
   const allTeamsAssigned =
     participants.length > 0 &&
     participants.every((p) => (editableNames[p.id] ?? '').trim().length > 0)
+
+  const assignedCount = participants.filter((p) => (editableNames[p.id] ?? '').trim().length > 0).length
+  const pendingCount = Math.max(0, participants.length - assignedCount)
+  const progressPercent = participants.length > 0
+    ? Math.round((assignedCount / participants.length) * 100)
+    : 0
+
+  const participantQueryNormalized = participantQuery.trim().toLowerCase()
+  const filteredParticipants = participantQueryNormalized
+    ? participants.filter((p) => {
+        const nickname = (p.profile?.nickname ?? '').toLowerCase()
+        const email = (p.profile?.email ?? '').toLowerCase()
+        const team = (editableNames[p.id] ?? '').toLowerCase()
+        return (
+          nickname.includes(participantQueryNormalized) ||
+          email.includes(participantQueryNormalized) ||
+          team.includes(participantQueryNormalized)
+        )
+      })
+    : participants
+
+  const pickerOpenName = pickerOpenFor
+    ? (participants.find((p) => p.id === pickerOpenFor)?.profile?.nickname ?? 'Jogador')
+    : ''
+
+  const teamPickerQueryNormalized = teamPickerQuery.trim().toLowerCase()
+  const filteredTeamPool = teamPickerQueryNormalized
+    ? teamPool.filter((name) => name.toLowerCase().includes(teamPickerQueryNormalized))
+    : teamPool
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -165,24 +252,62 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
             <div className={styles.lobbySection}>
               <div className={styles.lobbyHeader}>
                 <span className={styles.lobbyTitle}>🏟️ Atribuição de Times</span>
-                {!isManualMode && (
+                <div className={styles.lobbyActions}>
+                  {isAutoAssignment && (
+                    <button
+                      type="button"
+                      className={styles.randomizeBtn}
+                      onClick={handleRandomize}
+                      disabled={loading || participants.length === 0}
+                    >
+                      🎲 Sortear Times
+                    </button>
+                  )}
                   <button
                     type="button"
-                    className={styles.randomizeBtn}
-                    onClick={handleRandomize}
-                    disabled={loading}
+                    className={styles.secondaryActionBtn}
+                    onClick={handleClearTeams}
+                    disabled={loading || assignedCount === 0}
                   >
-                    🎲 Sortear Times
+                    🧹 Limpar
                   </button>
-                )}
+                </div>
               </div>
+
+              <div className={styles.modeHint}>
+                {isAutoAssignment
+                  ? 'Modo AUTO: times so podem ser definidos pelo sorteio automatico.'
+                  : 'Modo MANUAL: o criador escolhe individualmente o time de cada participante.'}
+              </div>
+
+              <div className={styles.lobbyProgressCard}>
+                <div className={styles.lobbyProgressTop}>
+                  <span>{assignedCount}/{participants.length} com time</span>
+                  <span>{pendingCount} pendente{pendingCount !== 1 ? 's' : ''}</span>
+                </div>
+                <div className={styles.lobbyProgressBar}>
+                  <span className={styles.lobbyProgressFill} style={{ width: `${progressPercent}%` }} />
+                </div>
+              </div>
+
+              <div className={styles.lobbySearchWrap}>
+                <input
+                  type="text"
+                  className={styles.lobbySearchInput}
+                  value={participantQuery}
+                  onChange={(e) => setParticipantQuery(e.target.value)}
+                  placeholder="Buscar jogador ou time..."
+                  disabled={loading || participants.length === 0}
+                />
+              </div>
+
               {randomizeFeedback && (
                 <div className={styles.randomizeFeedback}>
                   ✅ {randomizeFeedback}
                 </div>
               )}
               <div className={styles.lobbyList}>
-                {participants.map((p) => (
+                {filteredParticipants.map((p) => (
                   <div key={p.id} className={styles.lobbyItem}>
                     {p.profile?.avatar_url ? (
                       <img src={p.profile.avatar_url} alt="" className={styles.lobbyAvatar} />
@@ -192,29 +317,45 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
                     <span className={styles.lobbyNickname}>
                       {p.profile?.nickname || p.profile?.email || 'Jogador'}
                     </span>
-                    {isManualMode ? (
-                      <button
-                        type="button"
-                        className={`${styles.lobbyTeamBtn}${editableNames[p.id] ? ` ${styles.lobbyTeamBtnFilled}` : ''}`}
-                        onClick={() => setPickerOpenFor(p.id)}
-                        disabled={loading}
-                      >
-                        {editableNames[p.id] || 'Escolher time…'}
-                      </button>
-                    ) : (
-                      <input
-                        className={styles.lobbyInput}
-                        value={editableNames[p.id] ?? ''}
-                        onChange={(e) =>
-                          setEditableNames((prev) => ({ ...prev, [p.id]: e.target.value }))
-                        }
-                        placeholder="Nome do time..."
-                        maxLength={40}
-                        disabled={loading}
-                      />
-                    )}
+                    <button
+                      type="button"
+                      className={`${styles.lobbyTeamBtn}${editableNames[p.id] ? ` ${styles.lobbyTeamBtnFilled}` : ''}`}
+                      onClick={() => {
+                        if (isAutoAssignment) return
+                        setPickerOpenFor(p.id)
+                      }}
+                      disabled={loading || isAutoAssignment}
+                    >
+                      {editableNames[p.id] ? (
+                        <span className={styles.teamChoiceLine}>
+                          <span className={styles.teamChoiceCrest}>
+                            {teamShields[editableNames[p.id]] ? (
+                              <img
+                                src={teamShields[editableNames[p.id]]}
+                                alt={editableNames[p.id]}
+                                className={styles.teamChoiceCrestImg}
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none'
+                                }}
+                              />
+                            ) : (
+                              getTeamInitials(editableNames[p.id])
+                            )}
+                          </span>
+                          <span className={styles.teamChoiceText}>{editableNames[p.id]}</span>
+                        </span>
+                      ) : (
+                        isAutoAssignment ? 'Aguardando sorteio...' : 'Escolher time...'
+                      )}
+                    </button>
                   </div>
                 ))}
+
+                {filteredParticipants.length === 0 && (
+                  <div className={styles.lobbyEmptyFilter}>
+                    Nenhum participante encontrado para "{participantQuery}".
+                  </div>
+                )}
               </div>
               {!allTeamsAssigned && participants.length > 0 && (
                 <p className={styles.lobbyWarning}>
@@ -223,22 +364,43 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
               )}
             </div>
 
-            {/* ── Picker de Time (modo manual) ── */}
-            {pickerOpenFor && (
-              <div className={styles.teamPickerOverlay} onClick={() => setPickerOpenFor(null)}>
+            {/* ── Picker de Time (substituir time) ── */}
+            {!isAutoAssignment && pickerOpenFor && (
+              <div className={styles.teamPickerOverlay} onClick={closeTeamPicker}>
                 <div className={styles.teamPickerPanel} onClick={(e) => e.stopPropagation()}>
                   <div className={styles.teamPickerHeader}>
-                    <span>🏆 Escolher Time</span>
+                    <span>🏆 Escolher Time - {pickerOpenName}</span>
                     <button
                       type="button"
                       className={styles.teamPickerClose}
-                      onClick={() => setPickerOpenFor(null)}
+                      onClick={closeTeamPicker}
                     >
                       ✕
                     </button>
                   </div>
+                  <div className={styles.teamPickerSearchWrap}>
+                    <input
+                      type="text"
+                      className={styles.teamPickerSearchInput}
+                      value={teamPickerQuery}
+                      onChange={(e) => setTeamPickerQuery(e.target.value)}
+                      placeholder="Buscar time..."
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      className={styles.teamPickerClearBtn}
+                      onClick={() => {
+                        if (!pickerOpenFor) return
+                        setEditableNames((prev) => ({ ...prev, [pickerOpenFor]: '' }))
+                        closeTeamPicker()
+                      }}
+                    >
+                      Limpar seleção
+                    </button>
+                  </div>
                   <div className={styles.teamPickerList}>
-                    {teamPool.map((name) => {
+                    {filteredTeamPool.map((name) => {
                       const takenByOther = participants
                         .filter((p) => p.id !== pickerOpenFor)
                         .some((p) => editableNames[p.id] === name)
@@ -249,15 +411,36 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
                           className={`${styles.teamPickerItem}${takenByOther ? ` ${styles.teamPickerItemTaken}` : ''}`}
                           disabled={takenByOther}
                           onClick={() => {
+                            if (!pickerOpenFor) return
                             setEditableNames((prev) => ({ ...prev, [pickerOpenFor]: name }))
-                            setPickerOpenFor(null)
+                            closeTeamPicker()
                           }}
                         >
-                          {name}
+                          <span className={styles.teamPickerChoiceLine}>
+                            <span className={styles.teamChoiceCrest}>
+                              {teamShields[name] ? (
+                                <img
+                                  src={teamShields[name]}
+                                  alt={name}
+                                  className={styles.teamChoiceCrestImg}
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none'
+                                  }}
+                                />
+                              ) : (
+                                getTeamInitials(name)
+                              )}
+                            </span>
+                            <span className={styles.teamChoiceText}>{name}</span>
+                          </span>
                           {takenByOther && <span className={styles.takenBadge}>Ocupado</span>}
                         </button>
                       )
                     })}
+
+                    {filteredTeamPool.length === 0 && (
+                      <div className={styles.teamPickerEmpty}>Nenhum time encontrado.</div>
+                    )}
                   </div>
                 </div>
               </div>

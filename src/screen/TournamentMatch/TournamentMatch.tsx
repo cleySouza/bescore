@@ -398,6 +398,11 @@ function TournamentMatch() {
     : null
   const tournamentInitials = getTournamentInitials(tournament.name)
   const tournamentStatusLabel = getStatusLabel(tournament.status)
+  const managedTeamOptions = Array.isArray(tournamentSettings?.selectedTeamNames)
+    ? tournamentSettings.selectedTeamNames.filter(
+        (name): name is string => typeof name === 'string' && name.trim().length > 0
+      )
+    : []
   // Merge: settings salvos (torneios novos) + catálogo Strapi ao vivo (todos os torneios)
   const shieldsMap: Record<string, string> = {
     ...strapiShieldsMap,
@@ -975,6 +980,8 @@ function TournamentMatch() {
       {managedParticipant && (
         <ManageParticipantModal
           participant={managedParticipant}
+          showScoreAdjustments={true}
+          teamOptions={managedTeamOptions}
           onClose={() => setManagedParticipant(null)}
           onSaved={() => setRefreshKey((prev) => prev + 1)}
         />

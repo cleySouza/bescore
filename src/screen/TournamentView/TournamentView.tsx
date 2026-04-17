@@ -91,6 +91,12 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
 
   // Campeonato: extrair settings salvos no torneio
   const tournamentSettings = tournament.settings as TournamentSettings | null
+  const isAutoTeamMode = (tournamentSettings?.teamAssignMode ?? 'auto') === 'auto'
+  const managedTeamOptions = Array.isArray(tournamentSettings?.selectedTeamNames)
+    ? tournamentSettings.selectedTeamNames.filter(
+        (name): name is string => typeof name === 'string' && name.trim().length > 0
+      )
+    : []
   const isCampeonato = tournamentSettings?.format === 'campeonato'
   const playoffCutoff = isCampeonato ? (tournamentSettings?.playoffCutoff ?? 2) : undefined
 
@@ -585,6 +591,9 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
       {managedParticipant && (
         <ManageParticipantModal
           participant={managedParticipant}
+          showScoreAdjustments={!isDraft}
+          teamOptions={managedTeamOptions}
+          canEditTeamAssignment={!(isDraft && isAutoTeamMode)}
           onClose={() => setManagedParticipant(null)}
           onSaved={() => setRefreshKey((prev) => prev + 1)}
         />

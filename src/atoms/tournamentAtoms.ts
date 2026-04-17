@@ -43,6 +43,14 @@ export const currentViewAtom = atom<
 // Partida selecionada para edição de placar (drawer responsivo)
 export const selectedMatchAtom = atom<MatchWithTeams | null>(null)
 
+export interface GlobalToast {
+  message: string
+  type: 'success' | 'info' | 'warning' | 'error'
+}
+
+// Notificacao global tipo push/toast (fora dos componentes locais)
+export const globalToastAtom = atom<GlobalToast | null>(null)
+
 // --- Conexões Recentes ---
 
 export interface RecentPlayer {

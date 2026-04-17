@@ -530,23 +530,6 @@ function CreateTournament() {
                     </button>
                   </div>
 
-                  {/* TIMES */}
-                  <div className={`${styles.toggleGroup} ${styles.collapsibleSection}${!formData.adminDraft ? ` ${styles.collapsed}` : ''}`}>
-                    <div className={styles.toggleGroupLabel}>TIMES</div>
-                    <button
-                      type="button"
-                      className={`${styles.slideToggle} ${formData.autoTeams ? styles.active : ''}`}
-                      onClick={() => handleToggle('autoTeams')}
-                      disabled={!formData.adminDraft}
-                      tabIndex={formData.adminDraft ? 0 : -1}
-                    >
-                      <span className={styles.slideKnob} />
-                      <span className={styles.slideLabel}>
-                        {formData.autoTeams ? 'AUTO' : 'MANUAL'}
-                      </span>
-                    </button>
-                  </div>
-
                   {/* PRIVADO */}
                   <div className={styles.toggleGroup}>
                     <div className={styles.toggleGroupLabel}>ACESSO</div>
@@ -603,6 +586,23 @@ function CreateTournament() {
                       <span className={styles.slideKnob} />
                       <span className={styles.slideLabel}>
                         {formData.willPlay ? 'SIM' : 'NÃO'}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* TIMES */}
+                  <div className={`${styles.toggleGroup} ${styles.collapsibleSection}${!formData.adminDraft ? ` ${styles.collapsed}` : ''}`}>
+                    <div className={styles.toggleGroupLabel}>TIMES</div>
+                    <button
+                      type="button"
+                      className={`${styles.slideToggle} ${formData.autoTeams ? styles.active : ''}`}
+                      onClick={() => handleToggle('autoTeams')}
+                      disabled={!formData.adminDraft}
+                      tabIndex={formData.adminDraft ? 0 : -1}
+                    >
+                      <span className={styles.slideKnob} />
+                      <span className={styles.slideLabel}>
+                        {formData.autoTeams ? 'AUTO' : 'MANUAL'}
                       </span>
                     </button>
                   </div>

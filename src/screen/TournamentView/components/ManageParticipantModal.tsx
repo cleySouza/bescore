@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { updateParticipantAdmin } from '../../../lib/matchService'
 import styles from './ManageParticipantModal.module.css'
 
@@ -18,9 +18,19 @@ interface ManageParticipantModalProps {
   participant: ManagedParticipant
   onClose: () => void
   onSaved: () => void
+  showScoreAdjustments?: boolean
+  teamOptions?: string[]
+  canEditTeamAssignment?: boolean
 }
 
-function ManageParticipantModal({ participant, onClose, onSaved }: ManageParticipantModalProps) {
+function ManageParticipantModal({
+  participant,
+  onClose,
+  onSaved,
+  showScoreAdjustments = true,
+  teamOptions = [],
+  canEditTeamAssignment = true,
+}: ManageParticipantModalProps) {
   const [teamName, setTeamName] = useState(participant.team_name ?? '')
   const [penaltyPoints, setPenaltyPoints] = useState<number>(participant.penalty_points ?? 0)
   const [penaltyReason, setPenaltyReason] = useState(participant.penalty_reason ?? '')
@@ -30,15 +40,46 @@ function ManageParticipantModal({ participant, onClose, onSaved }: ManagePartici
   const displayName =
     participant.profile?.nickname || participant.profile?.email || 'Participante'
 
+  const normalizedTeamOptions = useMemo(() => {
+    const clean = teamOptions
+      .filter((name): name is string => typeof name === 'string')
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0)
+
+    const unique = Array.from(new Set(clean))
+    const current = teamName.trim()
+    if (current && !unique.includes(current)) {
+      unique.unshift(current)
+    }
+
+    return unique
+  }, [teamOptions, teamName])
+
+  const hasEditableFields = canEditTeamAssignment || showScoreAdjustments
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
     try {
+      const updates: {
+        team_name?: string
+        penalty_points?: number
+        penalty_reason?: string | null
+      } = {
+      }
+
+      if (canEditTeamAssignment) {
+        updates.team_name = teamName.trim() || undefined
+      }
+
+      if (showScoreAdjustments) {
+        updates.penalty_points = penaltyPoints
+        updates.penalty_reason = penaltyReason.trim() || null
+      }
+
       await updateParticipantAdmin(participant.id, {
-        team_name: teamName.trim() || undefined,
-        penalty_points: penaltyPoints,
-        penalty_reason: penaltyReason.trim() || null,
+        ...updates,
       })
       onSaved()
       onClose()
@@ -58,6 +99,9 @@ function ManageParticipantModal({ participant, onClose, onSaved }: ManagePartici
             <div>
               <h3 className={styles.title}>Gerenciar Participante</h3>
               <span className={styles.subtitle}>{displayName}</span>
+              {!showScoreAdjustments && (
+                <span className={styles.subtitle}>Modo rascunho: apenas troca de time</span>
+              )}
             </div>
           </div>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Fechar">
@@ -71,61 +115,76 @@ function ManageParticipantModal({ participant, onClose, onSaved }: ManagePartici
             <label className={styles.label} htmlFor="teamName">
               🛡️ Nome do Time
             </label>
-            <input
-              id="teamName"
-              type="text"
-              className={styles.input}
-              value={teamName}
-              onChange={(e) => setTeamName(e.target.value)}
-              placeholder="Nome do clube"
-              maxLength={60}
-              disabled={loading}
-            />
-          </div>
-
-          {/* Ajuste de Pontos */}
-          <div className={styles.group}>
-            <label className={styles.label} htmlFor="penaltyPoints">
-              ⚖️ Ajuste de Pontos
-              <span className={styles.labelHint}>(negativo = punição, positivo = bônus)</span>
-            </label>
-            <div className={styles.penaltyRow}>
-              <button
-                type="button"
-                className={styles.penaltyStep}
-                onClick={() => setPenaltyPoints((v) => v - 1)}
+            {canEditTeamAssignment ? (
+              <select
+                id="teamName"
+                className={styles.input}
+                value={teamName}
+                onChange={(e) => setTeamName(e.target.value)}
                 disabled={loading}
               >
-                −
-              </button>
+                <option value="">Selecionar time...</option>
+                {normalizedTeamOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            ) : (
               <input
-                id="penaltyPoints"
-                type="number"
-                className={styles.penaltyInput}
-                value={penaltyPoints}
-                onChange={(e) => setPenaltyPoints(Number(e.target.value))}
-                disabled={loading}
+                id="teamName"
+                className={styles.input}
+                value={teamName || 'Definido somente no sorteio automatico'}
+                disabled
+                readOnly
               />
-              <button
-                type="button"
-                className={styles.penaltyStep}
-                onClick={() => setPenaltyPoints((v) => v + 1)}
-                disabled={loading}
-              >
-                +
-              </button>
-            </div>
-            {penaltyPoints !== 0 && (
-              <span className={penaltyPoints < 0 ? styles.penaltyNegativeHint : styles.penaltyPositiveHint}>
-                {penaltyPoints < 0
-                  ? `${penaltyPoints} pts (punição)`
-                  : `+${penaltyPoints} pts (bônus)`}
-              </span>
             )}
           </div>
 
+          {showScoreAdjustments && (
+            <div className={styles.group}>
+              <label className={styles.label} htmlFor="penaltyPoints">
+                ⚖️ Ajuste de Pontos
+                <span className={styles.labelHint}>(negativo = punição, positivo = bônus)</span>
+              </label>
+              <div className={styles.penaltyRow}>
+                <button
+                  type="button"
+                  className={styles.penaltyStep}
+                  onClick={() => setPenaltyPoints((v) => v - 1)}
+                  disabled={loading}
+                >
+                  −
+                </button>
+                <input
+                  id="penaltyPoints"
+                  type="number"
+                  className={styles.penaltyInput}
+                  value={penaltyPoints}
+                  onChange={(e) => setPenaltyPoints(Number(e.target.value))}
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className={styles.penaltyStep}
+                  onClick={() => setPenaltyPoints((v) => v + 1)}
+                  disabled={loading}
+                >
+                  +
+                </button>
+              </div>
+              {penaltyPoints !== 0 && (
+                <span className={penaltyPoints < 0 ? styles.penaltyNegativeHint : styles.penaltyPositiveHint}>
+                  {penaltyPoints < 0
+                    ? `${penaltyPoints} pts (punição)`
+                    : `+${penaltyPoints} pts (bônus)`}
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Motivo / Tooltip */}
-          {penaltyPoints !== 0 && (
+          {showScoreAdjustments && penaltyPoints !== 0 && (
             <div className={styles.group}>
               <label className={styles.label} htmlFor="penaltyReason">
                 📝 Motivo <span className={styles.labelHint}>(exibido como tooltip na tabela)</span>
@@ -152,11 +211,13 @@ function ManageParticipantModal({ participant, onClose, onSaved }: ManagePartici
               onClick={onClose}
               disabled={loading}
             >
-              Cancelar
+              {hasEditableFields ? 'Cancelar' : 'Fechar'}
             </button>
-            <button type="submit" className={styles.saveBtn} disabled={loading}>
-              {loading ? 'Salvando...' : '💾 Salvar'}
-            </button>
+            {hasEditableFields && (
+              <button type="submit" className={styles.saveBtn} disabled={loading}>
+                {loading ? 'Salvando...' : showScoreAdjustments ? '💾 Salvar' : '💾 Salvar time'}
+              </button>
+            )}
           </div>
         </form>
       </div>

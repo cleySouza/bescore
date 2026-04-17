@@ -28,6 +28,36 @@ interface ParticipantWithProfile extends Participant {
   } | null
 }
 
+const MOCK_PLAYER_NAMES = [
+  'Bruno Castro',
+  'Diego Lima',
+  'Rafael Nunes',
+  'Matheus Alves',
+  'Lucas Moraes',
+  'Felipe Rocha',
+  'Vinicius Prado',
+  'Caio Mendes',
+]
+
+function getTeamInitials(name: string | null | undefined) {
+  if (!name) return 'TM'
+  return name
+    .split(/\s+/)
+    .map((chunk) => chunk[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
+
+function getMockName(seed: string, index: number): string {
+  const raw = `${seed}-${index}`
+  let hash = 0
+  for (let i = 0; i < raw.length; i += 1) {
+    hash = (hash * 31 + raw.charCodeAt(i)) % 2147483647
+  }
+  return MOCK_PLAYER_NAMES[Math.abs(hash) % MOCK_PLAYER_NAMES.length]
+}
+
 function TournamentLobby() {
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
@@ -72,11 +102,24 @@ function TournamentLobby() {
   const isCreator = tournament.creator_id === user.id
   const participantCount = participants.length
   const tournamentSettings = tournament.settings as TournamentSettings | null
+  const managedTeamOptions = Array.isArray(tournamentSettings?.selectedTeamNames)
+    ? tournamentSettings.selectedTeamNames.filter(
+        (name): name is string => typeof name === 'string' && name.trim().length > 0
+      )
+    : []
+  const isAutoTeamMode = (tournamentSettings?.teamAssignMode ?? 'auto') === 'auto'
+  const teamShields =
+    typeof tournamentSettings?.selectedTeamShields === 'object' && tournamentSettings?.selectedTeamShields
+      ? (tournamentSettings.selectedTeamShields as Record<string, string>)
+      : {}
   const isPrivate = tournamentSettings?.isPrivate ?? false
   const maxParticipants = tournamentSettings?.maxParticipants ?? null
   const isFull = maxParticipants !== null && participantCount >= maxParticipants
   const isParticipant = tournament.isParticipant ?? participants.some((p) => p.user_id === user.id)
   const isVisitor = !isCreator && !isParticipant
+  const hasDrawnTeams =
+    participants.length > 0 &&
+    participants.every((p) => (p.team_name ?? '').trim().length > 0)
 
   const handleMatchesGenerated = async () => {
     if (tournament) {
@@ -138,14 +181,18 @@ function TournamentLobby() {
     <div className={styles.container}>
       <header className={styles.header}>
         <button className={styles.backBtn} onClick={() => setCurrentView('dashboard')}>
-          ← Voltar
+          <span className={styles.backBtnIcon}>←</span>
+          <span>Voltar</span>
         </button>
+
         <div className={styles.headerContent}>
-          <h1 className={styles.title}>{tournament.name}</h1>
-          <span className={styles.gameType}>{tournament.game_type}</span>
-          <span className={styles.statusBadge}>📝 Rascunho</span>
+          <div className={styles.headerTextBlock}>
+            <h1 className={styles.title}>{tournament.name}</h1>
+            <span className={styles.gameType}>{tournament.game_type}</span>
+          </div>
         </div>
-        <div className={styles.spacer} />
+
+        <span className={styles.statusBadge}>Rascunho</span>
       </header>
 
       <main className={styles.main}>
@@ -170,6 +217,11 @@ function TournamentLobby() {
 
         <section className={styles.participantsSection}>
           <h2 className={styles.sectionTitle}>Participantes</h2>
+          <p className={styles.sectionSubtitle}>
+            {hasDrawnTeams
+              ? 'Times sorteados e prontos para iniciar as partidas.'
+              : 'Aguardando sorteio de times para iniciar o campeonato.'}
+          </p>
 
           {loading ? (
             <div className={styles.loadingMessage}>Carregando...</div>
@@ -189,32 +241,67 @@ function TournamentLobby() {
             </div>
           ) : (
             <div className={styles.participantsList}>
-              {participants.map((p) => (
+              {participants.map((p, index) => {
+                const displayName =
+                  p.profile?.nickname ||
+                  p.profile?.email ||
+                  getMockName(p.id, index)
+                const teamName = (p.team_name ?? '').trim()
+                const showTeam = hasDrawnTeams && teamName.length > 0
+                const teamShield = showTeam ? teamShields[teamName] : ''
+
+                return (
                 <div key={p.id} className={styles.participantCard}>
-                  {p.profile?.avatar_url ? (
-                    <img src={p.profile.avatar_url} alt="" className={styles.avatar} />
-                  ) : (
-                    <div className={styles.avatarPlaceholder}>👤</div>
-                  )}
-                  <div className={styles.participantInfo}>
-                    <div className={styles.teamName}>{p.team_name || 'Sem time'}</div>
-                    <small className={styles.userName}>
-                      {p.profile?.nickname || p.profile?.email || 'Usuário'}
-                    </small>
+                  <div className={styles.participantTopRow}>
+                    {p.profile?.avatar_url ? (
+                      <img src={p.profile.avatar_url} alt="" className={styles.avatar} />
+                    ) : (
+                      <div className={styles.avatarPlaceholder}>{displayName.charAt(0).toUpperCase()}</div>
+                    )}
+                    <div className={styles.participantInfo}>
+                      <div className={styles.teamName}>
+                        {showTeam ? (
+                          <span className={styles.teamLine}>
+                            {teamShield ? (
+                              <span className={styles.teamCrest}>
+                                <img
+                                  src={teamShield}
+                                  alt={teamName}
+                                  className={styles.teamCrestImg}
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none'
+                                  }}
+                                />
+                              </span>
+                            ) : (
+                              <span className={styles.teamCrest}>{getTeamInitials(teamName)}</span>
+                            )}
+                            <span className={styles.teamText}>{teamName}</span>
+                          </span>
+                        ) : (
+                          'Aguardando sorteio'
+                        )}
+                      </div>
+                      <small className={styles.userName}>
+                        {displayName}
+                      </small>
+                    </div>
+                    {p.user_id === tournament.creator_id && (
+                      <span className={styles.creatorBadge}>👑</span>
+                    )}
                   </div>
-                  {p.user_id === tournament.creator_id && (
-                    <span className={styles.creatorBadge}>👑</span>
-                  )}
+
                   {isCreator && (
                     <button
                       className={styles.manageBtn}
                       onClick={() => setManagedParticipant(p as ManagedParticipant)}
                     >
-                      ⚙️
+                      ⚙️ Gerenciar
                     </button>
                   )}
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
 
@@ -279,7 +366,10 @@ function TournamentLobby() {
           {/* Creator danger zone */}
           {isCreator && (
             <div className={styles.dangerZone}>
-              <h5 className={styles.dangerZoneTitle}>🚨 Zona de Perigo</h5>
+              <div className={styles.dangerZoneText}>
+                <h5 className={styles.dangerZoneTitle}>🚨 Zona de Perigo</h5>
+                <p className={styles.dangerZoneDesc}>Excluir este torneio remove participantes e histórico.</p>
+              </div>
               <button className={styles.dangerBtn} onClick={handleDeleteTournament}>
                 Apagar Torneio
               </button>
@@ -301,6 +391,9 @@ function TournamentLobby() {
       {managedParticipant && (
         <ManageParticipantModal
           participant={managedParticipant}
+          showScoreAdjustments={false}
+          teamOptions={managedTeamOptions}
+          canEditTeamAssignment={!isAutoTeamMode}
           onClose={() => setManagedParticipant(null)}
           onSaved={() => setRefreshKey((prev) => prev + 1)}
         />

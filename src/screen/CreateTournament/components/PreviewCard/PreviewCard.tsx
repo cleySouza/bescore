@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import styles from './PreviewCard.module.css'
 
 interface PreviewCardProps {
@@ -40,6 +41,7 @@ export const PreviewCard = ({
   playoffCutoff = 'top4',
   hasReturnMatch = false,
 }: PreviewCardProps) => {
+  const imageInputId = useId()
   const gameIcon = GAME_ICONS[gameType] || '🎮'
 
   const draftRule = adminDraft
@@ -73,8 +75,11 @@ export const PreviewCard = ({
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      if (!file.type.startsWith('image/')) return
       onImageChange?.(file)
     }
+    // Permite selecionar o mesmo arquivo novamente sem precisar escolher outro antes.
+    e.currentTarget.value = ''
   }
 
   return (
@@ -88,13 +93,14 @@ export const PreviewCard = ({
             <span className={styles.gameIcon}>{gameIcon}</span>
           )}
           <input
+            id={imageInputId}
             type="file"
             accept="image/*"
             className={styles.imageInput}
             onChange={handleImageUpload}
             aria-label="Upload imagem do torneio"
           />
-          <label className={styles.uploadLabel}>📷</label>
+          <label htmlFor={imageInputId} className={styles.uploadLabel}>📷</label>
         </div>
       </div>
 
