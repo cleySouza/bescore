@@ -36,6 +36,7 @@ export async function getTournamentMatches(tournamentId: string): Promise<MatchW
         id,
         team_name,
         profile:user_id (
+          id,
           nickname,
           avatar_url
         )
@@ -44,6 +45,7 @@ export async function getTournamentMatches(tournamentId: string): Promise<MatchW
         id,
         team_name,
         profile:user_id (
+          id,
           nickname,
           avatar_url
         )
@@ -146,6 +148,7 @@ export async function getTournamentStandings(tournamentId: string, roundFilter?:
     participants?.forEach((p) => {
       standings.set(p.id, {
         participant_id: p.id,
+        user_id: p.user_id,
         team_name: p.team_name || '',
         user_nickname: p.profile?.nickname || 'Sem nome',
         user_avatar_url: p.profile?.avatar_url || null,

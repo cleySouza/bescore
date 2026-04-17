@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAtomValue } from 'jotai'
+import { userAtom } from '../../atoms/sessionAtom'
 import { activeTournamentAtom } from '../../atoms/tournamentAtoms'
 import { supabase } from '../../lib/supabaseClient'
 import { getTournamentMatches, getTournamentStandings } from '../../lib/matchService'
@@ -47,6 +48,7 @@ function getRecentForm(participantId: string, matches: MatchWithTeams[]): FormRe
 }
 
 function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
+  const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
   const [standings, setStandings] = useState<StandingsRow[]>([])
   const [matches, setMatches] = useState<MatchWithTeams[]>([])
@@ -116,6 +118,8 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
     )
   }
 
+  const hasLoggedUserTeam = standings.some((row) => row.user_id === user?.id)
+
   return (
     <div className={styles.container}>
       <div className={styles.board}>
@@ -153,9 +157,10 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
                   )}
 
                   <div className={styles.identity}>
-                    <strong className={styles.teamName}>{row.team_name || 'Equipe'}</strong>
+                    <strong className={`${styles.teamName} ${row.user_id === user?.id ? styles.teamNameCurrentUser : ''}`}>
+                      {row.team_name || 'Equipe'}
+                    </strong>
                     <div className={styles.metaRow}>
-                      <span className={styles.userName}>{row.user_nickname || 'Usuário'}</span>
                       {row.penalty_points !== 0 && (
                         <span
                           className={row.penalty_points > 0 ? styles.adjustPositive : styles.adjustNegative}
@@ -175,7 +180,7 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
                 <div className={styles.statCell} data-label="D">{row.losses}</div>
                 <div className={styles.statCell} data-label="Gol">{row.goals_for}:{row.goals_against}</div>
                 <div
-                  className={`${styles.statCell} ${row.goal_difference >= 0 ? styles.goalPositive : styles.goalNegative}`}
+                  className={`${styles.statCell} ${row.goal_difference > 0 ? styles.goalPositive : row.goal_difference < 0 ? styles.goalNegative : ''}`}
                   data-label="SG"
                 >
                   {row.goal_difference > 0 ? '+' : ''}{row.goal_difference}
@@ -212,12 +217,41 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
             </ul>
           </div>
 
-          {playoffCutoff !== undefined && (
-            <div className={styles.classifiedLegend}>
-              <span className={styles.classifiedDot} />
-              <span>Classificado</span>
+          <div className={styles.legendColumn}>
+            <div className={styles.performanceLegend}>
+              <span className={styles.legendTitle}>Desempenho</span>
+              <div className={styles.legendItems}>
+                <span className={styles.legendItem}>
+                  <span className={`${styles.performanceDot} ${styles.performanceDotWin}`} />
+                  Vitória
+                </span>
+                <span className={styles.legendItem}>
+                  <span className={`${styles.performanceDot} ${styles.performanceDotDraw}`} />
+                  Empate
+                </span>
+                <span className={styles.legendItem}>
+                  <span className={`${styles.performanceDot} ${styles.performanceDotLoss}`} />
+                  Derrota
+                </span>
+              </div>
             </div>
-          )}
+
+            <div className={styles.statusLegendRow}>
+              {playoffCutoff !== undefined && (
+                <div className={styles.statusLegendItem}>
+                  <span className={`${styles.statusSquare} ${styles.classifiedSquare}`} />
+                  <span>Classificado</span>
+                </div>
+              )}
+
+              {hasLoggedUserTeam && (
+                <div className={styles.statusLegendItem}>
+                  <span className={`${styles.statusSquare} ${styles.loggedUserSquare}`} />
+                  <span>Seu time (roxo)</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

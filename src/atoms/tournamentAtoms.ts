@@ -1,5 +1,6 @@
 import { atom } from 'jotai'
 import type { Tables } from '../types/supabase'
+import type { MatchWithTeams } from '../types/tournament'
 
 export type Tournament = Tables<'tournaments'>
 export type Participant = Tables<'participants'>
@@ -38,6 +39,9 @@ export const activeTournamentTabAtom = atom<'matches' | 'standings'>('matches')
 export const currentViewAtom = atom<
   'dashboard' | 'tournament-lobby' | 'tournament-match' | 'create-tournament' | 'join-by-code'
 >('dashboard')
+
+// Partida selecionada para edição de placar (drawer responsivo)
+export const selectedMatchAtom = atom<MatchWithTeams | null>(null)
 
 // --- Conexões Recentes ---
 

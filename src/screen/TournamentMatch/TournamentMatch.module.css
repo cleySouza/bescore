@@ -386,11 +386,6 @@
   color: var(--color-gray-300);
 }
 
-.playoffMatchCardWrap {
-  margin-top: -4px;
-  margin-bottom: 10px;
-}
-
 .scoutTrophy {
   text-align: center;
   font-size: 56px;
@@ -621,7 +616,7 @@
   top: 26px;
   right: 0; /* mandante: nickname alinhado à direita, junto ao escudo */
   font-size: 8px;
-  color: #a514f6;
+  color: var(--color-dark);
   font-weight: 500;
   font-family: 'Poppins', sans-serif;
   line-height: 1;
@@ -637,6 +632,10 @@
   right: auto;
   left: 0;
   text-align: left;
+}
+
+.matchBrandCurrentUser {
+  color: var(--color-be);
 }
 
 .matchCrest {
@@ -714,22 +713,9 @@
   border-radius: 2px;
 }
 
-.matchCardWrap {
-  padding: 16px;
-  background: var(--color-gray-100);
-  border-top: 1px solid var(--color-gray-200);
-}
-
 /* ============================================================
    LOADING / EMPTY
    ============================================================ */
-
-.loadingMessage {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--color-be);
-  font-size: 15px;
-}
 
 .emptyState {
   text-align: center;

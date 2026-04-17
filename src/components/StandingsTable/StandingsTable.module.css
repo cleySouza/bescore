@@ -12,7 +12,7 @@
   --form-col: minmax(128px, 1fr);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
 }
 
 .headerRow {
@@ -21,6 +21,7 @@
   gap: 0;
   align-items: center;
   padding: 6px 2px;
+  margin-bottom: 8px;
   background: var(--color-white);
   border-radius: 10px;
 }
@@ -57,7 +58,8 @@
   border: 2px solid color-mix(in srgb, var(--color-dark) 70%, transparent 30%);
   border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  /* box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08); */
+  margin-bottom: 8px;
 }
 
 .row {
@@ -143,19 +145,15 @@
   text-overflow: ellipsis;
 }
 
+.teamNameCurrentUser {
+  color: var(--color-be);
+}
+
 .metaRow {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
-}
-
-.userName {
-  font-size: 13px;
-  color: var(--color-dark-100);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .adjustPositive,
@@ -219,27 +217,27 @@
 }
 
 .formBadge {
-  width: 24px;
-  height: 24px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 9px;
   font-weight: 700;
   color: var(--color-white);
 }
 
 .formBadgeWin {
-  background: #0fbb12;
+  background: var(--color-success);
 }
 
 .formBadgeDraw {
-  background: #ffc64d;
+  background: var(--color-warning);
 }
 
 .formBadgeLoss {
-  background: #ef3b2d;
+  background: var(--color-red);
 }
 
 .noForm {
@@ -254,6 +252,7 @@
   align-items: start;
   padding: 16px 14px;
   border-top: 1px solid color-mix(in srgb, var(--color-dark) 60%, transparent 40%);
+  background-color: var(--color-white);
 }
 
 .rules {
@@ -276,21 +275,81 @@
   color: var(--color-dark);
 }
 
-.classifiedLegend {
+.legendColumn {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 10px;
-  padding: 2px 10px;
+  min-width: 240px;
+}
+
+.legendTitle {
+  display: block;
   font-size: 13px;
+  font-weight: 700;
+  color: var(--color-dark);
+  margin-bottom: 6px;
+}
+
+.legendItems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
   color: var(--color-dark);
 }
 
-.classifiedDot {
-  width: 16px;
-  height: 16px;
+.performanceDot {
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--color-mid) 42%, var(--color-white) 58%);
   flex-shrink: 0;
+}
+
+.performanceDotWin {
+  background: #0fbb12;
+}
+
+.performanceDotDraw {
+  background: #ffc64d;
+}
+
+.performanceDotLoss {
+  background: #ef3b2d;
+}
+
+.statusLegendRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.statusLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-dark);
+}
+
+.statusSquare {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.classifiedSquare {
+  background: color-mix(in srgb, var(--color-mid) 42%, var(--color-white) 58%);
+}
+
+.loggedUserSquare {
+  background: var(--color-be);
 }
 
 .error {
@@ -406,7 +465,7 @@
     padding-bottom: 12px;
   }
 
-  .classifiedLegend {
-    padding-left: 0;
+  .legendColumn {
+    min-width: 0;
   }
 }

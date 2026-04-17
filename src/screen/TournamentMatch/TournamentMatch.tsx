@@ -6,6 +6,7 @@ import {
   myTournamentsAtom,
   currentViewAtom,
   activeTournamentTabAtom,
+  selectedMatchAtom,
 } from '../../atoms/tournamentAtoms'
 import { fetchMyTournaments, getTournamentParticipants, cancelTournament } from '../../lib/tournamentService'
 import { getTournamentMatches } from '../../lib/matchService'
@@ -14,12 +15,13 @@ import { generatePlayoffMatches } from '../../lib/matchGenerationEngine'
 import type { Participant } from '../../atoms/tournamentAtoms'
 import type { MatchWithTeams, TournamentSettings } from '../../types/tournament'
 import Accordion from '../../components/Accordion/Accordion'
-import MatchCard from '../../components/MatchCard'
 import ManageParticipantModal, { type ManagedParticipant } from '../TournamentView/components/ManageParticipantModal'
 import MatchesSection from './components/MatchesSection'
 import FinalPhaseSection from './components/FinalPhaseSection'
 import StandingsSection from './components/StandingsSection'
 import ScoutsSection from './components/ScoutsSection'
+import ScoreEntryDrawer from './components/ScoreEntryDrawer'
+import ScoreEntryDrawerBoundary from './components/ScoreEntryDrawerBoundary'
 import styles from './TournamentMatch.module.css'
 
 interface ParticipantWithProfile extends Participant {
@@ -79,12 +81,46 @@ function TeamCrest({ teamName, shieldsMap }: TeamCrestProps) {
   return <span className={styles.matchCrest}>{getTeamInitials(teamName)}</span>
 }
 
+function normalizeMatchForDrawer(match: MatchWithTeams): MatchWithTeams {
+  return {
+    ...match,
+    homeTeam: match.homeTeam
+      ? {
+          id: String(match.homeTeam.id),
+          team_name: String(match.homeTeam.team_name ?? 'TBD'),
+          profile: match.homeTeam.profile
+            ? {
+                id: match.homeTeam.profile.id ?? null,
+                nickname: match.homeTeam.profile.nickname ?? null,
+                avatar_url: match.homeTeam.profile.avatar_url ?? null,
+              }
+            : undefined,
+        }
+      : undefined,
+    awayTeam: match.awayTeam
+      ? {
+          id: String(match.awayTeam.id),
+          team_name: String(match.awayTeam.team_name ?? 'TBD'),
+          profile: match.awayTeam.profile
+            ? {
+                id: match.awayTeam.profile.id ?? null,
+                nickname: match.awayTeam.profile.nickname ?? null,
+                avatar_url: match.awayTeam.profile.avatar_url ?? null,
+              }
+            : undefined,
+        }
+      : undefined,
+  }
+}
+
 function TournamentMatch() {
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
   const setActiveTournament = useSetAtom(activeTournamentAtom)
   const setMyTournaments = useSetAtom(myTournamentsAtom)
   const setCurrentView = useSetAtom(currentViewAtom)
+  const setSelectedMatch = useSetAtom(selectedMatchAtom)
+  const selectedMatch = useAtomValue(selectedMatchAtom)
   const [activeTab, setActiveTab] = useAtom(activeTournamentTabAtom)
 
   const [participants, setParticipants] = useState<ParticipantWithProfile[]>([])
@@ -101,7 +137,6 @@ function TournamentMatch() {
 
   // Accordion state
   const [openRound, setOpenRound] = useState<number | null>(null)
-  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null)
   const accordionInitRef = useRef<string | null>(null)
 
   const tournamentId = tournament?.id
@@ -130,7 +165,7 @@ function TournamentMatch() {
             matchesData.some((m) => m.round === r && m.status === 'pending')
           )
           setOpenRound(firstPending ?? rounds[0] ?? null)
-          setExpandedMatchId(null)
+          setSelectedMatch(null)
           accordionInitRef.current = tournament.id
         }
       } catch (err) {
@@ -142,7 +177,11 @@ function TournamentMatch() {
 
     loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tournamentId, setCurrentView, refreshKey])
+  }, [tournamentId, setCurrentView, refreshKey, setSelectedMatch])
+
+  useEffect(() => {
+    setSelectedMatch(null)
+  }, [tournamentId, setSelectedMatch])
 
   // Carregar escudos do Strapi (funciona para torneios novos e antigos)
   useEffect(() => {
@@ -258,7 +297,7 @@ function TournamentMatch() {
   useEffect(() => {
     if (filteredRoundEntries.length === 0) {
       setOpenRound(null)
-      setExpandedMatchId(null)
+      setSelectedMatch(null)
       return
     }
 
@@ -277,8 +316,8 @@ function TournamentMatch() {
     )
 
     setOpenRound(firstPending?.[0] ?? visibleRounds[0])
-    setExpandedMatchId(null)
-  }, [filteredRoundEntries, openRound])
+    setSelectedMatch(null)
+  }, [filteredRoundEntries, openRound, setSelectedMatch])
 
   const getRoundLabel = (round: number): string => {
     if (isCampeonato) {
@@ -290,7 +329,7 @@ function TournamentMatch() {
   }
 
   const handleMatchResultUpdated = () => {
-    setExpandedMatchId(null)
+    setSelectedMatch(null)
     setRefreshKey((prev) => prev + 1)
   }
 
@@ -355,7 +394,7 @@ function TournamentMatch() {
                 isOpen={isOpen}
                 onToggle={() => {
                   setOpenRound((prev) => (prev === round ? null : round))
-                  setExpandedMatchId(null)
+                  setSelectedMatch(null)
                 }}
                 header={(
                   <div className={styles.roundHeaderLeft}>
@@ -373,30 +412,32 @@ function TournamentMatch() {
                 )}
               >
                 {roundMatches.map((m, index) => {
-                  const isExpanded = expandedMatchId === m.id
+                  const isExpanded = selectedMatch?.id === m.id
                   return (
                     <div key={m.id}>
                       <button
                         className={`${styles.matchRow} ${m.status === 'finished' ? styles.matchRowFinished : ''} ${isExpanded ? styles.matchRowActive : ''}`}
-                        onClick={() =>
-                          setExpandedMatchId((prev) => (prev === m.id ? null : m.id))
-                        }
+                        onClick={() => {
+                          setSelectedMatch((prev) => (prev?.id === m.id ? null : normalizeMatchForDrawer(m)))
+                        }}
                       >
                         <div className={styles.matchRowMain}>
                           <div className={styles.matchTeamBlock}>
                             <span className={styles.matchClub}>{m.homeTeam?.team_name || 'TBD'}</span>
-                            <span className={styles.matchBrand}>{m.homeTeam?.profile?.nickname || 'csbeep'}</span>
+                            <span className={`${styles.matchBrand} ${m.homeTeam?.profile?.id === user.id ? styles.matchBrandCurrentUser : ''}`}>
+                              {m.homeTeam?.profile?.nickname || 'csbeep'}
+                            </span>
                           </div>
 
                           <TeamCrest teamName={m.homeTeam?.team_name} shieldsMap={shieldsMap} />
 
                           <div className={styles.matchScoreGroup}>
                             <span className={styles.scoreBox}>
-                              {m.home_score !== null ? m.home_score : ''}
+                              {m.status === 'finished' && m.home_score !== null ? m.home_score : ''}
                             </span>
                             <span className={styles.scoreCross}>x</span>
                             <span className={styles.scoreBox}>
-                              {m.away_score !== null ? m.away_score : ''}
+                              {m.status === 'finished' && m.away_score !== null ? m.away_score : ''}
                             </span>
                           </div>
 
@@ -404,22 +445,18 @@ function TournamentMatch() {
 
                           <div className={`${styles.matchTeamBlock} ${styles.matchTeamAway}`}>
                             <span className={styles.matchClub}>{m.awayTeam?.team_name || 'TBD'}</span>
-                            <span className={styles.matchBrand}>{m.awayTeam?.profile?.nickname || 'csbeep'}</span>
+                            <span className={`${styles.matchBrand} ${m.awayTeam?.profile?.id === user.id ? styles.matchBrandCurrentUser : ''}`}>
+                              {m.awayTeam?.profile?.nickname || 'csbeep'}
+                            </span>
                           </div>
                         </div>
 
                         <span className={styles.expandIcon} aria-hidden>
-                          {isExpanded ? '▲' : '▼'}
+                          {isExpanded ? '−' : '+'}
                         </span>
                       </button>
 
                       {index < roundMatches.length - 1 && <div className={styles.matchRowDivider} />}
-
-                      {isExpanded && (
-                        <div className={styles.matchCardWrap}>
-                          <MatchCard match={m} onResultUpdated={handleMatchResultUpdated} />
-                        </div>
-                      )}
                     </div>
                   )
                 })}
@@ -698,6 +735,10 @@ function TournamentMatch() {
           onSaved={() => setRefreshKey((prev) => prev + 1)}
         />
       )}
+
+      <ScoreEntryDrawerBoundary key={selectedMatch?.id ?? 'no-match-selected'}>
+        <ScoreEntryDrawer onResultSaved={handleMatchResultUpdated} />
+      </ScoreEntryDrawerBoundary>
     </div>
   )
 }

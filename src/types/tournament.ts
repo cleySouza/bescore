@@ -35,6 +35,7 @@ export interface MatchWithTeams extends Match {
     id: string
     team_name: string
     profile?: {
+      id?: string | null
       nickname: string | null
       avatar_url: string | null
     }
@@ -43,6 +44,7 @@ export interface MatchWithTeams extends Match {
     id: string
     team_name: string
     profile?: {
+      id?: string | null
       nickname: string | null
       avatar_url: string | null
     }
@@ -51,6 +53,7 @@ export interface MatchWithTeams extends Match {
 
 export interface StandingsRow {
   participant_id: string
+  user_id?: string | null
   team_name: string | null
   user_nickname: string | null
   user_avatar_url: string | null
