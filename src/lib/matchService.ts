@@ -38,7 +38,8 @@ export async function getTournamentMatches(tournamentId: string): Promise<MatchW
         profile:user_id (
           id,
           nickname,
-          avatar_url
+          avatar_url,
+          email
         )
       ),
       away_team:away_participant_id (
@@ -47,7 +48,8 @@ export async function getTournamentMatches(tournamentId: string): Promise<MatchW
         profile:user_id (
           id,
           nickname,
-          avatar_url
+          avatar_url,
+          email
         )
       )
     `

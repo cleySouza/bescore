@@ -41,6 +41,7 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
               {userName.charAt(0).toUpperCase()}
             </div>
           )}
+          <span className={styles.userNameLabel}>{userName}</span>
           <span className={styles.chevron} aria-hidden="true">
             v
           </span>

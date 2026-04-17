@@ -39,6 +39,7 @@ export interface MatchWithTeams extends Match {
       id?: string | null
       nickname: string | null
       avatar_url: string | null
+      email?: string | null
     }
   }
   awayTeam?: {
@@ -48,6 +49,7 @@ export interface MatchWithTeams extends Match {
       id?: string | null
       nickname: string | null
       avatar_url: string | null
+      email?: string | null
     }
   }
 }

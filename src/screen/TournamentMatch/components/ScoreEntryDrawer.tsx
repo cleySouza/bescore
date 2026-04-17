@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useAtom, useAtomValue } from 'jotai'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../../atoms/sessionAtom'
-import { activeTournamentAtom, selectedMatchAtom } from '../../../atoms/tournamentAtoms'
+import { activeTournamentAtom, globalToastAtom, selectedMatchAtom } from '../../../atoms/tournamentAtoms'
 import { updateMatchResult } from '../../../lib/matchService'
 import './scoreEntry.css'
 
@@ -9,10 +9,62 @@ interface ScoreEntryDrawerProps {
   onResultSaved?: () => void
 }
 
+function getTeamInitials(name: string | null | undefined) {
+  if (!name) return 'TM'
+  return name
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
+
+interface TeamCrestProps {
+  teamName: string
+  shieldsMap: Record<string, string>
+}
+
+function TeamCrest({ teamName, shieldsMap }: TeamCrestProps) {
+  const shieldUrl = shieldsMap[teamName]
+
+  if (shieldUrl) {
+    return (
+      <span className="score-entry-team-crest">
+        <img src={shieldUrl} alt={teamName} className="score-entry-team-crest-img" />
+      </span>
+    )
+  }
+
+  return <span className="score-entry-team-crest">{getTeamInitials(teamName)}</span>
+}
+
+function getDisplayName(
+  nickname: string | null | undefined,
+  email: string | null | undefined,
+  profileId: string | null | undefined,
+  currentUserId: string | undefined,
+  currentUserName: string
+) {
+  if (typeof nickname === 'string' && nickname.trim()) {
+    return nickname
+  }
+
+  if (typeof email === 'string' && email.trim()) {
+    return email.split('@')[0]
+  }
+
+  if (profileId && currentUserId && profileId === currentUserId) {
+    return currentUserName
+  }
+
+  return 'Responsavel'
+}
+
 function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
   const [selectedMatch, setSelectedMatch] = useAtom(selectedMatchAtom)
+  const setGlobalToast = useSetAtom(globalToastAtom)
 
   const [homeScore, setHomeScore] = useState<number | null>(null)
   const [awayScore, setAwayScore] = useState<number | null>(null)
@@ -35,8 +87,26 @@ function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
 
   const homeTeamName = selectedMatch.homeTeam?.team_name || 'TBD'
   const awayTeamName = selectedMatch.awayTeam?.team_name || 'TBD'
-  const homeNickname = selectedMatch.homeTeam?.profile?.nickname || 'Equipe A'
-  const awayNickname = selectedMatch.awayTeam?.profile?.nickname || 'Equipe B'
+  const currentUserName =
+    (typeof user?.user_metadata?.name === 'string' && user.user_metadata.name.trim())
+      ? user.user_metadata.name
+      : user?.email?.split('@')[0] ?? 'Usuario'
+  const homeNickname = getDisplayName(
+    selectedMatch.homeTeam?.profile?.nickname,
+    selectedMatch.homeTeam?.profile?.email,
+    selectedMatch.homeTeam?.profile?.id,
+    user?.id,
+    currentUserName
+  )
+  const awayNickname = getDisplayName(
+    selectedMatch.awayTeam?.profile?.nickname,
+    selectedMatch.awayTeam?.profile?.email,
+    selectedMatch.awayTeam?.profile?.id,
+    user?.id,
+    currentUserName
+  )
+  const tournamentSettings = tournament.settings as { selectedTeamShields?: Record<string, string> } | null
+  const shieldsMap = tournamentSettings?.selectedTeamShields ?? {}
 
   const closeDrawer = () => {
     if (loading) return
@@ -75,7 +145,12 @@ function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
   const handleConfirm = async () => {
     if (!canConfirm || loading) {
       if (canEdit && (homeScore === null || awayScore === null)) {
-        setError('Preencha o placar dos dois times antes de confirmar.')
+        const message = 'Preencha o placar dos dois times antes de confirmar.'
+        setError(message)
+        setGlobalToast({
+          type: 'warning',
+          message,
+        })
       }
       return
     }
@@ -83,10 +158,19 @@ function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
     setLoading(true)
     try {
       await updateMatchResult(selectedMatch.id, homeScore, awayScore)
+      setGlobalToast({
+        type: 'success',
+        message: 'Resultado salvo com sucesso.',
+      })
       onResultSaved?.()
       setSelectedMatch(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar resultado')
+      const message = err instanceof Error ? err.message : 'Erro ao salvar resultado'
+      setError(message)
+      setGlobalToast({
+        type: 'error',
+        message,
+      })
     } finally {
       setLoading(false)
     }
@@ -105,10 +189,10 @@ function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
       } else if (event.key === 'ArrowDown') {
         event.preventDefault()
         setHomeScore((prev) => (prev === null ? 0 : Math.max(0, prev - 1)))
-      } else if (event.key.toLowerCase() === 'w') {
+      } else if (event.key === 'ArrowRight') {
         event.preventDefault()
         setAwayScore((prev) => (prev === null ? 1 : prev + 1))
-      } else if (event.key.toLowerCase() === 's') {
+      } else if (event.key === 'ArrowLeft') {
         event.preventDefault()
         setAwayScore((prev) => (prev === null ? 0 : Math.max(0, prev - 1)))
       } else if (event.key === 'Enter') {
@@ -144,8 +228,13 @@ function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
 
         <section className="score-entry-grid">
           <article className="score-entry-team">
-            <span className="score-entry-team-name">{homeTeamName}</span>
-            <span className="score-entry-team-user">{homeNickname}</span>
+            <div className="score-entry-team-head">
+              <TeamCrest teamName={homeTeamName} shieldsMap={shieldsMap} />
+              <div className="score-entry-team-meta">
+                <span className="score-entry-team-name">{homeTeamName}</span>
+                <span className="score-entry-team-user">{homeNickname}</span>
+              </div>
+            </div>
             <div className="score-entry-stepper">
               <button type="button" onClick={() => decrement('home')} disabled={!canEdit || loading}>
                 -
@@ -175,8 +264,13 @@ function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
           <span className="score-entry-separator">x</span>
 
           <article className="score-entry-team">
-            <span className="score-entry-team-name">{awayTeamName}</span>
-            <span className="score-entry-team-user">{awayNickname}</span>
+            <div className="score-entry-team-head">
+              <TeamCrest teamName={awayTeamName} shieldsMap={shieldsMap} />
+              <div className="score-entry-team-meta">
+                <span className="score-entry-team-name">{awayTeamName}</span>
+                <span className="score-entry-team-user">{awayNickname}</span>
+              </div>
+            </div>
             <div className="score-entry-stepper">
               <button type="button" onClick={() => decrement('away')} disabled={!canEdit || loading}>
                 -
@@ -212,7 +306,7 @@ function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
 
         {canEdit && (
           <p className="score-entry-shortcuts">
-            Atalhos: ↑/↓ mandante, W/S visitante, Enter para salvar
+            Atalhos: ↑/↓ mandante, ←/→ visitante, Enter para salvar
           </p>
         )}
 

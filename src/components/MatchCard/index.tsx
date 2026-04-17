@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useAtomValue } from 'jotai'
+import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
-import { activeTournamentAtom } from '../../atoms/tournamentAtoms'
+import { activeTournamentAtom, globalToastAtom } from '../../atoms/tournamentAtoms'
 import { updateMatchResult } from '../../lib/matchService'
 import type { MatchWithTeams } from '../../types/tournament'
 import styles from './MatchCard.module.css'
@@ -14,6 +14,7 @@ interface MatchCardProps {
 function MatchCard({ match, onResultUpdated }: MatchCardProps) {
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
+  const setGlobalToast = useSetAtom(globalToastAtom)
 
   const [homeScore, setHomeScore] = useState<number>(match.home_score ?? 0)
   const [awayScore, setAwayScore] = useState<number>(match.away_score ?? 0)
@@ -37,10 +38,18 @@ function MatchCard({ match, onResultUpdated }: MatchCardProps) {
 
     try {
       await updateMatchResult(match.id, homeScore, awayScore)
+      setGlobalToast({
+        type: 'success',
+        message: 'Resultado salvo com sucesso.',
+      })
       onResultUpdated?.()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao confirmar resultado'
       setError(message)
+      setGlobalToast({
+        type: 'error',
+        message,
+      })
       console.error('Erro:', err)
     } finally {
       setLoading(false)

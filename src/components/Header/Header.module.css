@@ -66,6 +66,16 @@
   font-weight: 700;
 }
 
+.userNameLabel {
+  max-width: 180px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-dark-100);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .profileDrawer {
   max-width: min(92vw, 360px);
 }
@@ -143,6 +153,10 @@
     margin-left: auto;
     gap: 6px;
     padding: 4px 6px;
+  }
+
+  .userNameLabel {
+    display: none;
   }
 
   .avatar,

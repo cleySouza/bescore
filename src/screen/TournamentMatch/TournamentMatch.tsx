@@ -161,6 +161,7 @@ function normalizeMatchForDrawer(match: MatchWithTeams): MatchWithTeams {
                 id: match.homeTeam.profile.id ?? null,
                 nickname: match.homeTeam.profile.nickname ?? null,
                 avatar_url: match.homeTeam.profile.avatar_url ?? null,
+                email: match.homeTeam.profile.email ?? null,
               }
             : undefined,
         }
@@ -174,6 +175,7 @@ function normalizeMatchForDrawer(match: MatchWithTeams): MatchWithTeams {
                 id: match.awayTeam.profile.id ?? null,
                 nickname: match.awayTeam.profile.nickname ?? null,
                 avatar_url: match.awayTeam.profile.avatar_url ?? null,
+                email: match.awayTeam.profile.email ?? null,
               }
             : undefined,
         }
