@@ -2,19 +2,21 @@
   background: var(--color-white);
   border: 1px solid var(--color-gray-200);
   border-radius: 12px;
-  padding: 16px;
+  padding: 14px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .card:hover {
-  border-color: var(--color-be);
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
-  transform: translateY(-4px);
+  border-color: var(--color-dark-100);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
 .header {
@@ -23,19 +25,22 @@
   align-items: flex-start;
   margin-bottom: 12px;
   gap: 8px;
+  min-width: 0;
 }
 
 .name {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   margin: 0;
   color: var(--color-dark);
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .badge {
-  background: #f0f4ff;
-  color: var(--color-be);
+  background: var(--color-gray-100);
+  color: var(--color-dark-100);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
@@ -48,6 +53,8 @@
   gap: 12px;
   margin-bottom: 12px;
   font-size: 14px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .infoItem {
@@ -88,6 +95,8 @@
   justify-content: space-between;
   align-items: center;
   font-size: 13px;
+  min-width: 0;
+  gap: 8px;
 }
 
 .codeLabel {
@@ -102,7 +111,9 @@
   font-family: 'Monaco', 'Courier New', monospace;
   font-weight: 700;
   color: var(--color-be);
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .footer {
@@ -114,6 +125,7 @@
   flex-wrap: wrap;
   gap: 8px;
   font-size: 12px;
+  min-width: 0;
 }
 
 .date {
@@ -140,22 +152,82 @@
 
 .actionBtn {
   width: 100%;
-  padding: 10px 12px;
-  background: var(--gradient-primary);
+  padding: 9px 12px;
+  background: var(--color-be);
   color: var(--color-white);
   border: none;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.2s ease;
 }
 
 .actionBtn:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  background: var(--color-be-100);
 }
 
 .actionBtn:active {
-  transform: scale(0.98);
+  transform: none;
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 12px;
+  }
+
+  .name {
+    font-size: 16px;
+  }
+
+  .info {
+    gap: 10px;
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+
+  .code {
+    margin-bottom: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    border-radius: 10px;
+    padding: 11px;
+  }
+
+  .header {
+    margin-bottom: 10px;
+    gap: 6px;
+  }
+
+  .name {
+    font-size: 15px;
+    line-height: 1.2;
+  }
+
+  .badge {
+    font-size: 11px;
+    padding: 3px 7px;
+  }
+
+  .info {
+    margin-bottom: 9px;
+  }
+
+  .code {
+    padding: 7px 10px;
+    margin-bottom: 9px;
+    font-size: 12px;
+  }
+
+  .footer {
+    margin-bottom: 10px;
+    gap: 6px;
+  }
+
+  .actionBtn {
+    min-height: 40px;
+  }
 }

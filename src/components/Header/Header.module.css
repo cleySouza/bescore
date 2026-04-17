@@ -16,41 +16,138 @@
   object-fit: contain;
 }
 
-.userInfo {
+.userTrigger {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   border: 1px solid var(--color-be-100);
   padding: 5px 8px;
   border-radius: 10px;
+  background: var(--color-white);
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.avatar {
+.userTrigger:hover {
+  border-color: color-mix(in srgb, var(--color-be) 45%, transparent 55%);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-be) 18%, transparent 82%);
+}
+
+.avatar,
+.avatarFallback {
   width: 40px;
   height: 40px;
   border-radius: 40%;
   border: 2px solid var(--color-gray-200);
+}
+
+.avatar {
   object-fit: cover;
 }
 
-.userName {
-  font-weight: 500;
+.avatarFallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-be) 15%, var(--color-white) 85%);
+  color: var(--color-be);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
   color: var(--color-dark-100);
-  font-size: 14px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.profileDrawer {
+  max-width: min(92vw, 360px);
+}
+
+.userCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 2px;
+}
+
+.avatarLarge,
+.avatarLargeFallback {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 2px solid var(--color-gray-200);
+}
+
+.avatarLarge {
+  object-fit: cover;
+}
+
+.avatarLargeFallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-be) 18%, var(--color-white) 82%);
+  color: var(--color-be);
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.userNameFull {
+  margin: 0;
+  text-align: center;
+  color: var(--color-dark-100);
+  font-size: 16px;
+  font-weight: 700;
+  word-break: break-word;
 }
 
 .logoutBtn {
   background: var(--color-red);
   color: var(--color-white);
   border: none;
-  padding: 8px 16px;
+  padding: 10px 16px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
-  transition: background 0.3s;
+  font-size: 15px;
+  transition: background 0.2s ease;
   white-space: nowrap;
+  width: 100%;
+  margin-top: auto;
 }
 
 .logoutBtn:hover {
   background: #c53030;
+}
+
+@media (max-width: 640px) {
+  .header {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .logo {
+    height: 34px;
+  }
+
+  .userTrigger {
+    margin-left: auto;
+    gap: 6px;
+    padding: 4px 6px;
+  }
+
+  .avatar,
+  .avatarFallback {
+    width: 34px;
+    height: 34px;
+  }
 }
