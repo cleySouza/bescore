@@ -11,8 +11,9 @@ import {
 import { fetchMyTournaments, getTournamentParticipants, cancelTournament } from '../../lib/tournamentService'
 import { getTournamentMatches } from '../../lib/matchService'
 import { fetchStrapiClubCatalog } from '../../lib/strapiClubService'
+import { supabase } from '../../lib/supabaseClient'
 import { generatePlayoffMatches } from '../../lib/matchGenerationEngine'
-import type { Participant } from '../../atoms/tournamentAtoms'
+import type { Participant, Tournament } from '../../atoms/tournamentAtoms'
 import type { MatchWithTeams, TournamentSettings } from '../../types/tournament'
 import Accordion from '../../components/Accordion/Accordion'
 import ManageParticipantModal, { type ManagedParticipant } from '../TournamentView/components/ManageParticipantModal'
@@ -30,6 +31,12 @@ interface ParticipantWithProfile extends Participant {
     avatar_url: string | null
     email: string
   } | null
+}
+
+interface RecentTimelineMatch extends MatchWithTeams {
+  loggedParticipantId: string
+  tournamentName: string
+  tournamentImage: string | null
 }
 
 function getRoundRobinRoundCount(participantCount: number, hasReturnMatch = false): number {
@@ -56,6 +63,38 @@ function getTeamInitials(name: string | null | undefined) {
     .toUpperCase()
 }
 
+function getTournamentInitials(name: string | null | undefined) {
+  if (!name) return 'TR'
+  return name
+    .split(/[\s\-_&]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((chunk) => chunk[0]?.toUpperCase() ?? '')
+    .join('') || 'TR'
+}
+
+function getStatusLabel(status: string | null | undefined) {
+  switch (status) {
+    case 'active':
+      return 'Ativo'
+    case 'draft':
+      return 'Rascunho'
+    case 'finished':
+      return 'Finalizado'
+    case 'cancelled':
+      return 'Cancelado'
+    default:
+      return 'Ativo'
+  }
+}
+
+function formatTimelineDate(input: string | null | undefined) {
+  if (!input) return '--/--/----'
+  const date = new Date(input)
+  if (Number.isNaN(date.getTime())) return '--/--/----'
+  return date.toLocaleDateString('pt-BR')
+}
+
 interface TeamCrestProps {
   teamName: string | null | undefined
   shieldsMap: Record<string, string>
@@ -79,6 +118,32 @@ function TeamCrest({ teamName, shieldsMap }: TeamCrestProps) {
     )
   }
   return <span className={styles.matchCrest}>{getTeamInitials(teamName)}</span>
+}
+
+interface TimelineCrestProps {
+  teamName: string | null | undefined
+  shieldsMap: Record<string, string>
+}
+
+function TimelineCrest({ teamName, shieldsMap }: TimelineCrestProps) {
+  const name = teamName || 'TBD'
+  const shieldUrl = teamName ? shieldsMap[teamName] : undefined
+  const [imgError, setImgError] = useState(false)
+
+  if (shieldUrl && !imgError) {
+    return (
+      <span className={styles.timelineCrest}>
+        <img
+          src={shieldUrl}
+          alt={name}
+          className={styles.timelineCrestImg}
+          onError={() => setImgError(true)}
+        />
+      </span>
+    )
+  }
+
+  return <span className={styles.timelineCrest}>{getTeamInitials(teamName)}</span>
 }
 
 function normalizeMatchForDrawer(match: MatchWithTeams): MatchWithTeams {
@@ -116,6 +181,7 @@ function normalizeMatchForDrawer(match: MatchWithTeams): MatchWithTeams {
 function TournamentMatch() {
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
+  const myTournaments = useAtomValue(myTournamentsAtom)
   const setActiveTournament = useSetAtom(activeTournamentAtom)
   const setMyTournaments = useSetAtom(myTournamentsAtom)
   const setCurrentView = useSetAtom(currentViewAtom)
@@ -134,6 +200,7 @@ function TournamentMatch() {
   const [legFilter, setLegFilter] = useState<LegFilter>('first')
   const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>('league')
   const [strapiShieldsMap, setStrapiShieldsMap] = useState<Record<string, string>>({})
+  const [recentTimelineMatches, setRecentTimelineMatches] = useState<RecentTimelineMatch[]>([])
 
   // Accordion state
   const [openRound, setOpenRound] = useState<number | null>(null)
@@ -201,6 +268,116 @@ function TournamentMatch() {
     return () => { cancelled = true }
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+    const userId = user?.id
+
+    const loadRecentTimelineMatches = async () => {
+      try {
+        if (!userId) {
+          if (!cancelled) setRecentTimelineMatches([])
+          return
+        }
+
+        const freshTournaments = await fetchMyTournaments(userId).catch(() => myTournaments)
+
+        const { data: myParticipantRows } = await supabase
+          .from('participants')
+          .select('id')
+          .eq('user_id', userId)
+
+        const myParticipantIds = new Set((myParticipantRows ?? []).map((row) => row.id))
+
+        const sourceTournaments = Array.from(
+          new Map(
+            [...freshTournaments, ...myTournaments, tournament]
+              .filter((item): item is Tournament => Boolean(item))
+              .map((item) => [item.id, item])
+          ).values()
+        )
+
+        if (sourceTournaments.length === 0 || !user?.id) {
+          if (!cancelled) setRecentTimelineMatches([])
+          return
+        }
+
+        const matchesPerTournament = await Promise.all(
+          sourceTournaments.map(async (t) => {
+            try {
+              const tournamentMatches = await getTournamentMatches(t.id)
+              return { tournament: t, matches: tournamentMatches }
+            } catch {
+              return { tournament: t, matches: [] as MatchWithTeams[] }
+            }
+          })
+        )
+
+        const normalized = matchesPerTournament
+          .flatMap(({ tournament: t, matches: tournamentMatches }) => {
+            const settings = (t.settings as TournamentSettings | null) ?? null
+            const tournamentName = t.name || 'Torneio'
+            const tournamentImage =
+              typeof settings?.tournamentImage === 'string' ? settings.tournamentImage : null
+
+            return tournamentMatches.map((match) => {
+              const loggedIsHome = Boolean(
+                (match.home_participant_id && myParticipantIds.has(match.home_participant_id)) ||
+                match.homeTeam?.profile?.id === userId
+              )
+              const loggedIsAway = Boolean(
+                (match.away_participant_id && myParticipantIds.has(match.away_participant_id)) ||
+                match.awayTeam?.profile?.id === userId
+              )
+
+              let loggedParticipantId = ''
+              if (loggedIsHome && match.home_participant_id) {
+                loggedParticipantId = match.home_participant_id
+              }
+              if (loggedIsAway && match.away_participant_id) {
+                loggedParticipantId = match.away_participant_id
+              }
+
+              return {
+                ...match,
+                loggedParticipantId,
+                tournamentName,
+                tournamentImage,
+              } as RecentTimelineMatch
+            })
+          })
+          .filter((match) =>
+            match.status === 'finished' &&
+            match.home_score !== null &&
+            match.away_score !== null &&
+            Boolean(match.loggedParticipantId)
+          )
+          .sort((left, right) => {
+            const leftDate = left.updated_at ?? left.created_at ?? ''
+            const rightDate = right.updated_at ?? right.created_at ?? ''
+            return rightDate.localeCompare(leftDate)
+          })
+          .slice(0, 3)
+          .sort((left, right) => {
+            const leftDate = left.updated_at ?? left.created_at ?? ''
+            const rightDate = right.updated_at ?? right.created_at ?? ''
+            return leftDate.localeCompare(rightDate)
+          })
+
+        if (!cancelled) setRecentTimelineMatches(normalized)
+      } catch {
+        if (!cancelled) setRecentTimelineMatches([])
+      }
+    }
+
+    if (user?.id) {
+      loadRecentTimelineMatches()
+    }
+
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id, refreshKey, myTournaments, tournament])
+
   // Group matches by round
   const matchesByRound = useMemo(() => {
     const map = new Map<number, MatchWithTeams[]>()
@@ -216,6 +393,11 @@ function TournamentMatch() {
 
   const isCreator = tournament.creator_id === user.id
   const tournamentSettings = tournament.settings as TournamentSettings | null
+  const tournamentImage = typeof tournamentSettings?.tournamentImage === 'string'
+    ? tournamentSettings.tournamentImage
+    : null
+  const tournamentInitials = getTournamentInitials(tournament.name)
+  const tournamentStatusLabel = getStatusLabel(tournament.status)
   // Merge: settings salvos (torneios novos) + catálogo Strapi ao vivo (todos os torneios)
   const shieldsMap: Record<string, string> = {
     ...strapiShieldsMap,
@@ -232,6 +414,7 @@ function TournamentMatch() {
   const regularSplitRound = isCampeonato ? leagueBaseRoundCount : Math.floor(maxRound / 2)
 
   const pendingCount = matches.filter((m) => m.status === 'pending').length
+
   const leagueMatches = isCampeonato
     ? matches.filter((m) => m.round !== null && m.round <= leagueRoundCount)
     : matches
@@ -609,17 +792,78 @@ function TournamentMatch() {
     <div className={styles.container}>
       <header className={styles.header}>
         <button className={styles.backBtn} onClick={() => setCurrentView('dashboard')}>
-          ← Voltar
+          <span className={styles.backBtnIcon}>←</span>
+          <span>Voltar</span>
         </button>
+
         <div className={styles.headerContent}>
-          <h1 className={styles.title}>{tournament.name}</h1>
-          <span className={styles.gameType}>{tournament.game_type}</span>
-          <span className={styles.statusBadge}>🔴 Ativo</span>
+          <div className={styles.headerThumb} aria-hidden>
+            {tournamentImage ? (
+              <img src={tournamentImage} alt={tournament.name} className={styles.headerThumbImg} />
+            ) : (
+              <span className={styles.headerThumbFallback}>{tournamentInitials}</span>
+            )}
+          </div>
+
+          <div className={styles.headerTextBlock}>
+            <h1 className={styles.title}>{tournament.name}</h1>
+            <span className={styles.gameType}>{tournament.game_type}</span>
+          </div>
         </div>
-        <div className={styles.spacer} />
+
+        <span className={styles.statusBadge}>{tournamentStatusLabel}</span>
       </header>
 
       <main className={styles.main}>
+        {recentTimelineMatches.length > 0 && (
+          <section className={styles.recentTimeline}>
+            <h2 className={styles.recentTimelineTitle}>Resultado ultimas partidas</h2>
+            <div className={styles.recentTimelineList}>
+              {recentTimelineMatches.map((match) => {
+                const loggedIsHome = match.home_participant_id === match.loggedParticipantId
+                const myTeam = loggedIsHome ? match.homeTeam : match.awayTeam
+                const opponentTeam = loggedIsHome ? match.awayTeam : match.homeTeam
+                const myScore = loggedIsHome ? match.home_score : match.away_score
+                const opponentScore = loggedIsHome ? match.away_score : match.home_score
+
+                const resultTone =
+                  myScore! > opponentScore!
+                    ? styles.timelineResultWin
+                    : myScore! < opponentScore!
+                      ? styles.timelineResultLoss
+                      : styles.timelineResultDraw
+
+                return (
+                  <article key={match.id} className={styles.recentCard}>
+                    <div className={styles.recentThumb}>
+                      {match.tournamentImage ? (
+                        <img src={match.tournamentImage} alt={match.tournamentName} className={styles.recentThumbImg} />
+                      ) : (
+                        <span className={styles.recentThumbFallback}>{getTournamentInitials(match.tournamentName)}</span>
+                      )}
+                    </div>
+
+                    <div className={styles.recentMeta}>
+                      <span className={styles.recentMetaName}>{match.tournamentName}</span>
+                      <strong className={styles.recentMetaDate}>{formatTimelineDate(match.updated_at ?? match.created_at)}</strong>
+                    </div>
+
+                    <div className={styles.recentScoreWrap}>
+                      <TimelineCrest teamName={myTeam?.team_name} shieldsMap={shieldsMap} />
+
+                      <span className={styles.recentScoreBox}>{myScore}</span>
+                      <span className={`${styles.recentScoreCross} ${resultTone}`}>x</span>
+                      <span className={styles.recentScoreBox}>{opponentScore}</span>
+
+                      <TimelineCrest teamName={opponentTeam?.team_name} shieldsMap={shieldsMap} />
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
         {error && <div className={styles.errorMessage}>{error}</div>}
 
         {playoffBanner}

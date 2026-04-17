@@ -222,6 +222,7 @@ function CreateTournament() {
         maxParticipants: formData.maxParticipants,
         format: mapCreateFormatToTournamentFormat(formData.format),
         hasReturnMatch: formData.matchType === 'double',
+        ...(tournamentImage ? { tournamentImage } : {}),
         ...(formData.adminDraft && selectedTeamsPreview.length > 0
           ? {
               selectedTeamNames: selectedTeamsPreview.map((t) => t.name),

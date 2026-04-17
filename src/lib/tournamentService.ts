@@ -32,7 +32,9 @@ export async function createTournament(
       | 'format'
       | 'playoffCutoff'
       | 'hasReturnMatch'
+      | 'tournamentImage'
       | 'selectedTeamNames'
+      | 'selectedTeamShields'
       | 'teamAssignMode'
     >
   >

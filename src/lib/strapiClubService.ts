@@ -33,6 +33,11 @@ interface StrapiEntity {
 }
 
 function getStrapiBaseUrl() {
+  if (import.meta.env.DEV) {
+    // Em dev, evita CORS consumindo Strapi via proxy do Vite (/strapi).
+    return '/strapi'
+  }
+
   const raw = import.meta.env.VITE_STRAPI_URL
   if (!raw || typeof raw !== 'string') return ''
   return raw.replace(/\/$/, '')
@@ -49,7 +54,7 @@ function getStrapiApiUrl() {
 function getHeaders() {
   const token = import.meta.env.VITE_STRAPI_API_TOKEN
   return {
-    'Content-Type': 'application/json',
+    Accept: 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   }
 }
