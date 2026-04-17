@@ -247,6 +247,22 @@
   flex-shrink: 0;
 }
 
+.recentPositionTag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* min-width: 26px; */
+  /* height: 22px; */
+  padding: 5px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--color-dark) 18%, transparent 82%);
+  background: var(--color-dark-100);
+  color: var(--color-white);
+  font-size: 8px;
+  font-weight: 500;
+  line-height: 1;
+}
+
 .timelineCrest {
   width: 30px;
   height: 30px;
@@ -1194,6 +1210,13 @@
 
   .recentMetaDate {
     font-size: 11px;
+  }
+
+  .recentPositionTag {
+    min-width: 24px;
+    height: 20px;
+    padding: 0 5px;
+    font-size: 10px;
   }
 
   .recentScoreWrap {

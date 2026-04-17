@@ -37,6 +37,90 @@ interface RecentTimelineMatch extends MatchWithTeams {
   loggedParticipantId: string
   tournamentName: string
   tournamentImage: string | null
+  homePosition: number | null
+  awayPosition: number | null
+}
+
+interface SnapshotStatRow {
+  participantId: string
+  points: number
+  wins: number
+  goalsFor: number
+  goalsAgainst: number
+}
+
+function getMatchesWithSnapshotPositions(matches: MatchWithTeams[]) {
+  const stats = new Map<string, SnapshotStatRow>()
+
+  const ensureStat = (participantId: string | null | undefined) => {
+    if (!participantId) return
+    if (stats.has(participantId)) return
+    stats.set(participantId, {
+      participantId,
+      points: 0,
+      wins: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+    })
+  }
+
+  const sortedMatches = [...matches].sort((left, right) => {
+    const leftStamp = left.updated_at ?? left.created_at ?? ''
+    const rightStamp = right.updated_at ?? right.created_at ?? ''
+    return leftStamp.localeCompare(rightStamp)
+  })
+
+  return sortedMatches.map((match) => {
+    const homeId = match.home_participant_id
+    const awayId = match.away_participant_id
+    const isFinished = match.status === 'finished' && match.home_score !== null && match.away_score !== null
+
+    ensureStat(homeId)
+    ensureStat(awayId)
+
+    if (isFinished && homeId && awayId) {
+      const homeStat = stats.get(homeId)
+      const awayStat = stats.get(awayId)
+
+      if (homeStat && awayStat) {
+        homeStat.goalsFor += match.home_score ?? 0
+        homeStat.goalsAgainst += match.away_score ?? 0
+        awayStat.goalsFor += match.away_score ?? 0
+        awayStat.goalsAgainst += match.home_score ?? 0
+
+        if ((match.home_score ?? 0) > (match.away_score ?? 0)) {
+          homeStat.points += 3
+          homeStat.wins += 1
+        } else if ((match.home_score ?? 0) < (match.away_score ?? 0)) {
+          awayStat.points += 3
+          awayStat.wins += 1
+        } else {
+          homeStat.points += 1
+          awayStat.points += 1
+        }
+      }
+    }
+
+    const ranking = [...stats.values()].sort((left, right) => {
+      if (right.points !== left.points) return right.points - left.points
+      if (right.wins !== left.wins) return right.wins - left.wins
+
+      const leftGoalDiff = left.goalsFor - left.goalsAgainst
+      const rightGoalDiff = right.goalsFor - right.goalsAgainst
+      if (rightGoalDiff !== leftGoalDiff) return rightGoalDiff - leftGoalDiff
+
+      if (right.goalsFor !== left.goalsFor) return right.goalsFor - left.goalsFor
+      return left.participantId.localeCompare(right.participantId)
+    })
+
+    const positionByParticipant = new Map(ranking.map((row, index) => [row.participantId, index + 1]))
+
+    return {
+      match,
+      homePosition: homeId ? positionByParticipant.get(homeId) ?? null : null,
+      awayPosition: awayId ? positionByParticipant.get(awayId) ?? null : null,
+    }
+  })
 }
 
 function getRoundRobinRoundCount(participantCount: number, hasReturnMatch = false): number {
@@ -321,12 +405,13 @@ function TournamentMatch() {
 
         const normalized = matchesPerTournament
           .flatMap(({ tournament: t, matches: tournamentMatches }) => {
+            const snapshotMatches = getMatchesWithSnapshotPositions(tournamentMatches)
             const settings = (t.settings as TournamentSettings | null) ?? null
             const tournamentName = t.name || 'Torneio'
             const tournamentImage =
               typeof settings?.tournamentImage === 'string' ? settings.tournamentImage : null
 
-            return tournamentMatches.map((match) => {
+            return snapshotMatches.map(({ match, homePosition, awayPosition }) => {
               const loggedIsHome = Boolean(
                 (match.home_participant_id && myParticipantIds.has(match.home_participant_id)) ||
                 match.homeTeam?.profile?.id === userId
@@ -349,6 +434,8 @@ function TournamentMatch() {
                 loggedParticipantId,
                 tournamentName,
                 tournamentImage,
+                homePosition,
+                awayPosition,
               } as RecentTimelineMatch
             })
           })
@@ -871,6 +958,8 @@ function TournamentMatch() {
                 const opponentTeam = loggedIsHome ? match.awayTeam : match.homeTeam
                 const myScore = loggedIsHome ? match.home_score : match.away_score
                 const opponentScore = loggedIsHome ? match.away_score : match.home_score
+                const myPosition = loggedIsHome ? match.homePosition : match.awayPosition
+                const opponentPosition = loggedIsHome ? match.awayPosition : match.homePosition
 
                 const resultTone =
                   myScore! > opponentScore!
@@ -895,6 +984,7 @@ function TournamentMatch() {
                     </div>
 
                     <div className={styles.recentScoreWrap}>
+                      <span className={styles.recentPositionTag}>P{myPosition ?? '-'}</span>
                       <TimelineCrest teamName={myTeam?.team_name} shieldsMap={shieldsMap} />
 
                       <span className={styles.recentScoreBox}>{myScore}</span>
@@ -902,6 +992,7 @@ function TournamentMatch() {
                       <span className={styles.recentScoreBox}>{opponentScore}</span>
 
                       <TimelineCrest teamName={opponentTeam?.team_name} shieldsMap={shieldsMap} />
+                      <span className={styles.recentPositionTag}>P{opponentPosition ?? '-'}</span>
                     </div>
                   </article>
                 )
