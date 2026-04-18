@@ -14,6 +14,7 @@ import {
   deleteTournament,
   seedMockParticipants,
 } from '../../lib/tournamentService'
+import { env } from '../../config/env'
 import type { Participant } from '../../atoms/tournamentAtoms'
 import type { TournamentSettings } from '../../types/tournament'
 import TournamentConfig from '../../components/TournamentConfig'
@@ -117,6 +118,10 @@ function TournamentLobby() {
   const isFull = maxParticipants !== null && participantCount >= maxParticipants
   const isParticipant = tournament.isParticipant ?? participants.some((p) => p.user_id === user.id)
   const isVisitor = !isCreator && !isParticipant
+  const isMockSeedEnabled = env.features.enableMockSeed
+  const isCreatorAlreadyParticipant = participants.some((p) => p.user_id === tournament.creator_id)
+  const seedTargetTotal = Math.max(2, maxParticipants ?? (isCreatorAlreadyParticipant ? participantCount + 1 : participantCount + 2))
+  const seedMissingCount = Math.max(0, seedTargetTotal - participantCount)
   const hasDrawnTeams =
     participants.length > 0 &&
     participants.every((p) => (p.team_name ?? '').trim().length > 0)
@@ -166,7 +171,7 @@ function TournamentLobby() {
   // ─── DEV ONLY ──────────────────────────────────────────────────────────────
   const handleSeedParticipants = async () => {
     try {
-      await seedMockParticipants(tournament.id)
+      await seedMockParticipants(tournament.id, seedTargetTotal, tournament.creator_id)
       const updated = await fetchMyTournaments(user.id)
       setMyTournaments(updated)
       setRefreshKey((prev) => prev + 1)
@@ -305,8 +310,8 @@ function TournamentLobby() {
             </div>
           )}
 
-          {/* DEV: Seed */}
-          {isCreator && participantCount < 2 && (
+          {/* Seed (feature-flag): preenche o lobby até o limite configurado */}
+          {isMockSeedEnabled && isCreator && seedMissingCount > 0 && (
             <div style={{ textAlign: 'center', margin: '1rem 0' }}>
               <button
                 onClick={handleSeedParticipants}
@@ -320,7 +325,7 @@ function TournamentLobby() {
                   fontSize: '0.85rem',
                 }}
               >
-                🌱 Injetar 5 Jogadores (Dev)
+                🌱 Injetar {seedMissingCount} Jogador{seedMissingCount > 1 ? 'es' : ''}
               </button>
             </div>
           )}

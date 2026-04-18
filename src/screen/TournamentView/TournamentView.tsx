@@ -12,6 +12,7 @@ import { fetchMyTournaments, getTournamentParticipants, joinTournamentById, dele
 import { getTournamentMatches } from '../../lib/matchService'
 import { generatePlayoffMatches } from '../../lib/matchGenerationEngine'
 import { logger } from '../../lib/logger'
+import { env } from '../../config/env'
 import type { Participant } from '../../atoms/tournamentAtoms'
 import type { MatchWithTeams, TournamentSettings } from '../../types/tournament'
 import TournamentConfig from '../../components/TournamentConfig'
@@ -107,6 +108,10 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   const isPrivate = tournamentSettings?.isPrivate ?? false
   const maxParticipants = tournamentSettings?.maxParticipants ?? null
   const isFull = maxParticipants !== null && participantCount >= maxParticipants
+  const isMockSeedEnabled = env.features.enableMockSeed
+  const isCreatorAlreadyParticipant = participants.some((p) => p.user_id === tournament.creator_id)
+  const seedTargetTotal = Math.max(2, maxParticipants ?? (isCreatorAlreadyParticipant ? participantCount + 1 : participantCount + 2))
+  const seedMissingCount = Math.max(0, seedTargetTotal - participantCount)
 
   // Derivações de fase
   const leagueMatches = matches.filter((m) => m.round === 1)
@@ -184,8 +189,8 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   const handleSeedParticipants = async () => {
      logger.log('[DEV] seedMockParticipants → tournament.id:', tournament.id)
     try {
-      await seedMockParticipants(tournament.id)
-       logger.log('[DEV] Seed concluído com sucesso')
+      const result = await seedMockParticipants(tournament.id, seedTargetTotal, tournament.creator_id)
+       logger.log('[DEV] Seed concluído com sucesso', result)
       // Atualiza a lista de participantes na view e o atom do Dashboard
       const updated = await fetchMyTournaments(user.id)
       setMyTournaments(updated)
@@ -331,8 +336,8 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
               </div>
             )}
 
-            {/* Dev: Seed button — only when creator has 0 opponents yet */}
-            {isCreator && isDraft && participants.length < 2 && (
+            {/* Seed (feature-flag): preenche o lobby até o limite configurado */}
+            {isMockSeedEnabled && isCreator && isDraft && seedMissingCount > 0 && (
               <div style={{ textAlign: 'center', margin: '1rem 0' }}>
                 <button
                   onClick={handleSeedParticipants}
@@ -346,7 +351,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                     fontSize: '0.85rem',
                   }}
                 >
-                  🌱 Injetar 5 Jogadores (Dev Mode)
+                  🌱 Injetar {seedMissingCount} Jogador{seedMissingCount > 1 ? 'es' : ''}
                 </button>
               </div>
             )}

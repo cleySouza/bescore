@@ -466,14 +466,113 @@ export async function updateParticipantTeamName(
  * Popula um torneio com 5 participantes fictícios para testes em desenvolvimento.
  * Os user_id são UUIDs fixos dedicados ao mock — não são usuários reais.
  */
-export async function seedMockParticipants(tournamentId: string): Promise<void> {
-  // Usa RPC com SECURITY DEFINER para contornar RLS (user_id fictícios não existem em auth.users)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).rpc('seed_mock_participants', { p_tournament_id: tournamentId })
+export async function seedMockParticipants(
+  tournamentId: string,
+  targetTotalParticipants?: number,
+  creatorUserId?: string
+): Promise<{ inserted: number; totalAfterSeed: number; targetTotal: number }> {
+  const normalizedTarget = Number.isFinite(targetTotalParticipants)
+    ? Math.max(0, Math.floor(targetTotalParticipants as number))
+    : 0
 
-  if (error) {
-    console.error('Erro ao injetar participantes mock:', error.message)
-    throw new Error(`Falha ao injetar participantes: ${error.message}`)
+  const { count: currentCount, error: countError } = await supabase
+    .from('participants')
+    .select('*', { count: 'exact', head: true })
+    .eq('tournament_id', tournamentId)
+
+  if (countError) {
+    console.error('Erro ao contar participantes antes do seed:', countError.message)
+    throw new Error(`Falha ao preparar seed: ${countError.message}`)
+  }
+
+  const currentTotal = currentCount ?? 0
+  const targetTotal = normalizedTarget > 0 ? normalizedTarget : currentTotal + 5
+
+  if (currentTotal >= targetTotal) {
+    return { inserted: 0, totalAfterSeed: currentTotal, targetTotal }
+  }
+
+  let latestTotal = currentTotal
+  let attempts = 0
+  const maxAttempts = 12
+
+  while (latestTotal < targetTotal && attempts < maxAttempts) {
+    attempts += 1
+
+    // Usa RPC com SECURITY DEFINER para contornar RLS (user_id fictícios não existem em auth.users)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc('seed_mock_participants', { p_tournament_id: tournamentId })
+
+    if (error) {
+      console.error('Erro ao injetar participantes mock:', error.message)
+      throw new Error(`Falha ao injetar participantes: ${error.message}`)
+    }
+
+    const { count: afterSeedCount, error: recountError } = await supabase
+      .from('participants')
+      .select('*', { count: 'exact', head: true })
+      .eq('tournament_id', tournamentId)
+
+    if (recountError) {
+      console.error('Erro ao contar participantes após seed:', recountError.message)
+      throw new Error(`Falha ao validar seed: ${recountError.message}`)
+    }
+
+    const nextTotal = afterSeedCount ?? latestTotal
+    if (nextTotal <= latestTotal) {
+      break
+    }
+
+    latestTotal = nextTotal
+  }
+
+  if (latestTotal > targetTotal) {
+    const overflow = latestTotal - targetTotal
+
+    const { data: seedCandidates, error: candidatesError } = await supabase
+      .from('participants')
+      .select(
+        `
+        id,
+        user_id,
+        joined_at,
+        profile:user_id (
+          id
+        )
+      `
+      )
+      .eq('tournament_id', tournamentId)
+
+    if (candidatesError) {
+      console.error('Erro ao buscar candidatos para ajuste de seed:', candidatesError.message)
+      throw new Error(`Falha ao ajustar seed: ${candidatesError.message}`)
+    }
+
+    const removable = (seedCandidates || [])
+      .filter((row) => row.id)
+      .filter((row) => (creatorUserId ? row.user_id !== creatorUserId : true))
+      .filter((row) => !row.profile)
+      .sort((a, b) => {
+        const aTime = a.joined_at ? new Date(a.joined_at).getTime() : 0
+        const bTime = b.joined_at ? new Date(b.joined_at).getTime() : 0
+        return bTime - aTime
+      })
+      .slice(0, overflow)
+
+    if (removable.length > 0) {
+      const idsToDelete = removable.map((row) => row.id)
+      const { error: deleteError } = await supabase
+        .from('participants')
+        .delete()
+        .in('id', idsToDelete)
+
+      if (deleteError) {
+        console.error('Erro ao remover excedente de seed mock:', deleteError.message)
+        throw new Error(`Falha ao ajustar seed: ${deleteError.message}`)
+      }
+
+      latestTotal -= removable.length
+    }
   }
 
   // Regra do fluxo de draft: nomes/clubes so aparecem apos sorteio.
@@ -486,6 +585,19 @@ export async function seedMockParticipants(tournamentId: string): Promise<void> 
   if (clearTeamsError) {
     console.error('Erro ao limpar times apos seed mock:', clearTeamsError.message)
     throw new Error(`Falha ao limpar times apos seed: ${clearTeamsError.message}`)
+  }
+
+  if (latestTotal < targetTotal) {
+    logger.warn(
+      '[seedMockParticipants] Seed parcial. Meta não alcançada.',
+      { tournamentId, currentTotal, latestTotal, targetTotal, attempts }
+    )
+  }
+
+  return {
+    inserted: Math.max(0, latestTotal - currentTotal),
+    totalAfterSeed: latestTotal,
+    targetTotal,
   }
 }
 // ─────────────────────────────────────────────────────────────────────────────
