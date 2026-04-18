@@ -1,3 +1,7 @@
+import { getMediaUrl } from './mediaUtils'
+import type { StrapiMedia } from '../types/strapi'
+import { env } from '../config/env'
+
 export interface Club {
   id: string
   name: string
@@ -38,8 +42,8 @@ function getStrapiBaseUrl() {
     return '/strapi'
   }
 
-  const raw = import.meta.env.VITE_STRAPI_URL
-  if (!raw || typeof raw !== 'string') return ''
+  const raw = env.strapiUrl
+  if (!raw) return ''
   return raw.replace(/\/$/, '')
 }
 
@@ -52,7 +56,7 @@ function getStrapiApiUrl() {
 }
 
 function getHeaders() {
-  const token = import.meta.env.VITE_STRAPI_API_TOKEN
+  const token = env.strapiApiToken
   return {
     Accept: 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -64,29 +68,11 @@ function asAttributes(entity: StrapiEntity): Record<string, unknown> {
   return (entity.attributes as Record<string, unknown>) ?? entity
 }
 
-function asAbsoluteUrl(path: string | null | undefined): string {
-  if (!path) return ''
-  if (/^https?:\/\//i.test(path)) return path
-  return `${getStrapiBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`
-}
-
-// Strapi 5: campo media retorna { url, formats, ... } diretamente (flat)
-// Strapi 4: campo media retorna { data: { attributes: { url } } }
 // O schema usa "shield" para o escudo do clube (não "logo")
+// getMediaUrl suporta v4 (data.attributes) e v5 (flat) + Cloudinary
 function pickLogoUrl(source: Record<string, unknown>): string {
-  const media = (source.shield ?? source.logo) as
-    | { url?: string; data?: { attributes?: { url?: string }; url?: string } }
-    | undefined
-
-  return asAbsoluteUrl(
-    media?.url ??
-    media?.data?.url ??
-    media?.data?.attributes?.url ??
-    (source.shield_url as string | undefined) ??
-    (source.logoUrl as string | undefined) ??
-    (source.logo_url as string | undefined) ??
-    ''
-  )
+  const media = (source.shield ?? source.logo) as StrapiMedia
+  return getMediaUrl(media, { size: 'small', fallback: '' })
 }
 
 function extractContinentId(data: Record<string, unknown>): string {

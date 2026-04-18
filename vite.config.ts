@@ -1,22 +1,27 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    host: true,
-    proxy: {
-      '/strapi': {
-        target: 'http://localhost:1337',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/strapi/, ''),
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const strapiTarget = env.VITE_STRAPI_URL || 'http://localhost:1337'
+
+  return {
+    plugins: [react()],
+    server: {
+      host: true,
+      proxy: {
+        '/strapi': {
+          target: strapiTarget,
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/strapi/, ''),
+        },
+      },
+      watch: {
+        // Polling deixa o auto-refresh estável mesmo com FS watchers instáveis.
+        usePolling: true,
+        interval: 120,
       },
     },
-    watch: {
-      // Polling deixa o auto-refresh estável mesmo com FS watchers instáveis.
-      usePolling: true,
-      interval: 120,
-    },
-  },
+  }
 })
