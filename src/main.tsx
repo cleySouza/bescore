@@ -1,10 +1,15 @@
-import { StrictMode, useEffect } from 'react'
+import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Provider, useSetAtom } from 'jotai'
+import { Provider, useAtom, useSetAtom } from 'jotai'
 import { supabase } from './lib/supabaseClient'
 import { logger } from './lib/logger'
 import { sessionAtom } from './atoms/sessionAtom'
-import { strapiShieldsMapAtom } from './atoms/catalogAtom'
+import {
+  createShieldsMap,
+  hasStrapiCatalogData,
+  strapiCatalogAtom,
+  strapiShieldsMapAtom,
+} from './atoms/catalogAtom'
 import { fetchStrapiClubCatalog } from './lib/strapiClubService'
 import './styles/theme.css'
 import App from './App'
@@ -12,7 +17,11 @@ import App from './App'
 // Componente para inicializar a autenticação
 function AuthInitializer() {
   const setSession = useSetAtom(sessionAtom)
+  const [catalogCache, setCatalogCache] = useAtom(strapiCatalogAtom)
   const setStrapiShieldsMap = useSetAtom(strapiShieldsMapAtom)
+  const [isCatalogReady, setIsCatalogReady] = useState(
+    hasStrapiCatalogData(catalogCache)
+  )
 
   useEffect(() => {
     // Debug: verificar URL atual
@@ -39,31 +48,49 @@ function AuthInitializer() {
   }, [setSession])
 
   useEffect(() => {
-    let cancelled = false
+    if (!hasStrapiCatalogData(catalogCache)) return
 
-    fetchStrapiClubCatalog()
-      .then(({ teamData }) => {
+    setStrapiShieldsMap(createShieldsMap(catalogCache.teamData))
+    setIsCatalogReady(true)
+  }, [catalogCache, setStrapiShieldsMap])
+
+  useEffect(() => {
+    if (hasStrapiCatalogData(catalogCache)) return
+
+    let cancelled = false
+    let retryTimer: ReturnType<typeof setTimeout> | null = null
+
+    const loadCatalog = async () => {
+      try {
+        const catalog = await fetchStrapiClubCatalog()
         if (cancelled) return
 
-        const map: Record<string, string> = {}
-        for (const clubs of Object.values(teamData)) {
-          for (const club of clubs) {
-            if (club.logo) map[club.name] = club.logo
-          }
-        }
+        setCatalogCache(catalog)
+        setStrapiShieldsMap(createShieldsMap(catalog.teamData))
+        setIsCatalogReady(true)
+      } catch (error) {
+        if (cancelled) return
 
-        if (Object.keys(map).length > 0) {
-          setStrapiShieldsMap(map)
-        }
-      })
-      .catch(() => {
-        // Silencioso: o app mantém fallback por iniciais até o catálogo responder.
-      })
+        logger.warn('[catalog] Falha ao carregar catálogo. Tentando novamente...', error)
+        retryTimer = setTimeout(loadCatalog, 2000)
+      }
+    }
+
+    loadCatalog()
 
     return () => {
       cancelled = true
+      if (retryTimer) clearTimeout(retryTimer)
     }
-  }, [setStrapiShieldsMap])
+  }, [catalogCache, setCatalogCache, setStrapiShieldsMap])
+
+  if (!isCatalogReady) {
+    return (
+      <div className="app-loading-screen" role="status" aria-label="Carregando times">
+        <div className="app-loading-spinner" aria-hidden="true" />
+      </div>
+    )
+  }
 
   return <App />
 }

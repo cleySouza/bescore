@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useAtomValue } from 'jotai'
 import styles from './TeamSelectModal.module.css'
 import { fetchStrapiClubCatalog, type Continent, type League, type Club, type TeamDataMap } from '../../../../lib/strapiClubService'
+import { hasStrapiCatalogData, strapiCatalogAtom } from '../../../../atoms/catalogAtom'
 
 interface TeamSelectModalProps {
   selectedIds: string[]
@@ -15,6 +17,7 @@ export function TeamSelectModal({
   onConfirm,
   onClose,
 }: TeamSelectModalProps) {
+  const catalogCache = useAtomValue(strapiCatalogAtom)
   const [continents, setContinents] = useState<Continent[]>([])
   const [leaguesByContinent, setLeaguesByContinent] = useState<{ [k: string]: League[] }>({})
   const [teamData, setTeamData] = useState<TeamDataMap>({})
@@ -27,6 +30,15 @@ export function TeamSelectModal({
   const [selected, setSelected] = useState<string[]>(initialSelected)
 
   useEffect(() => {
+    if (hasStrapiCatalogData(catalogCache)) {
+      setContinents(catalogCache.continents)
+      setLeaguesByContinent(catalogCache.leaguesByContinent)
+      setTeamData(catalogCache.teamData)
+      setLoadError(null)
+      setDataReady(true)
+      return
+    }
+
     let cancelled = false
     const load = async () => {
       setDataReady(false)
@@ -46,7 +58,7 @@ export function TeamSelectModal({
     }
     load()
     return () => { cancelled = true }
-  }, [])
+  }, [catalogCache])
 
   const isLimitReached = selected.length >= maxTeams
 
