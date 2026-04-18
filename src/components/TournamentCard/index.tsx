@@ -46,7 +46,7 @@ function TournamentCard({ tournament, onClick }: TournamentCardProps) {
         )}
       </div>
 
-      <button className={styles.actionBtn}>Ver Torneio →</button>
+      <button className={styles.actionBtn}>Ver Torneio</button>
     </div>
   )
 }

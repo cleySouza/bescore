@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAtomValue } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import { activeTournamentAtom } from '../../atoms/tournamentAtoms'
@@ -6,6 +6,13 @@ import { supabase } from '../../lib/supabaseClient'
 import { getTournamentMatches, getTournamentStandings } from '../../lib/matchService'
 import type { MatchWithTeams, StandingsRow } from '../../types/tournament'
 import styles from './StandingsTable.module.css'
+
+interface StandingsCacheEntry {
+  standings: StandingsRow[]
+  matches: MatchWithTeams[]
+}
+
+export const standingsCache = new Map<string, StandingsCacheEntry>()
 
 interface StandingsTableProps {
   onDataUpdate?: () => void
@@ -50,13 +57,32 @@ function getRecentForm(participantId: string, matches: MatchWithTeams[]): FormRe
 function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
-  const [standings, setStandings] = useState<StandingsRow[]>([])
-  const [matches, setMatches] = useState<MatchWithTeams[]>([])
-  const [loading, setLoading] = useState(true)
+
+  const cached = tournament?.id ? standingsCache.get(tournament.id) : undefined
+  const [standings, setStandings] = useState<StandingsRow[]>(cached?.standings ?? [])
+  const [matches, setMatches] = useState<MatchWithTeams[]>(cached?.matches ?? [])
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState<string | null>(null)
+  const onDataUpdateRef = useRef(onDataUpdate)
 
   useEffect(() => {
-    if (!tournament) return
+    onDataUpdateRef.current = onDataUpdate
+  }, [onDataUpdate])
+
+  useEffect(() => {
+    if (!tournament?.id) return
+
+    let isCancelled = false
+    const hasCached = standingsCache.has(tournament.id)
+    if (!hasCached) setLoading(true)
+
+    // Defensive cleanup: remove stale channels for this tournament before creating a new one.
+    const staleChannels = supabase
+      .getChannels()
+      .filter((c) => c.topic.startsWith(`realtime:matches:${tournament.id}`))
+    staleChannels.forEach((c) => {
+      supabase.removeChannel(c)
+    })
 
     const loadStandings = async () => {
       try {
@@ -65,42 +91,61 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
           getTournamentStandings(tournament.id),
           getTournamentMatches(tournament.id),
         ])
+        if (isCancelled) return
+        standingsCache.set(tournament.id, { standings: standingsData, matches: matchesData })
         setStandings(standingsData)
         setMatches(matchesData)
       } catch (err) {
+        if (isCancelled) return
         const message = err instanceof Error ? err.message : 'Erro ao carregar classificação'
         setError(message)
         console.error('Erro:', err)
       } finally {
+        if (isCancelled) return
         setLoading(false)
       }
     }
 
     loadStandings()
 
-    // Setup real-time listener for matches updates
-    const channel = supabase
-      .channel(`matches:${tournament.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'matches',
-          filter: `tournament_id=eq.${tournament.id}`,
-        },
-        () => {
-          // Reload standings when a match is updated
-          loadStandings()
-          onDataUpdate?.()
-        }
-      )
-      .subscribe()
+    // Setup real-time listener for matches updates.
+    // Use a unique topic per mount to avoid callback registration on an already-subscribed channel.
+    const uniqueSuffix = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+    let channel: ReturnType<typeof supabase.channel> | null = null
+
+    try {
+      channel = supabase
+        .channel(`matches:${tournament.id}:${uniqueSuffix}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'matches',
+            filter: `tournament_id=eq.${tournament.id}`,
+          },
+          () => {
+            // Reload standings when a match is updated
+            loadStandings()
+            onDataUpdateRef.current?.()
+          }
+        )
+        .subscribe()
+    } catch (err) {
+      console.error('Erro ao iniciar realtime das classificacoes:', err)
+      setError('Nao foi possivel iniciar atualizacao em tempo real.')
+    }
 
     return () => {
-      channel.unsubscribe()
+      isCancelled = true
+      if (channel) {
+        supabase.removeChannel(channel)
+      }
     }
-  }, [tournament, onDataUpdate])
+  }, [tournament?.id])
 
   if (loading) {
     return <div className={styles.container}>Carregando classificação...</div>
@@ -126,14 +171,14 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
         <div className={styles.headerRow}>
           <h2 className={styles.headerTitle}>Classificação</h2>
           <div className={styles.headerStats}>
-            <span className={styles.pointsHeader}>P</span>
-            <span>J</span>
-            <span>V</span>
-            <span>E</span>
-            <span>D</span>
-            <span>Gol</span>
-            <span>SG</span>
-            <span>Desempenho</span>
+            <span className={styles.pointsHeader} data-label="P">P</span>
+            <span data-label="J">J</span>
+            <span data-label="V">V</span>
+            <span data-label="E">E</span>
+            <span data-label="D">D</span>
+            <span data-label="Gol">Gol</span>
+            <span data-label="SG">SG</span>
+            <span data-label="Desempenho">Desempenho</span>
           </div>
         </div>
 
@@ -193,9 +238,7 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
                         key={`${row.participant_id}-${formIndex}`}
                         className={`${styles.formBadge} ${styles[`formBadge${result[0].toUpperCase()}${result.slice(1)}`]}`}
                         title={result === 'win' ? 'Vitória' : result === 'draw' ? 'Empate' : 'Derrota'}
-                      >
-                        {result === 'win' ? '✓' : result === 'draw' ? '−' : '×'}
-                      </span>
+                      />
                     ))
                   ) : (
                     <span className={styles.noForm}>—</span>

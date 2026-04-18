@@ -244,7 +244,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .recentPositionTag {
@@ -467,8 +468,9 @@
 }
 
 .phaseOptionActive {
-  background: var(--color-dark-100);
+  background: var(--gradient-primary);
   color: var(--color-white);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-be) 30%, transparent 70%);
 }
 
 .phaseOptionActive:hover {
@@ -637,8 +639,9 @@
 }
 
 .legOptionActive {
-  background: var(--color-dark-100);
+  background: var(--gradient-primary);
   color: var(--color-white);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-be) 30%, transparent 70%);
 }
 
 .legOptionActive:hover {
@@ -1150,15 +1153,20 @@
   }
 
   .recentCard {
-    gap: 5px;
+    gap: 6px;
     padding: 9px 10px;
-    flex: 0 0 min(72vw, 292px);
-    width: min(72vw, 292px);
+    flex: 0 0 min(76vw, 328px);
+    width: min(76vw, 328px);
     overflow: hidden;
   }
 
   .recentMeta {
-    min-width: 60px;
+    min-width: 42px;
+    max-width: 2%;
+  }
+
+  .recentMetaName {
+    font-size: 10px;
   }
 
   .recentMetaDate {
@@ -1166,32 +1174,28 @@
   }
 
   .recentPositionTag {
-    min-width: 24px;
-    height: 20px;
-    padding: 0 5px;
-    font-size: 10px;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 3px;
+    font-size: 9px;
+    border-radius: 3px;
   }
 
   .recentScoreWrap {
-    gap: 5px;
-  }
-
-  .timelineCrest {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    font-size: 10px;
+    margin-left: 0;
+    justify-content: flex-end;
+    gap: 4px;
   }
 
   .recentScoreBox {
-    width: 26px;
-    height: 26px;
-    font-size: 14px;
+    width: 24px;
+    height: 24px;
+    font-size: 13px;
     border-radius: 6px;
   }
 
   .recentScoreCross {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .recentThumb {
@@ -1200,47 +1204,152 @@
     border-radius: 10px;
   }
 
-  .recentScoreWrap {
-    gap: 5px;
+  .roundsList {
+    gap: 6px;
   }
 
-  .recentScoreBox {
-    width: 30px;
-    height: 30px;
-    font-size: 16px;
+  .roundLabel {
+    font-size: 12px;
   }
 
-  .recentScoreCross {
-    font-size: 22px;
-  }
-
-  .matchClub,
-  .matchBrand {
-    max-width: 90px;
+  .pendingBadge,
+  .doneBadge {
+    font-size: 10px;
+    padding: 1px 6px;
   }
 
   .matchRow {
-    padding: 12px;
+    gap: 4px;
+    padding: 10px 8px;
   }
 
   .matchRowMain {
-    grid-template-columns: minmax(90px, 1fr) 40px auto 40px minmax(90px, 1fr);
+    grid-template-columns: minmax(0, 1fr) 26px auto 26px minmax(0, 1fr);
     gap: 6px;
+    align-items: center;
+    justify-items: center;
+  }
+
+  .matchTeamBlock {
+    height: auto;
+    min-height: 26px;
+    width: 100%;
+    justify-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 1px;
+  }
+
+  .matchTeamAway {
+    align-items: flex-start;
   }
 
   .matchCrest,
   .scoreBox {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    font-size: 12px;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    font-size: 11px;
+  }
+
+  .matchScoreGroup {
+    gap: 5px;
   }
 
   .scoreCross {
-    font-size: 28px;
+    font-size: 18px;
   }
 
   .matchClub {
-    font-size: 14px;
+    height: auto;
+    font-size: 12px;
+    line-height: 1.1;
+    display: block;
+    text-align: right;
+    max-width: 100%;
+  }
+
+  .matchTeamAway .matchClub {
+    text-align: left;
+  }
+
+  .matchBrand {
+    position: static;
+    top: auto;
+    right: auto;
+    font-size: 8px;
+    text-align: right;
+    max-width: 100%;
+  }
+
+  .matchTeamAway .matchBrand {
+    text-align: left;
+    left: auto;
+  }
+
+  .expandIcon {
+    font-size: 12px;
+  }
+}
+
+/* ============================================================
+   REMOVE HOVER STATES ON TOUCH DEVICES
+   ============================================================ */
+
+@media (hover: none) {
+  .backBtn:hover {
+    border-color: color-mix(in srgb, var(--color-dark) 18%, transparent 82%);
+    color: var(--color-dark);
+    box-shadow: none;
+  }
+
+  .playoffBannerBtn:hover:not(:disabled) {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .phaseOption:hover:not(:disabled) {
+    background: transparent;
+    color: var(--color-dark);
+  }
+
+  .phaseOptionActive:hover {
+    background: var(--gradient-primary);
+  }
+
+  .legOption:hover {
+    background: transparent;
+    color: var(--color-white);
+  }
+
+  .legOptionActive:hover {
+    background: var(--gradient-primary);
+  }
+
+  .tab:hover {
+    background: transparent;
+    color: var(--color-gray-300);
+  }
+
+  .adminOpenBtn:hover {
+    background: var(--color-white);
+  }
+
+  .adminModalCloseBtn:hover {
+    background: transparent;
+    color: var(--color-gray-300);
+  }
+
+  .manageBtn:hover {
+    background: none;
+    border-color: var(--color-gray-200);
+    color: var(--color-gray-300);
+  }
+
+  .dangerBtn:hover {
+    background: transparent;
+    color: var(--color-red);
   }
 }

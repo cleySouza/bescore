@@ -9,7 +9,8 @@ import {
   selectedMatchAtom,
 } from '../../atoms/tournamentAtoms'
 import { fetchMyTournaments, getTournamentParticipants, cancelTournament } from '../../lib/tournamentService'
-import { getTournamentMatches } from '../../lib/matchService'
+import { getTournamentMatches, getTournamentStandings } from '../../lib/matchService'
+import { standingsCache } from '../../components/StandingsTable'
 import { fetchStrapiClubCatalog } from '../../lib/strapiClubService'
 import { supabase } from '../../lib/supabaseClient'
 import { generatePlayoffMatches } from '../../lib/matchGenerationEngine'
@@ -296,6 +297,13 @@ function TournamentMatch() {
           accordionInitRef.current = tournament.id
         }
         hydratedFromCacheRef.current = true
+
+        // Pre-fetch standings in the background so the tab loads instantly
+        getTournamentStandings(tournament.id)
+          .then((standingsData) => {
+            standingsCache.set(tournament.id, { standings: standingsData, matches: matchesData })
+          })
+          .catch(() => { /* silencioso — StandingsTable vai buscar novamente ao montar */ })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar dados')
       } finally {

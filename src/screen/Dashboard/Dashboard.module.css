@@ -54,7 +54,7 @@
 }
 
 .createBtn {
-  background: var(--color-be);
+  background: var(--color-be-100);
   color: var(--color-white);
   box-shadow: none;
 }

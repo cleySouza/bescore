@@ -153,7 +153,7 @@
 .actionBtn {
   width: 100%;
   padding: 9px 12px;
-  background: var(--color-be);
+  background: var(--color-be-100);
   color: var(--color-white);
   border: none;
   border-radius: 6px;
