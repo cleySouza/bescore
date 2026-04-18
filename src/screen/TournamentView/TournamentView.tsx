@@ -11,6 +11,7 @@ import {
 import { fetchMyTournaments, getTournamentParticipants, joinTournamentById, deleteTournament, cancelTournament, seedMockParticipants } from '../../lib/tournamentService'
 import { getTournamentMatches } from '../../lib/matchService'
 import { generatePlayoffMatches } from '../../lib/matchGenerationEngine'
+import { logger } from '../../lib/logger'
 import type { Participant } from '../../atoms/tournamentAtoms'
 import type { MatchWithTeams, TournamentSettings } from '../../types/tournament'
 import TournamentConfig from '../../components/TournamentConfig'
@@ -181,17 +182,17 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
 
   // ─── DEV ONLY ──────────────────────────────────────────────────────────────
   const handleSeedParticipants = async () => {
-    console.log('[DEV] seedMockParticipants → tournament.id:', tournament.id)
+     logger.log('[DEV] seedMockParticipants → tournament.id:', tournament.id)
     try {
       await seedMockParticipants(tournament.id)
-      console.log('[DEV] Seed concluído com sucesso')
+       logger.log('[DEV] Seed concluído com sucesso')
       // Atualiza a lista de participantes na view e o atom do Dashboard
       const updated = await fetchMyTournaments(user.id)
       setMyTournaments(updated)
       setRefreshKey((prev) => prev + 1)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro ao injetar participantes'
-      console.error('[DEV] Seed falhou:', err)
+       logger.error('[DEV] Seed falhou:', err)
       alert('❌ Seed falhou: ' + msg)
       setError(msg)
     }

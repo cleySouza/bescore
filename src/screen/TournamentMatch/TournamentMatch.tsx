@@ -8,6 +8,7 @@ import {
   activeTournamentTabAtom,
   selectedMatchAtom,
 } from '../../atoms/tournamentAtoms'
+import { strapiShieldsMapAtom } from '../../atoms/catalogAtom'
 import { fetchMyTournaments, getTournamentParticipants, cancelTournament } from '../../lib/tournamentService'
 import { getTournamentMatches, getTournamentStandings } from '../../lib/matchService'
 import { standingsCache } from '../../components/StandingsTable'
@@ -227,6 +228,8 @@ function TournamentMatch() {
   const setMyTournaments = useSetAtom(myTournamentsAtom)
   const setCurrentView = useSetAtom(currentViewAtom)
   const setSelectedMatch = useSetAtom(selectedMatchAtom)
+  const globalStrapiShieldsMap = useAtomValue(strapiShieldsMapAtom)
+  const setGlobalStrapiShieldsMap = useSetAtom(strapiShieldsMapAtom)
   const selectedMatch = useAtomValue(selectedMatchAtom)
   const [activeTab, setActiveTab] = useAtom(activeTournamentTabAtom)
 
@@ -240,7 +243,7 @@ function TournamentMatch() {
   const [showAdminModal, setShowAdminModal] = useState(false)
   const [legFilter, setLegFilter] = useState<LegFilter>('first')
   const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>('league')
-  const [strapiShieldsMap, setStrapiShieldsMap] = useState<Record<string, string>>({})
+  const [strapiShieldsMap, setStrapiShieldsMap] = useState<Record<string, string>>(globalStrapiShieldsMap)
   const [recentTimelineMatches, setRecentTimelineMatches] = useState<RecentTimelineMatch[]>([])
 
   // Accordion state
@@ -333,6 +336,11 @@ function TournamentMatch() {
 
   // Carregar escudos do Strapi (funciona para torneios novos e antigos)
   useEffect(() => {
+    if (Object.keys(globalStrapiShieldsMap).length > 0) {
+      setStrapiShieldsMap(globalStrapiShieldsMap)
+      return
+    }
+
     let cancelled = false
     fetchStrapiClubCatalog()
       .then(({ teamData }) => {
@@ -344,10 +352,13 @@ function TournamentMatch() {
           }
         }
         setStrapiShieldsMap(map)
+        if (Object.keys(map).length > 0) {
+          setGlobalStrapiShieldsMap(map)
+        }
       })
       .catch(() => { /* silencioso — fallback para iniciais */ })
     return () => { cancelled = true }
-  }, [])
+  }, [globalStrapiShieldsMap, setGlobalStrapiShieldsMap])
 
   useEffect(() => {
     let cancelled = false

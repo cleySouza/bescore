@@ -1,9 +1,19 @@
 import { supabase } from './supabaseClient'
+import { logger } from './logger'
 import type { Tables } from '../types/supabase'
 import type { TournamentWithParticipants, Participant } from '../atoms/tournamentAtoms'
 import type { TournamentSettings } from '../types/tournament'
 
 type Tournament = Tables<'tournaments'>
+
+function isMissingTableError(error: { message?: string } | null | undefined, table: string): boolean {
+  if (!error?.message) return false
+  return error.message.includes(`Could not find the table 'public.${table}' in the schema cache`)
+}
+
+function getSetupErrorMessage(table: string): string {
+  return `Banco de produção sem tabela '${table}'. Execute as migrations SQL do app (tournaments/participants/matches/connections).`
+}
 
 /**
  * Gera um código alfanumérico aleatório de 6 caracteres
@@ -56,6 +66,9 @@ export async function createTournament(
 
   if (error) {
     console.error('Erro ao criar torneio:', error.message)
+    if (isMissingTableError(error, 'tournaments')) {
+      throw new Error(getSetupErrorMessage('tournaments'))
+    }
     throw new Error(`Falha ao criar torneio: ${error.message}`)
   }
 
@@ -74,6 +87,10 @@ export async function fetchMyTournaments(userId: string): Promise<TournamentWith
 
   if (createdError) {
     console.error('Erro ao buscar torneios criados:', createdError.message)
+    if (isMissingTableError(createdError, 'tournaments')) {
+        logger.warn(getSetupErrorMessage('tournaments'))
+      return []
+    }
     throw new Error(`Falha ao buscar torneios: ${createdError.message}`)
   }
 
@@ -85,6 +102,10 @@ export async function fetchMyTournaments(userId: string): Promise<TournamentWith
 
   if (participantError) {
     console.error('Erro ao buscar participações:', participantError.message)
+    if (isMissingTableError(participantError, 'participants')) {
+        logger.warn(getSetupErrorMessage('participants'))
+      return []
+    }
     throw new Error(`Falha ao buscar participações: ${participantError.message}`)
   }
 
