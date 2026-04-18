@@ -24,7 +24,8 @@ function Dashboard() {
     if (!user) return
 
     const loadTournaments = async () => {
-      setLoading(true)
+      const hasCachedTournaments = myTournaments.length > 0
+      setLoading(!hasCachedTournaments)
       setError(null)
       try {
         const tournaments = await fetchMyTournaments(user.id)
@@ -39,7 +40,7 @@ function Dashboard() {
     }
 
     loadTournaments()
-  }, [user, setMyTournaments, setLoading, setError])
+  }, [user, myTournaments.length, setMyTournaments, setLoading, setError])
 
   const handleSelectTournament = (tournamentId: string) => {
     const tournament = myTournaments.find((t) => t.id === tournamentId)
@@ -59,21 +60,21 @@ function Dashboard() {
             onClick={() => setCurrentView('join-by-code')}
             aria-label="Entrar em um torneio"
           >
-            🔓 Entrar
+            Buscar
           </button>
           <button
             className={styles.createBtn}
             onClick={() => setCurrentView('create-tournament')}
             aria-label="Criar novo torneio"
           >
-            ➕ Novo Torneio
+            Novo Torneio
           </button>
         </div>
       </div>
 
       {error && <div className={styles.errorMessage}>{error}</div>}
 
-      {loading ? (
+      {loading && myTournaments.length === 0 ? (
         <div className={styles.loadingMessage}>Carregando torneios...</div>
       ) : myTournaments.length === 0 ? (
         <div className={styles.emptyState}>

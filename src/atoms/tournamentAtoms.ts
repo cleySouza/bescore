@@ -1,4 +1,5 @@
 import { atom } from 'jotai'
+import { atomWithStorage } from 'jotai/utils'
 import type { Tables } from '../types/supabase'
 import type { MatchWithTeams } from '../types/tournament'
 
@@ -12,10 +13,16 @@ export interface TournamentWithParticipants extends Tournament {
 }
 
 // Estado do torneio ativo (selecionado)
-export const activeTournamentAtom = atom<TournamentWithParticipants | null>(null)
+export const activeTournamentAtom = atomWithStorage<TournamentWithParticipants | null>(
+  'bescore.activeTournament',
+  null
+)
 
 // Lista de torneios do usuário (criados ou participando)
-export const myTournamentsAtom = atom<TournamentWithParticipants[]>([])
+export const myTournamentsAtom = atomWithStorage<TournamentWithParticipants[]>(
+  'bescore.myTournaments',
+  []
+)
 
 // Estado de carregamento
 export const tournamentsLoadingAtom = atom<boolean>(false)
@@ -33,12 +40,15 @@ export const showJoinModalAtom = atom<boolean>(false)
 export const showConfigModalAtom = atom<boolean>(false)
 
 // Aba ativa em TournamentView: 'matches' ou 'standings'
-export const activeTournamentTabAtom = atom<'matches' | 'standings'>('matches')
+export const activeTournamentTabAtom = atomWithStorage<'matches' | 'standings'>(
+  'bescore.activeTournamentTab',
+  'matches'
+)
 
 // View atual
-export const currentViewAtom = atom<
+export const currentViewAtom = atomWithStorage<
   'dashboard' | 'tournament-lobby' | 'tournament-match' | 'create-tournament' | 'join-by-code'
->('dashboard')
+>('bescore.currentView', 'dashboard')
 
 // Partida selecionada para edição de placar (drawer responsivo)
 export const selectedMatchAtom = atom<MatchWithTeams | null>(null)

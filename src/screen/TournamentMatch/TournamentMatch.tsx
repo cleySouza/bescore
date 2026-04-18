@@ -51,6 +51,16 @@ interface SnapshotStatRow {
   goalsAgainst: number
 }
 
+interface TournamentMatchCacheEntry {
+  participants: ParticipantWithProfile[]
+  matches: MatchWithTeams[]
+  recentTimelineMatches: RecentTimelineMatch[]
+  strapiShieldsMap: Record<string, string>
+  openRound: number | null
+}
+
+const tournamentMatchCache = new Map<string, TournamentMatchCacheEntry>()
+
 function getMatchesWithSnapshotPositions(matches: MatchWithTeams[]) {
   const stats = new Map<string, SnapshotStatRow>()
 
@@ -237,6 +247,7 @@ function TournamentMatch() {
   const accordionInitRef = useRef<string | null>(null)
   const recentTimelineRef = useRef<HTMLDivElement | null>(null)
   const recentTimelineIndexRef = useRef(0)
+  const hydratedFromCacheRef = useRef(false)
 
   const tournamentId = tournament?.id
 
@@ -246,8 +257,25 @@ function TournamentMatch() {
       return
     }
 
+    const cached = tournamentMatchCache.get(tournament.id)
+    if (cached && !hydratedFromCacheRef.current) {
+      setParticipants(cached.participants)
+      setMatches(cached.matches)
+      setRecentTimelineMatches(cached.recentTimelineMatches)
+      if (Object.keys(cached.strapiShieldsMap).length > 0) {
+        setStrapiShieldsMap(cached.strapiShieldsMap)
+      }
+      setOpenRound(cached.openRound)
+      setSelectedMatch(null)
+      setLoading(false)
+      hydratedFromCacheRef.current = true
+      accordionInitRef.current = tournament.id
+    }
+
     const loadData = async () => {
-      setLoading(true)
+      if (!hydratedFromCacheRef.current) {
+        setLoading(true)
+      }
       setError(null)
       try {
         const [participantsData, matchesData] = await Promise.all([
@@ -267,6 +295,7 @@ function TournamentMatch() {
           setSelectedMatch(null)
           accordionInitRef.current = tournament.id
         }
+        hydratedFromCacheRef.current = true
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar dados')
       } finally {
@@ -281,6 +310,18 @@ function TournamentMatch() {
   useEffect(() => {
     setSelectedMatch(null)
   }, [tournamentId, setSelectedMatch])
+
+  useEffect(() => {
+    if (!tournamentId) return
+
+    tournamentMatchCache.set(tournamentId, {
+      participants,
+      matches,
+      recentTimelineMatches,
+      strapiShieldsMap,
+      openRound,
+    })
+  }, [tournamentId, participants, matches, recentTimelineMatches, strapiShieldsMap, openRound])
 
   // Carregar escudos do Strapi (funciona para torneios novos e antigos)
   useEffect(() => {
