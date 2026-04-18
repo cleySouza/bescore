@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import styles from '../TournamentMatch.module.css'
+import styles from './MatchesSection.module.css'
 
 interface MatchesSectionProps {
   pendingCount: number
@@ -11,8 +11,8 @@ interface MatchesSectionProps {
 function MatchesSection({ pendingCount, legSwitch, loading, content }: MatchesSectionProps) {
   return (
     <>
-      <h2 className={styles.columnTitle}>
-        Próximas partidas:
+      <h2 className={styles.title}>
+        Proximas partidas:
         {pendingCount > 0 && (
           <span className={styles.pendingCountBadge}>{pendingCount} pendentes</span>
         )}

@@ -1,0 +1,29 @@
+.teamCrest {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-dark) 16%, transparent 84%);
+  background: var(--color-gray-100);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-dark-100);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.teamCrestImg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+@media (max-width: 420px) {
+  .teamCrest {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+  }
+}

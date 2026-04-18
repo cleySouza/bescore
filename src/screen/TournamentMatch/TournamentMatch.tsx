@@ -17,12 +17,14 @@ import type { Participant, Tournament } from '../../atoms/tournamentAtoms'
 import type { MatchWithTeams, TournamentSettings } from '../../types/tournament'
 import Accordion from '../../components/Accordion/Accordion'
 import ManageParticipantModal, { type ManagedParticipant } from '../TournamentView/components/ManageParticipantModal'
-import MatchesSection from './components/MatchesSection'
-import FinalPhaseSection from './components/FinalPhaseSection'
-import StandingsSection from './components/StandingsSection'
-import ScoutsSection from './components/ScoutsSection'
-import ScoreEntryDrawer from './components/ScoreEntryDrawer'
-import ScoreEntryDrawerBoundary from './components/ScoreEntryDrawerBoundary'
+import MatchesSection from './components/MatchesSection/MatchesSection'
+import FinalPhaseSection from './components/FinalPhaseSection/FinalPhaseSection'
+import StandingsSection from './components/StandingsSection/StandingsSection'
+import ScoutsSection from './components/ScoutsSection/ScoutsSection'
+import MatchTeamCrest from './components/MatchTeamCrest/MatchTeamCrest'
+import TimelineCrest from './components/TimelineCrest/TimelineCrest'
+import ScoreEntryDrawer from './components/ScoreEntryDrawer/ScoreEntryDrawer'
+import ScoreEntryDrawerBoundary from './components/ScoreEntryDrawerBoundary/ScoreEntryDrawerBoundary'
 import styles from './TournamentMatch.module.css'
 
 interface ParticipantWithProfile extends Participant {
@@ -137,16 +139,6 @@ interface SideSummary {
   nickname: string
 }
 
-function getTeamInitials(name: string | null | undefined) {
-  if (!name) return 'TM'
-  return name
-    .split(/\s+/)
-    .map((chunk) => chunk[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-}
-
 function getTournamentInitials(name: string | null | undefined) {
   if (!name) return 'TR'
   return name
@@ -180,57 +172,6 @@ function formatTimelineDate(input: string | null | undefined) {
   const day = String(date.getDate()).padStart(2, '0')
   const month = String(date.getMonth() + 1).padStart(2, '0')
   return `${day}/${month}`
-}
-
-interface TeamCrestProps {
-  teamName: string | null | undefined
-  shieldsMap: Record<string, string>
-}
-
-function TeamCrest({ teamName, shieldsMap }: TeamCrestProps) {
-  const name = teamName || 'TBD'
-  const shieldUrl = teamName ? shieldsMap[teamName] : undefined
-  const [imgError, setImgError] = useState(false)
-
-  if (shieldUrl && !imgError) {
-    return (
-      <span className={styles.matchCrest}>
-        <img
-          src={shieldUrl}
-          alt={name}
-          className={styles.matchCrestImg}
-          onError={() => setImgError(true)}
-        />
-      </span>
-    )
-  }
-  return <span className={styles.matchCrest}>{getTeamInitials(teamName)}</span>
-}
-
-interface TimelineCrestProps {
-  teamName: string | null | undefined
-  shieldsMap: Record<string, string>
-}
-
-function TimelineCrest({ teamName, shieldsMap }: TimelineCrestProps) {
-  const name = teamName || 'TBD'
-  const shieldUrl = teamName ? shieldsMap[teamName] : undefined
-  const [imgError, setImgError] = useState(false)
-
-  if (shieldUrl && !imgError) {
-    return (
-      <span className={styles.timelineCrest}>
-        <img
-          src={shieldUrl}
-          alt={name}
-          className={styles.timelineCrestImg}
-          onError={() => setImgError(true)}
-        />
-      </span>
-    )
-  }
-
-  return <span className={styles.timelineCrest}>{getTeamInitials(teamName)}</span>
 }
 
 function normalizeMatchForDrawer(match: MatchWithTeams): MatchWithTeams {
@@ -745,7 +686,7 @@ function TournamentMatch() {
                             </span>
                           </div>
 
-                          <TeamCrest teamName={m.homeTeam?.team_name} shieldsMap={shieldsMap} />
+                          <MatchTeamCrest teamName={m.homeTeam?.team_name} shieldsMap={shieldsMap} />
 
                           <div className={styles.matchScoreGroup}>
                             <span className={styles.scoreBox}>
@@ -757,7 +698,7 @@ function TournamentMatch() {
                             </span>
                           </div>
 
-                          <TeamCrest teamName={m.awayTeam?.team_name} shieldsMap={shieldsMap} />
+                          <MatchTeamCrest teamName={m.awayTeam?.team_name} shieldsMap={shieldsMap} />
 
                           <div className={`${styles.matchTeamBlock} ${styles.matchTeamAway}`}>
                             <span className={styles.matchClub}>{m.awayTeam?.team_name || 'TBD'}</span>

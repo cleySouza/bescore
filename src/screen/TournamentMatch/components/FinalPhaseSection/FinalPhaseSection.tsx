@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import styles from '../TournamentMatch.module.css'
+import styles from './FinalPhaseSection.module.css'
 
 interface FinalPhaseSectionProps {
   pendingCount: number
@@ -10,7 +10,7 @@ interface FinalPhaseSectionProps {
 function FinalPhaseSection({ pendingCount, loading, content }: FinalPhaseSectionProps) {
   return (
     <>
-      <h2 className={styles.columnTitle}>
+      <h2 className={styles.title}>
         Fase final:
         {pendingCount > 0 && (
           <span className={styles.pendingCountBadge}>{pendingCount} pendentes</span>

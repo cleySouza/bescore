@@ -1,41 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
-import { userAtom } from '../../../atoms/sessionAtom'
-import { activeTournamentAtom, globalToastAtom, selectedMatchAtom } from '../../../atoms/tournamentAtoms'
-import { updateMatchResult } from '../../../lib/matchService'
+import { userAtom } from '../../../../atoms/sessionAtom'
+import { activeTournamentAtom, globalToastAtom, selectedMatchAtom } from '../../../../atoms/tournamentAtoms'
+import { updateMatchResult } from '../../../../lib/matchService'
+import ScoreEntryTeamCrest from '../ScoreEntryTeamCrest/ScoreEntryTeamCrest'
 import './scoreEntry.css'
 
 interface ScoreEntryDrawerProps {
   onResultSaved?: () => void
-}
-
-function getTeamInitials(name: string | null | undefined) {
-  if (!name) return 'TM'
-  return name
-    .split(/\s+/)
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-}
-
-interface TeamCrestProps {
-  teamName: string
-  shieldsMap: Record<string, string>
-}
-
-function TeamCrest({ teamName, shieldsMap }: TeamCrestProps) {
-  const shieldUrl = shieldsMap[teamName]
-
-  if (shieldUrl) {
-    return (
-      <span className="score-entry-team-crest">
-        <img src={shieldUrl} alt={teamName} className="score-entry-team-crest-img" />
-      </span>
-    )
-  }
-
-  return <span className="score-entry-team-crest">{getTeamInitials(teamName)}</span>
 }
 
 function getDisplayName(
@@ -229,7 +201,7 @@ function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
         <section className="score-entry-grid">
           <article className="score-entry-team">
             <div className="score-entry-team-head">
-              <TeamCrest teamName={homeTeamName} shieldsMap={shieldsMap} />
+              <ScoreEntryTeamCrest teamName={homeTeamName} shieldsMap={shieldsMap} />
               <div className="score-entry-team-meta">
                 <span className="score-entry-team-name">{homeTeamName}</span>
                 <span className="score-entry-team-user">{homeNickname}</span>
@@ -265,7 +237,7 @@ function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
 
           <article className="score-entry-team">
             <div className="score-entry-team-head">
-              <TeamCrest teamName={awayTeamName} shieldsMap={shieldsMap} />
+              <ScoreEntryTeamCrest teamName={awayTeamName} shieldsMap={shieldsMap} />
               <div className="score-entry-team-meta">
                 <span className="score-entry-team-name">{awayTeamName}</span>
                 <span className="score-entry-team-user">{awayNickname}</span>
