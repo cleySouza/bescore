@@ -261,6 +261,10 @@ function getInitials(name: string): string {
 function LogoWithFallback({ src, alt, color, size, className, initialsClass, label }: LogoProps) {
   const [errored, setErrored] = useState(false)
 
+  useEffect(() => {
+    setErrored(false)
+  }, [src])
+
   if (errored) {
     return (
       <span

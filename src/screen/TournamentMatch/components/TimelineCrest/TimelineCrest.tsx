@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import { getTeamInitials } from '../teamInitials'
+import { useImageFallback } from '../useImageFallback'
 import styles from './TimelineCrest.module.css'
 
 interface TimelineCrestProps {
@@ -10,7 +10,7 @@ interface TimelineCrestProps {
 function TimelineCrest({ teamName, shieldsMap }: TimelineCrestProps) {
   const name = teamName || 'TBD'
   const shieldUrl = teamName ? shieldsMap[teamName] : undefined
-  const [imgError, setImgError] = useState(false)
+  const { imgError, setImgError } = useImageFallback(shieldUrl)
 
   if (shieldUrl && !imgError) {
     return (
