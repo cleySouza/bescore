@@ -31,6 +31,7 @@ export const env = {
   supabaseAnonKey: getRequiredEnv('VITE_SUPABASE_ANON_KEY'),
   strapiUrl: getOptionalEnv('VITE_STRAPI_URL') ?? '',
   strapiApiToken: getOptionalEnv('VITE_STRAPI_API_TOKEN'),
+  appVersion: getOptionalEnv('VITE_APP_VERSION') ?? 'local',
   features: {
     enableMockSeed: readBooleanEnv('VITE_FEATURE_ENABLE_MOCK_SEED', false),
   },

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { Drawer } from '../Drawer/Drawer'
 import logoName from '../../assets/logo_name.svg'
+import { env } from '../../config/env'
 import styles from './Header.module.css'
 
 interface HeaderProps {
@@ -22,6 +23,7 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
 
   const avatarUrl =
     typeof user?.user_metadata?.avatar_url === 'string' ? user.user_metadata.avatar_url : ''
+  const appVersion = env.appVersion
 
   return (
     <>
@@ -73,6 +75,7 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
         >
           Sair
         </button>
+        <p className={styles.versionText}>versao {appVersion}</p>
       </Drawer>
     </>
   )

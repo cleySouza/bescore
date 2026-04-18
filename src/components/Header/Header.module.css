@@ -137,6 +137,14 @@
   background: #c53030;
 }
 
+.versionText {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--color-gray-300);
+  letter-spacing: 0.02em;
+}
+
 @media (max-width: 640px) {
   .header {
     flex-wrap: nowrap;
