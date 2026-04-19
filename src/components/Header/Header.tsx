@@ -75,7 +75,7 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
         >
           Sair
         </button>
-        <p className={styles.versionText}>versao {appVersion}</p>
+        <p className={styles.versionText}>v{appVersion}</p>
       </Drawer>
     </>
   )

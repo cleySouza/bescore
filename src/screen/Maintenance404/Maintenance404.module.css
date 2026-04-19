@@ -17,6 +17,12 @@
   box-shadow: 0 14px 40px rgba(30, 41, 59, 0.08);
 }
 
+.logo {
+  width: min(220px, 70%);
+  height: auto;
+  margin-bottom: 10px;
+}
+
 .code {
   display: inline-block;
   font-size: 14px;
