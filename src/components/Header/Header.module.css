@@ -137,6 +137,24 @@
   background: #c53030;
 }
 
+.installBtn {
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--color-be) 30%, transparent 70%);
+  background: color-mix(in srgb, var(--color-be) 10%, var(--color-white) 90%);
+  color: var(--color-be);
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.installBtn:hover {
+  background: color-mix(in srgb, var(--color-be) 18%, var(--color-white) 82%);
+  border-color: color-mix(in srgb, var(--color-be) 45%, transparent 55%);
+}
+
 .versionText {
   margin: 10px 0 0;
   text-align: center;

@@ -1,9 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { Drawer } from '../Drawer/Drawer'
 import logoName from '../../assets/logo_name.svg'
 import { env } from '../../config/env'
 import styles from './Header.module.css'
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>
+}
 
 interface HeaderProps {
   user: User | null
@@ -12,6 +17,8 @@ interface HeaderProps {
 
 export const Header = ({ user, onLogout }: HeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [isInstalled, setIsInstalled] = useState(false)
 
   const userName = useMemo(() => {
     const metadataName = user?.user_metadata?.name
@@ -24,6 +31,48 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
   const avatarUrl =
     typeof user?.user_metadata?.avatar_url === 'string' ? user.user_metadata.avatar_url : ''
   const appVersion = env.appVersion
+  const canInstallApp = Boolean(installPrompt) && !isInstalled
+
+  useEffect(() => {
+    const standaloneMedia = window.matchMedia('(display-mode: standalone)')
+    const isStandalone =
+      standaloneMedia.matches ||
+      // `navigator.standalone` existe no Safari iOS quando app já foi adicionado.
+      (typeof window.navigator !== 'undefined' &&
+        'standalone' in window.navigator &&
+        Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone))
+
+    setIsInstalled(isStandalone)
+
+    const onBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault()
+      setInstallPrompt(event as BeforeInstallPromptEvent)
+    }
+
+    const onAppInstalled = () => {
+      setIsInstalled(true)
+      setInstallPrompt(null)
+    }
+
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt)
+    window.addEventListener('appinstalled', onAppInstalled)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', onAppInstalled)
+    }
+  }, [])
+
+  const handleInstallApp = async () => {
+    if (!installPrompt) return
+
+    await installPrompt.prompt()
+    const { outcome } = await installPrompt.userChoice
+
+    if (outcome === 'accepted') {
+      setInstallPrompt(null)
+    }
+  }
 
   return (
     <>
@@ -67,6 +116,16 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
           )}
           <p className={styles.userNameFull}>{userName}</p>
         </div>
+
+        {canInstallApp && (
+          <button
+            type="button"
+            onClick={handleInstallApp}
+            className={styles.installBtn}
+          >
+            Instalar app
+          </button>
+        )}
 
         <button
           type="button"

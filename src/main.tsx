@@ -1,6 +1,7 @@
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Provider, useAtom, useSetAtom } from 'jotai'
+import { registerSW } from 'virtual:pwa-register'
 import { supabase } from './lib/supabaseClient'
 import { logger } from './lib/logger'
 import { sessionAtom } from './atoms/sessionAtom'
@@ -13,6 +14,8 @@ import {
 import { fetchStrapiClubCatalog } from './lib/strapiClubService'
 import './styles/theme.css'
 import App from './App'
+
+registerSW({ immediate: true })
 
 // Componente para inicializar a autenticação
 function AuthInitializer() {
