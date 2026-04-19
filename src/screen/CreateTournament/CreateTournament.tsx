@@ -287,9 +287,12 @@ function CreateTournament() {
   }
 
   const whatsappUrl = successData
-    ? `https://wa.me/?text=${encodeURIComponent(
-        `🏆 Participe do torneio *${successData.name}* no beScore!\n\nCódigo de convite: *${successData.inviteCode}*`
-      )}`
+    ? (() => {
+        const inviteLink = `${window.location.origin}/?invite=${encodeURIComponent(successData.inviteCode)}`
+        return `https://wa.me/?text=${encodeURIComponent(
+          `🏆 Participe do torneio *${successData.name}* no beScore!\n\nEntrar agora: ${inviteLink}\n\nCódigo de convite: *${successData.inviteCode}*`
+        )}`
+      })()
     : '#'
 
   return (

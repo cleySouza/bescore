@@ -73,6 +73,7 @@ function TournamentLobby() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [managedParticipant, setManagedParticipant] = useState<ManagedParticipant | null>(null)
   const [joinCode, setJoinCode] = useState('')
+  const [joinTeam, setJoinTeam] = useState('')
   const [joinCodeError, setJoinCodeError] = useState<string | null>(null)
   const [joiningTournament, setJoiningTournament] = useState(false)
 
@@ -116,6 +117,20 @@ function TournamentLobby() {
   const isPrivate = tournamentSettings?.isPrivate ?? false
   const maxParticipants = tournamentSettings?.maxParticipants ?? null
   const isFull = maxParticipants !== null && participantCount >= maxParticipants
+  const predefinedTeams = Array.isArray(tournamentSettings?.selectedTeamNames)
+    ? tournamentSettings.selectedTeamNames.filter(
+        (name): name is string => typeof name === 'string' && name.trim().length > 0
+      )
+    : []
+  const hasPredefinedTeams = predefinedTeams.length > 0
+  const isManualPredefined = hasPredefinedTeams && !isAutoTeamMode
+  const isAutoPredefined = hasPredefinedTeams && isAutoTeamMode
+  const usedTeams = new Set(
+    participants
+      .map((p) => (p.team_name ?? '').trim())
+      .filter((name) => name.length > 0)
+  )
+  const availableJoinTeams = predefinedTeams.filter((name) => !usedTeams.has(name))
   const isParticipant = tournament.isParticipant ?? participants.some((p) => p.user_id === user.id)
   const isVisitor = !isCreator && !isParticipant
   const isMockSeedEnabled = env.features.enableMockSeed
@@ -156,10 +171,27 @@ function TournamentLobby() {
       setJoinCodeError('Código de convite inválido')
       return
     }
+
+    if (isManualPredefined && availableJoinTeams.length === 0) {
+      setJoinCodeError('Não há times disponíveis para este torneio')
+      return
+    }
+
+    if (isManualPredefined && !joinTeam) {
+      setJoinCodeError('Selecione um time para participar')
+      return
+    }
+
+    const joinTeamName = isAutoPredefined
+      ? ''
+      : isManualPredefined
+        ? joinTeam
+        : user.email?.split('@')[0] ?? 'Jogador'
+
     setJoinCodeError(null)
     setJoiningTournament(true)
     try {
-      await joinTournamentById(tournament.id, user.id, user.email?.split('@')[0] ?? 'Jogador')
+      await joinTournamentById(tournament.id, user.id, joinTeamName)
       setRefreshKey((prev) => prev + 1)
     } catch (err) {
       setJoinCodeError(err instanceof Error ? err.message : 'Erro ao entrar no torneio')
@@ -338,6 +370,26 @@ function TournamentLobby() {
               ) : isPrivate ? (
                 <>
                   <p className={styles.joinHint}>Torneio privado. Insira o código para participar.</p>
+                  {isManualPredefined && (
+                    <div className={styles.joinCodeRow}>
+                      <select
+                        className={`${styles.joinCodeInput} ${styles.joinTeamSelect}`}
+                        value={joinTeam}
+                        onChange={(e) => { setJoinTeam(e.target.value); setJoinCodeError(null) }}
+                        disabled={availableJoinTeams.length === 0 || joiningTournament}
+                      >
+                        <option value="">Selecione seu time...</option>
+                        {availableJoinTeams.map((team) => (
+                          <option key={team} value={team}>
+                            {team}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {isAutoPredefined && (
+                    <p className={styles.joinHint}>Os times serão atribuídos automaticamente pelo organizador.</p>
+                  )}
                   <div className={styles.joinCodeRow}>
                     <input
                       className={styles.joinCodeInput}
@@ -348,7 +400,11 @@ function TournamentLobby() {
                     />
                     <button
                       className={styles.joinBtn}
-                      disabled={joinCode.trim().length === 0 || joiningTournament}
+                      disabled={
+                        joinCode.trim().length === 0 ||
+                        joiningTournament ||
+                        (isManualPredefined && !joinTeam)
+                      }
                       onClick={handleJoin}
                     >
                       {joiningTournament ? 'Entrando...' : 'Entrar'}
@@ -359,7 +415,31 @@ function TournamentLobby() {
               ) : (
                 <>
                   <p className={styles.joinHint}>Torneio aberto. Clique para participar!</p>
-                  <button className={styles.joinBtn} disabled={joiningTournament} onClick={handleJoin}>
+                  {isManualPredefined && (
+                    <div className={styles.joinCodeRow}>
+                      <select
+                        className={`${styles.joinCodeInput} ${styles.joinTeamSelect}`}
+                        value={joinTeam}
+                        onChange={(e) => { setJoinTeam(e.target.value); setJoinCodeError(null) }}
+                        disabled={availableJoinTeams.length === 0 || joiningTournament}
+                      >
+                        <option value="">Selecione seu time...</option>
+                        {availableJoinTeams.map((team) => (
+                          <option key={team} value={team}>
+                            {team}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {isAutoPredefined && (
+                    <p className={styles.joinHint}>Os times serão atribuídos automaticamente pelo organizador.</p>
+                  )}
+                  <button
+                    className={styles.joinBtn}
+                    disabled={joiningTournament || (isManualPredefined && !joinTeam)}
+                    onClick={handleJoin}
+                  >
                     {joiningTournament ? 'Entrando...' : '🎮 Entrar no Torneio'}
                   </button>
                   {joinCodeError && <span className={styles.joinError}>{joinCodeError}</span>}

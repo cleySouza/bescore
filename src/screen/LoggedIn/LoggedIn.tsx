@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import { strapiCatalogAtom, strapiShieldsMapAtom } from '../../atoms/catalogAtom'
@@ -8,8 +9,10 @@ import {
   myTournamentsAtom,
   recentPlayersAtom,
   selectedMatchAtom,
+  tournamentsErrorAtom,
 } from '../../atoms/tournamentAtoms'
 import { signOut } from '../../lib/authGoogle'
+import { getTournamentByCode, getTournamentById } from '../../lib/tournamentService'
 import { Header } from '../../components/Header/Header'
 import Dashboard from '../Dashboard/Dashboard'
 import TournamentLobby from '../TournamentLobby/TournamentLobby'
@@ -29,6 +32,47 @@ export function LoggedIn() {
   const setRecentPlayers = useSetAtom(recentPlayersAtom)
   const setStrapiShieldsMap = useSetAtom(strapiShieldsMapAtom)
   const setStrapiCatalog = useSetAtom(strapiCatalogAtom)
+  const setTournamentError = useSetAtom(tournamentsErrorAtom)
+
+  useEffect(() => {
+    if (!user) return
+
+    const params = new URLSearchParams(window.location.search)
+    const inviteCode = params.get('invite')?.trim().toUpperCase()
+    if (!inviteCode) return
+
+    let cancelled = false
+
+    const openByInvite = async () => {
+      try {
+        const tournament = await getTournamentByCode(inviteCode)
+        if (!tournament || cancelled) return
+
+        const detailed = await getTournamentById(tournament.id, user.id)
+        if (cancelled) return
+
+        setActiveTournament(detailed)
+        setCurrentView(detailed.status === 'active' ? 'tournament-match' : 'tournament-lobby')
+      } catch (error) {
+        if (!cancelled) {
+          const message = error instanceof Error ? error.message : 'Convite inválido'
+          setTournamentError(message)
+          setCurrentView('join-by-code')
+        }
+      } finally {
+        params.delete('invite')
+        const newQuery = params.toString()
+        const nextUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}${window.location.hash}`
+        window.history.replaceState({}, '', nextUrl)
+      }
+    }
+
+    openByInvite()
+
+    return () => {
+      cancelled = true
+    }
+  }, [user, setActiveTournament, setCurrentView, setTournamentError])
 
   const handleLogout = async () => {
     try {

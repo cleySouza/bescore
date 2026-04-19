@@ -490,6 +490,11 @@
   border-color: rgba(99, 102, 241, 0.6);
 }
 
+.joinTeamSelect {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .joinBtn {
   padding: 10px 20px;
   border-radius: 8px;

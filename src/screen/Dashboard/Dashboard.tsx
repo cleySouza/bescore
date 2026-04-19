@@ -53,7 +53,7 @@ function Dashboard() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1 className={styles.title}>Meus Torneios</h1>
+        <h1 className={styles.title}>Torneios</h1>
         <div className={styles.actions}>
           <button
             className={styles.joinBtn}

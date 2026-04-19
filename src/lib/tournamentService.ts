@@ -76,7 +76,10 @@ export async function createTournament(
 }
 
 /**
- * Busca torneios do usuário (como criador OU como participante)
+ * Busca torneios visíveis para o usuário:
+ * - todos os torneios públicos
+ * - torneios privados que ele criou
+ * - torneios privados em que ele participa
  */
 export async function fetchMyTournaments(userId: string): Promise<TournamentWithParticipants[]> {
   // 1. Buscar torneios criados pelo usuário
@@ -125,13 +128,33 @@ export async function fetchMyTournaments(userId: string): Promise<TournamentWith
     }
   }
 
-  // 3. Combinar e remover duplicatas
-  const allTournaments = [...(createdTournaments || []), ...joinedTournaments]
+  // 3. Buscar torneios públicos globais
+  const { data: allTournamentsRaw, error: allTournamentsError } = await supabase
+    .from('tournaments')
+    .select('*')
+
+  if (allTournamentsError) {
+    console.error('Erro ao buscar torneios públicos:', allTournamentsError.message)
+    throw new Error(`Falha ao buscar torneios públicos: ${allTournamentsError.message}`)
+  }
+
+  const publicTournaments = (allTournamentsRaw || []).filter((tournament) => {
+    const settings = tournament.settings as TournamentSettings | null
+    const isJoinableStatus = tournament.status === 'draft' || tournament.status === 'active'
+    return settings?.isPrivate !== true && isJoinableStatus
+  })
+
+  // 4. Combinar e remover duplicatas
+  const allTournaments = [...(createdTournaments || []), ...joinedTournaments, ...publicTournaments]
   const uniqueTournaments = Array.from(
     new Map(allTournaments.map((t) => [t.id, t])).values()
-  )
+  ).sort((a, b) => {
+    const aTime = a.created_at ? new Date(a.created_at).getTime() : 0
+    const bTime = b.created_at ? new Date(b.created_at).getTime() : 0
+    return bTime - aTime
+  })
 
-  // 4. Contar participantes e adicionar flags
+  // 5. Contar participantes e adicionar flags
   const enriched = await Promise.all(
     uniqueTournaments.map(async (tournament) => {
       const { count } = await supabase
@@ -202,13 +225,15 @@ export async function joinTournament(
     throw new Error('Você já é participante deste torneio')
   }
 
+  const normalizedTeamName = teamName.trim() || null
+
   // 3. Inserir novo participante
   const { data, error } = await supabase
     .from('participants')
     .insert({
       tournament_id: tournament.id,
       user_id: userId,
-      team_name: teamName,
+      team_name: normalizedTeamName,
       joined_at: new Date().toISOString(),
     })
     .select()
@@ -243,13 +268,15 @@ export async function joinTournamentById(
     throw new Error('Você já é participante deste torneio')
   }
 
+  const normalizedTeamName = teamName.trim() || null
+
   // 2. Inserir novo participante
   const { data, error } = await supabase
     .from('participants')
     .insert({
       tournament_id: tournamentId,
       user_id: userId,
-      team_name: teamName,
+      team_name: normalizedTeamName,
       joined_at: new Date().toISOString(),
     })
     .select()

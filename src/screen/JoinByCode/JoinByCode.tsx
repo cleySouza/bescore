@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import {
@@ -6,8 +6,16 @@ import {
   tournamentsErrorAtom,
   currentViewAtom,
 } from '../../atoms/tournamentAtoms'
-import { joinTournament, getTournamentById } from '../../lib/tournamentService'
+import {
+  getTournamentByCode,
+  getTournamentById,
+  getTournamentParticipants,
+  joinTournament,
+} from '../../lib/tournamentService'
+import type { TournamentSettings } from '../../types/tournament'
 import styles from './JoinByCode.module.css'
+
+type InviteTournament = Awaited<ReturnType<typeof getTournamentByCode>>
 
 function JoinByCode() {
   const user = useAtomValue(userAtom)
@@ -19,8 +27,98 @@ function JoinByCode() {
     code: '',
     teamName: '',
   })
+  const [previewTournament, setPreviewTournament] = useState<InviteTournament>(null)
+  const [availableTeams, setAvailableTeams] = useState<string[]>([])
+  const [selectedTeam, setSelectedTeam] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingPreview, setLoadingPreview] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
+
+  const previewSettings = (previewTournament?.settings as TournamentSettings | null) ?? null
+  const predefinedTeamNames = Array.isArray(previewSettings?.selectedTeamNames)
+    ? previewSettings.selectedTeamNames.filter(
+        (name): name is string => typeof name === 'string' && name.trim().length > 0
+      )
+    : []
+  const hasPredefinedTeams = predefinedTeamNames.length > 0
+  const isAutoPredefined = hasPredefinedTeams && (previewSettings?.teamAssignMode ?? 'auto') === 'auto'
+  const isManualPredefined = hasPredefinedTeams && (previewSettings?.teamAssignMode ?? 'auto') === 'manual'
+  const shouldShowNicknameInput = !hasPredefinedTeams
+
+  const joinTeamName = useMemo(() => {
+    if (isAutoPredefined) return ''
+    if (isManualPredefined) return selectedTeam
+    return formData.teamName.trim()
+  }, [formData.teamName, isAutoPredefined, isManualPredefined, selectedTeam])
+
+  useEffect(() => {
+    const inviteCode = formData.code.trim()
+    if (inviteCode.length !== 6) {
+      setPreviewTournament(null)
+      setAvailableTeams([])
+      setSelectedTeam('')
+      return
+    }
+
+    let cancelled = false
+
+    const loadPreview = async () => {
+      setLoadingPreview(true)
+      try {
+        const tournament = await getTournamentByCode(inviteCode)
+        if (!tournament || cancelled) {
+          if (!cancelled) {
+            setPreviewTournament(null)
+            setAvailableTeams([])
+            setSelectedTeam('')
+          }
+          return
+        }
+
+        setPreviewTournament(tournament)
+        const settings = (tournament.settings as TournamentSettings | null) ?? null
+        const selectedTeamNames = Array.isArray(settings?.selectedTeamNames)
+          ? settings.selectedTeamNames.filter(
+              (name): name is string => typeof name === 'string' && name.trim().length > 0
+            )
+          : []
+        const isManual = (settings?.teamAssignMode ?? 'auto') === 'manual'
+
+        if (!isManual || selectedTeamNames.length === 0) {
+          setAvailableTeams([])
+          setSelectedTeam('')
+          return
+        }
+
+        const participants = await getTournamentParticipants(tournament.id)
+        if (cancelled) return
+
+        const taken = new Set(
+          participants
+            .map((p) => (p.team_name ?? '').trim())
+            .filter((name) => name.length > 0)
+        )
+
+        const available = selectedTeamNames.filter((name) => !taken.has(name))
+        setAvailableTeams(available)
+        setSelectedTeam((current) => (available.includes(current) ? current : ''))
+      } catch {
+        if (!cancelled) {
+          setPreviewTournament(null)
+          setAvailableTeams([])
+          setSelectedTeam('')
+        }
+      } finally {
+        if (!cancelled) setLoadingPreview(false)
+      }
+    }
+
+    loadPreview()
+
+    return () => {
+      cancelled = true
+    }
+  }, [formData.code])
 
   if (!user) {
     return null
@@ -30,7 +128,7 @@ function JoinByCode() {
     const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
-      [name]: value.toUpperCase(),
+      [name]: name === 'code' ? value.toUpperCase() : value,
     }))
     setLocalError(null)
   }
@@ -38,6 +136,9 @@ function JoinByCode() {
   const handleBack = () => {
     setCurrentView('dashboard')
     setFormData({ code: '', teamName: '' })
+    setPreviewTournament(null)
+    setAvailableTeams([])
+    setSelectedTeam('')
     setLocalError(null)
   }
 
@@ -50,25 +151,41 @@ function JoinByCode() {
       return
     }
 
-    if (!formData.teamName.trim()) {
-      setLocalError('Nome do time é obrigatório')
-      return
-    }
-
     if (formData.code.length !== 6) {
       setLocalError('Código deve ter 6 caracteres')
       return
     }
 
-    setLoading(true)
-
     try {
+      const tournament = previewTournament ?? await getTournamentByCode(formData.code)
+      if (!tournament) {
+        setLocalError('Código de convite inválido ou não encontrado')
+        return
+      }
+
+      if (isManualPredefined && availableTeams.length === 0) {
+        setLocalError('Não há times disponíveis neste torneio no momento')
+        return
+      }
+
+      if (isManualPredefined && !selectedTeam) {
+        setLocalError('Selecione um time para participar')
+        return
+      }
+
+      if (shouldShowNicknameInput && !formData.teamName.trim()) {
+        setLocalError('Nome do time é obrigatório')
+        return
+      }
+
+      setLoading(true)
+
       // Entrar no torneio
-      await joinTournament(formData.code, user.id, formData.teamName)
+      await joinTournament(formData.code, user.id, joinTeamName)
 
       // Buscar o torneio para setar como ativo
-      const tournament = await getTournamentById(formData.code, user.id)
-      setActiveTournament(tournament)
+      const detailedTournament = await getTournamentById(tournament.id, user.id)
+      setActiveTournament(detailedTournament)
 
       // Mudar view para tournament
       setCurrentView('tournament-lobby')
@@ -112,23 +229,67 @@ function JoinByCode() {
           <small className={styles.hint}>Solicite o código de um organizador</small>
         </div>
 
-        <div className={styles.formGroup}>
-          <label htmlFor="teamName" className={styles.label}>
-            Nome do Time / Apelido
-          </label>
-          <input
-            id="teamName"
-            type="text"
-            name="teamName"
-            value={formData.teamName}
-            onChange={handleInputChange}
-            placeholder="Ex: TimeBrasileiro"
-            className={styles.input}
-            disabled={loading}
-            maxLength={50}
-            required
-          />
-        </div>
+        {loadingPreview && formData.code.trim().length === 6 && (
+          <div className={styles.hint}>Validando convite...</div>
+        )}
+
+        {isManualPredefined && (
+          <div className={styles.formGroup}>
+            <label htmlFor="selectedTeam" className={styles.label}>
+              Escolha seu time
+            </label>
+            <select
+              id="selectedTeam"
+              className={styles.input}
+              value={selectedTeam}
+              onChange={(e) => setSelectedTeam(e.target.value)}
+              disabled={loading || availableTeams.length === 0}
+            >
+              <option value="">Selecione um time...</option>
+              {availableTeams.map((team) => (
+                <option key={team} value={team}>
+                  {team}
+                </option>
+              ))}
+            </select>
+            {availableTeams.length === 0 && (
+              <small className={styles.hint}>Sem times disponíveis no momento.</small>
+            )}
+          </div>
+        )}
+
+        {isAutoPredefined && (
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Time</label>
+            <input
+              className={styles.input}
+              value="Definido automaticamente pelo organizador"
+              disabled
+              readOnly
+            />
+            <small className={styles.hint}>Basta confirmar a participação.</small>
+          </div>
+        )}
+
+        {shouldShowNicknameInput && (
+          <div className={styles.formGroup}>
+            <label htmlFor="teamName" className={styles.label}>
+              Nome do Time / Apelido
+            </label>
+            <input
+              id="teamName"
+              type="text"
+              name="teamName"
+              value={formData.teamName}
+              onChange={handleInputChange}
+              placeholder="Ex: TimeBrasileiro"
+              className={styles.input}
+              disabled={loading}
+              maxLength={50}
+              required
+            />
+          </div>
+        )}
 
         {localError && <div className={styles.errorMessage}>{localError}</div>}
 
@@ -144,7 +305,13 @@ function JoinByCode() {
           <button
             type="submit"
             className={styles.submitBtn}
-            disabled={loading || !formData.code.trim() || !formData.teamName.trim()}
+            disabled={
+              loading ||
+              loadingPreview ||
+              !formData.code.trim() ||
+              (shouldShowNicknameInput && !formData.teamName.trim()) ||
+              (isManualPredefined && !selectedTeam)
+            }
           >
             {loading ? 'Entrando...' : 'Entrar no Torneio'}
           </button>
