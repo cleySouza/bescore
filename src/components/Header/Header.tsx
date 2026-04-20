@@ -19,6 +19,7 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isInstalled, setIsInstalled] = useState(false)
+  const [showInstallHelp, setShowInstallHelp] = useState(false)
 
   const userName = useMemo(() => {
     const metadataName = user?.user_metadata?.name
@@ -31,7 +32,7 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
   const avatarUrl =
     typeof user?.user_metadata?.avatar_url === 'string' ? user.user_metadata.avatar_url : ''
   const appVersion = env.appVersion
-  const canInstallApp = Boolean(installPrompt) && !isInstalled
+  const canInstallApp = !isInstalled
 
   useEffect(() => {
     const standaloneMedia = window.matchMedia('(display-mode: standalone)')
@@ -64,13 +65,17 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
   }, [])
 
   const handleInstallApp = async () => {
-    if (!installPrompt) return
+    if (!installPrompt) {
+      setShowInstallHelp(true)
+      return
+    }
 
     await installPrompt.prompt()
     const { outcome } = await installPrompt.userChoice
 
     if (outcome === 'accepted') {
       setInstallPrompt(null)
+      setShowInstallHelp(false)
     }
   }
 
@@ -118,13 +123,23 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
         </div>
 
         {canInstallApp && (
-          <button
-            type="button"
-            onClick={handleInstallApp}
-            className={styles.installBtn}
-          >
-            Instalar app
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={handleInstallApp}
+              className={styles.installBtn}
+            >
+              Instalar app
+            </button>
+
+            {showInstallHelp && (
+              <p className={styles.installHelpText}>
+                Se o prompt nao abrir: no Android/Desktop use o menu do navegador e clique em
+                "Instalar app". No iPhone, abra Compartilhar e toque em "Adicionar a Tela de
+                Inicio".
+              </p>
+            )}
+          </>
         )}
 
         <button

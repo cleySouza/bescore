@@ -155,6 +155,13 @@
   border-color: color-mix(in srgb, var(--color-be) 45%, transparent 55%);
 }
 
+.installHelpText {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-dark-100);
+}
+
 .versionText {
   margin: 10px 0 0;
   text-align: center;

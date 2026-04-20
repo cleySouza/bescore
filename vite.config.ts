@@ -15,6 +15,9 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         injectRegister: 'auto',
         manifest: false,
+        devOptions: {
+          enabled: true,
+        },
         workbox: {
           globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff2}'],
         },
