@@ -363,53 +363,94 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
   const settings = tournament.settings as { playoffCutoff?: number } | null
   const cutoff = settings?.playoffCutoff ?? 2
 
-  const { data: currentMatches, error: matchesError } = await supabase
+  // Buscar todas as partidas do torneio
+  const { data: allMatches, error: matchesError } = await supabase
     .from('matches')
-    .select('round')
+    .select('id, round, home_participant_id, away_participant_id, status')
     .eq('tournament_id', tournamentId)
 
   if (matchesError) {
     throw new Error(`Falha ao buscar rodadas atuais: ${matchesError.message}`)
   }
 
-  const nextRound = Math.max(...(currentMatches?.map((match) => match.round ?? 0) ?? [0])) + 1
-
-  // 2. Buscar classificação atual da liga antes do playoff.
-  // Neste momento ainda não existem partidas de playoff registradas.
+  // Buscar classificação atual
   const standings = await getTournamentStandings(tournamentId)
-
   if (standings.length < cutoff) {
     throw new Error(`São necessários pelo menos ${cutoff} participantes classificados`)
   }
-
-  // 3. Montar chaves do playoff
   const topN = standings.slice(0, cutoff).map((s) => s.participant_id)
 
-  const playoffMatches: Array<{
-    tournament_id: string
-    home_participant_id: string
-    away_participant_id: string
-    round: number
-    status: 'pending'
-  }> = []
+  // Identificar rodadas já existentes
+  const rounds = allMatches?.map((m) => m.round ?? 0) ?? []
+  const maxRound = Math.max(...rounds, 0)
 
-  if (cutoff === 4) {
+  // Se não existem semifinais, cria semifinais
+  if (cutoff === 4 && !allMatches?.some(m => m.round === maxRound && m.status === 'pending')) {
     // Semifinais: 1º vs 4º, 2º vs 3º
-    playoffMatches.push(
-      { tournament_id: tournamentId, home_participant_id: topN[0], away_participant_id: topN[3], round: nextRound, status: 'pending' },
-      { tournament_id: tournamentId, home_participant_id: topN[1], away_participant_id: topN[2], round: nextRound, status: 'pending' }
-    )
-  } else {
-    // Final direta: 1º vs 2º
-    playoffMatches.push(
-      { tournament_id: tournamentId, home_participant_id: topN[0], away_participant_id: topN[1], round: nextRound, status: 'pending' }
-    )
+    const playoffMatches = [
+      { tournament_id: tournamentId, home_participant_id: topN[0], away_participant_id: topN[3], round: maxRound + 1, status: 'pending' },
+      { tournament_id: tournamentId, home_participant_id: topN[1], away_participant_id: topN[2], round: maxRound + 1, status: 'pending' }
+    ]
+    const { error: insertError } = await supabase.from('matches').insert(playoffMatches)
+    if (insertError) {
+      throw new Error(`Falha ao inserir semifinais: ${insertError.message}`)
+    }
+    return
   }
 
-  // 4. Inserir partidas da fase final
-  const { error: insertError } = await supabase.from('matches').insert(playoffMatches)
+  // Se semifinais já existem e estão finalizadas, cria a final
+  if (cutoff === 4) {
+    // Encontra semifinais (rodada máxima)
+    const semifinais = allMatches?.filter(m => m.round === maxRound) ?? []
+    const todasFinalizadas = semifinais.length === 2 && semifinais.every(m => m.status === 'finished')
+    // Verifica se já existe final
+    const jaTemFinal = allMatches?.some(m => m.round === maxRound + 1) ?? false
+    if (todasFinalizadas && !jaTemFinal) {
+      // Descobre vencedores das semifinais
+      const semifinalIds = semifinais.map(m => m.id)
+      const { data: resultados, error: resError } = await supabase
+        .from('matches')
+        .select('id, home_participant_id, away_participant_id, home_score, away_score')
+        .in('id', semifinalIds)
+      if (resError || !resultados || resultados.length !== 2) {
+        throw new Error('Não foi possível buscar resultados das semifinais')
+      }
+      const vencedores = resultados.map(m => {
+        if (m.home_score > m.away_score) return m.home_participant_id
+        if (m.away_score > m.home_score) return m.away_participant_id
+        // Empate: pode lançar erro ou sortear, aqui lança erro
+        throw new Error('Empate em semifinal: defina um vencedor antes de gerar a final')
+      })
+      // Cria final
+      const finalMatch = [{
+        tournament_id: tournamentId,
+        home_participant_id: vencedores[0],
+        away_participant_id: vencedores[1],
+        round: maxRound + 1,
+        status: 'pending'
+      }]
+      const { error: insertFinalError } = await supabase.from('matches').insert(finalMatch)
+      if (insertFinalError) {
+        throw new Error(`Falha ao inserir final: ${insertFinalError.message}`)
+      }
+      return
+    }
+  }
 
-  if (insertError) {
-    throw new Error(`Falha ao inserir partidas da fase final: ${insertError.message}`)
+  // Para top2: final direta
+  if (cutoff === 2 && !allMatches?.some(m => m.round === maxRound + 1)) {
+    const finalMatch = [{
+      tournament_id: tournamentId,
+      home_participant_id: topN[0],
+      away_participant_id: topN[1],
+      round: maxRound + 1,
+      status: 'pending'
+    }]
+    const { error: insertFinalError } = await supabase.from('matches').insert(finalMatch)
+    if (insertFinalError) {
+      throw new Error(`Falha ao inserir final: ${insertFinalError.message}`)
+    }
+    return
   }
 }
+
