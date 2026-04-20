@@ -10,6 +10,12 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>
 }
 
+declare global {
+  interface Window {
+    __bescoreInstallPromptEvent?: BeforeInstallPromptEvent
+  }
+}
+
 interface HeaderProps {
   user: User | null
   onLogout: () => void
@@ -36,31 +42,37 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
 
   useEffect(() => {
     const standaloneMedia = window.matchMedia('(display-mode: standalone)')
-    const isStandalone =
-      standaloneMedia.matches ||
-      // `navigator.standalone` existe no Safari iOS quando app já foi adicionado.
-      (typeof window.navigator !== 'undefined' &&
-        'standalone' in window.navigator &&
-        Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone))
+    const syncInstallState = () => {
+      const isStandalone =
+        standaloneMedia.matches ||
+        // `navigator.standalone` existe no Safari iOS quando app já foi adicionado.
+        (typeof window.navigator !== 'undefined' &&
+          'standalone' in window.navigator &&
+          Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone))
 
-    setIsInstalled(isStandalone)
+      setIsInstalled(isStandalone)
+    }
 
-    const onBeforeInstallPrompt = (event: Event) => {
-      event.preventDefault()
-      setInstallPrompt(event as BeforeInstallPromptEvent)
+    const syncInstallPrompt = () => {
+      setInstallPrompt(window.__bescoreInstallPromptEvent ?? null)
+      setShowInstallHelp(false)
     }
 
     const onAppInstalled = () => {
       setIsInstalled(true)
       setInstallPrompt(null)
+      setShowInstallHelp(false)
     }
 
-    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt)
-    window.addEventListener('appinstalled', onAppInstalled)
+    syncInstallState()
+    syncInstallPrompt()
+
+    window.addEventListener('bescore-install-available', syncInstallPrompt)
+    window.addEventListener('bescore-app-installed', onAppInstalled)
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt)
-      window.removeEventListener('appinstalled', onAppInstalled)
+      window.removeEventListener('bescore-install-available', syncInstallPrompt)
+      window.removeEventListener('bescore-app-installed', onAppInstalled)
     }
   }, [])
 
