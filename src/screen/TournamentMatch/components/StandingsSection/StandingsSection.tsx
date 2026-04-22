@@ -1,15 +1,27 @@
-import StandingsTable from '../../../../components/StandingsTable'
+import StandingsTable from '../../../../components/StandingsTable/StandingsTable'
 import styles from './StandingsSection.module.css'
 
 interface StandingsSectionProps {
-  playoffCutoff: number | undefined
-  onDataUpdate: () => void
+  playoffCutoff?: number
+  onDataUpdate?: () => void
+  isChampionshipFormat?: boolean
+  leagueRoundCount?: number
 }
 
-function StandingsSection({ playoffCutoff, onDataUpdate }: StandingsSectionProps) {
+function StandingsSection({ 
+  playoffCutoff, 
+  onDataUpdate,
+  isChampionshipFormat = false,
+  leagueRoundCount = 0
+}: StandingsSectionProps) {
   return (
     <div className={styles.wrapper}>
-      <StandingsTable onDataUpdate={onDataUpdate} playoffCutoff={playoffCutoff} />
+      <StandingsTable 
+        onDataUpdate={onDataUpdate} 
+        playoffCutoff={playoffCutoff}
+        isChampionshipFormat={isChampionshipFormat}
+        leagueRoundCount={leagueRoundCount}
+      />
     </div>
   )
 }

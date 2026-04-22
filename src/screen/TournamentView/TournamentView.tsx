@@ -17,7 +17,7 @@ import type { Participant } from '../../atoms/tournamentAtoms'
 import type { MatchWithTeams, TournamentSettings } from '../../types/tournament'
 import TournamentConfig from '../../components/TournamentConfig'
 import MatchCard from '../../components/MatchCard'
-import StandingsTable from '../../components/StandingsTable'
+import StandingsTable from '../../components/StandingsTable/StandingsTable'
 import ManageParticipantModal, { type ManagedParticipant } from './components/ManageParticipantModal'
 import styles from './TournamentView.module.css'
 

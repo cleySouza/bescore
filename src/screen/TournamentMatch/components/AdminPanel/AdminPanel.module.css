@@ -1,0 +1,217 @@
+.adminModalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.adminModal {
+  background: var(--color-white);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.adminModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.adminModalTitle {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-dark);
+  margin: 0;
+}
+
+.adminModalCloseBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-gray-100);
+  color: var(--color-gray-600);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.adminModalCloseBtn:hover {
+  background: var(--color-gray-200);
+  color: var(--color-dark);
+}
+
+.adminPanel {
+  padding: 24px;
+  max-height: calc(80vh - 80px);
+  overflow-y: auto;
+}
+
+.adminPanelTitle {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-dark);
+  margin: 0 0 16px 0;
+}
+
+.adminParticipantList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.adminParticipantRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--color-gray-50);
+  border-radius: 12px;
+  gap: 12px;
+}
+
+.participantInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.participantAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-white);
+}
+
+.participantInfo > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.adminParticipantName {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.adminParticipantNick {
+  font-size: 12px;
+  color: var(--color-gray-600);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.manageBtn {
+  padding: 6px 12px;
+  background: var(--color-be);
+  color: var(--color-white);
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.manageBtn:hover {
+  background: var(--color-be-600);
+  transform: translateY(-1px);
+}
+
+.dangerZone {
+  padding: 20px;
+  background: var(--color-red-50);
+  border: 1px solid var(--color-red-200);
+  border-radius: 12px;
+}
+
+.dangerZoneTitle {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-red);
+  margin: 0 0 8px 0;
+}
+
+.dangerZoneDesc {
+  font-size: 12px;
+  color: var(--color-red-600);
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+}
+
+.dangerBtn {
+  padding: 10px 16px;
+  background: var(--color-red);
+  color: var(--color-white);
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dangerBtn:hover {
+  background: var(--color-red-600);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .adminModalOverlay {
+    padding: 16px;
+  }
+
+  .adminModal {
+    max-height: 90vh;
+  }
+
+  .adminModalHeader {
+    padding: 16px 20px;
+  }
+
+  .adminPanel {
+    padding: 20px;
+  }
+
+  .adminParticipantRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .manageBtn {
+    align-self: flex-end;
+    width: fit-content;
+  }
+}

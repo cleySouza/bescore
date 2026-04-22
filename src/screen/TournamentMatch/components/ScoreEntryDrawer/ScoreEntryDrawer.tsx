@@ -134,6 +134,14 @@ function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
         type: 'success',
         message: 'Resultado salvo com sucesso.',
       })
+      // Atualização otimista: dispara evento customizado para atualizar standings instantaneamente
+      window.dispatchEvent(new CustomEvent('bescore:match-updated', {
+        detail: {
+          matchId: selectedMatch.id,
+          homeScore,
+          awayScore,
+        },
+      }))
       onResultSaved?.()
       setSelectedMatch(null)
     } catch (err) {
