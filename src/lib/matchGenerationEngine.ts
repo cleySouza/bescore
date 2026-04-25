@@ -416,6 +416,9 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
         throw new Error('Não foi possível buscar resultados das semifinais')
       }
       const vencedores = resultados.map(m => {
+        if (m.home_score == null || m.away_score == null) {
+          throw new Error('Placar da semifinal não definido. Defina ambos os placares antes de gerar a final.')
+        }
         if (m.home_score > m.away_score) return m.home_participant_id
         if (m.away_score > m.home_score) return m.away_participant_id
         // Empate: pode lançar erro ou sortear, aqui lança erro
