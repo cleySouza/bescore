@@ -3,11 +3,12 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  flex: 1; /* ✅ Ocupa espaço disponível ao invés de min-height: 100vh */
   padding: 20px;
   text-align: center;
   background: var(--color-white);
   color: var(--color-dark);
+  /* overflow: auto; ✅ Permite scroll interno se necessário */
 }
 
 .loginContainer section {
@@ -28,7 +29,6 @@
   font-size: 20px;
   margin: 0;
   margin-bottom: 20px;
-  /* opacity: 0.9; */
 }
 
 .googleLoginBtn {
@@ -61,9 +61,16 @@
   transform: translateY(0);
 }
 
+/* ✅ Mobile - ajustar para telas pequenas */
 @media (max-width: 600px) {
-  .loginContainer h1 {
-    font-size: 2rem;
+  .loginContainer {
+    padding: 16px;
+    min-height: 0; /* ✅ Remove altura mínima no mobile */
+  }
+  
+  .logo {
+    width: 180px;
+    margin-bottom: 16px;
   }
 
   .loginContainer p {
@@ -73,5 +80,17 @@
   .googleLoginBtn {
     padding: 12px 24px;
     font-size: 16px;
+  }
+}
+
+/* ✅ Mobile landscape - otimizar para telas baixas */
+@media (max-width: 900px) and (max-height: 500px) {
+  .logo {
+    width: 150px;
+    margin-bottom: 12px;
+  }
+  
+  .loginContainer section {
+    padding: 16px;
   }
 }

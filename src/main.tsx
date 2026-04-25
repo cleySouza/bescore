@@ -1,6 +1,7 @@
+// src/main.tsx
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Provider, useAtom, useSetAtom } from 'jotai'
+import { Provider, useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { registerSW } from 'virtual:pwa-register'
 import { supabase } from './lib/supabaseClient'
 import { logger } from './lib/logger'
@@ -44,29 +45,29 @@ if (typeof window !== 'undefined' && !window.__bescoreInstallPromptListenerRegis
 
 registerSW({ immediate: true })
 
-// Componente para inicializar a autenticação
 function AuthInitializer() {
   const setSession = useSetAtom(sessionAtom)
+  const session = useAtomValue(sessionAtom)
   const [catalogCache, setCatalogCache] = useAtom(strapiCatalogAtom)
   const setStrapiShieldsMap = useSetAtom(strapiShieldsMapAtom)
+  const [isSessionReady, setIsSessionReady] = useState(false)
   const [isCatalogReady, setIsCatalogReady] = useState(
     hasStrapiCatalogData(catalogCache)
   )
 
+  // 1. Resolve a sessão ao montar — obrigatório antes de qualquer outra coisa
   useEffect(() => {
-    // Debug: verificar URL atual
     logger.log('Current URL:', window.location.href)
     logger.log('URL Hash:', window.location.hash)
     logger.log('URL Search:', window.location.search)
 
-    // Pegar sessão inicial
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       logger.log('Initial session:', session)
       logger.log('Session error:', error)
       setSession(session)
+      setIsSessionReady(true)
     })
 
-    // Escutar mudanças na autenticação
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -77,6 +78,7 @@ function AuthInitializer() {
     return () => subscription.unsubscribe()
   }, [setSession])
 
+  // 2. Se o cache já tem dados, garante que o shieldsMap está populado
   useEffect(() => {
     if (!hasStrapiCatalogData(catalogCache)) return
 
@@ -84,8 +86,11 @@ function AuthInitializer() {
     setIsCatalogReady(true)
   }, [catalogCache, setStrapiShieldsMap])
 
+  // 3. Só carrega o catálogo após sessão resolvida E com usuário autenticado
   useEffect(() => {
-    if (hasStrapiCatalogData(catalogCache)) return
+    if (!isSessionReady) return           // aguarda sessão
+    if (!session) return                  // sem sessão, não há token para a API
+    if (hasStrapiCatalogData(catalogCache)) return  // já tem cache, não refetch
 
     let cancelled = false
     let retryTimer: ReturnType<typeof setTimeout> | null = null
@@ -112,11 +117,16 @@ function AuthInitializer() {
       cancelled = true
       if (retryTimer) clearTimeout(retryTimer)
     }
-  }, [catalogCache, setCatalogCache, setStrapiShieldsMap])
+  }, [isSessionReady, session, catalogCache, setCatalogCache, setStrapiShieldsMap])
 
-  if (!isCatalogReady) {
+  // Bloqueia render enquanto a sessão não foi resolvida
+  // Após resolver: se não há sessão, libera para mostrar <SignIn />
+  //                se há sessão, aguarda o catálogo carregar
+  const canRender = isSessionReady && (!session || isCatalogReady)
+
+  if (!canRender) {
     return (
-      <div className="app-loading-screen" role="status" aria-label="Carregando times">
+      <div className="app-loading-screen" role="status" aria-label="Carregando">
         <div className="app-loading-spinner" aria-hidden="true" />
       </div>
     )

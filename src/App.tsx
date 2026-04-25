@@ -51,8 +51,11 @@ function App() {
     return () => clearTimeout(timeoutId)
   }, [toast, setToast])
 
+  // ✅ Só mostrar footer na tela de login
+  const shouldShowFooter = !isAuthenticated
+
   return (
-    <>
+    <div className={shouldShowFooter ? styles.appWithFooter : styles.appContainer}>
       {!isAuthenticated ? (
         <SignIn />
       ) : isCheckingAccess ? (
@@ -65,6 +68,20 @@ function App() {
         <Maintenance404 />
       )}
 
+      {/* ✅ Footer só na tela de login */}
+      {shouldShowFooter && (
+        <footer className={styles.footer}>
+          <a
+            href="/privacy.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.privacyLink}
+          >
+            Política de Privacidade
+          </a>
+        </footer>
+      )}
+
       {toast && (
         <div className={styles.globalToastRoot} aria-live="polite">
           <div className={`${styles.globalToast} ${styles[`globalToast${toast.type[0].toUpperCase()}${toast.type.slice(1)}`]}`}>
@@ -72,33 +89,7 @@ function App() {
           </div>
         </div>
       )}
-
-      <footer style={{
-        width: '100%',
-        background: '#f8f9fa',
-        borderTop: '1px solid #e0e0e0',
-        padding: '16px 0',
-        textAlign: 'center',
-        position: 'fixed',
-        left: 0,
-        bottom: 0,
-        zIndex: 1000
-      }}>
-        <a
-          href="/privacy.html"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: '#1a73e8',
-            textDecoration: 'underline',
-            fontWeight: 500,
-            fontSize: 15
-          }}
-        >
-          Política de Privacidade
-        </a>
-      </footer>
-    </>
+    </div>
   )
 }
 
