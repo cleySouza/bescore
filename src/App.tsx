@@ -72,6 +72,32 @@ function App() {
           </div>
         </div>
       )}
+
+      <footer style={{
+        width: '100%',
+        background: '#f8f9fa',
+        borderTop: '1px solid #e0e0e0',
+        padding: '16px 0',
+        textAlign: 'center',
+        position: 'fixed',
+        left: 0,
+        bottom: 0,
+        zIndex: 1000
+      }}>
+        <a
+          href="/privacy.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: '#1a73e8',
+            textDecoration: 'underline',
+            fontWeight: 500,
+            fontSize: 15
+          }}
+        >
+          Política de Privacidade
+        </a>
+      </footer>
     </>
   )
 }
