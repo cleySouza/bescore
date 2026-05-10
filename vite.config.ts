@@ -14,11 +14,33 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
-        manifest: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        manifest: {
+          name: 'bescore',
+          short_name: 'bescore',
+          // `version` não está no tipo do plugin mas é suportado pela spec do manifest
+          ...({ version: pkg.version } as any),
+          start_url: '/',
+          display: 'standalone',
+          background_color: '#ffffff',
+          theme_color: '#111827',
+          icons: [
+            {
+              src: '/favicon.svg',
+              sizes: 'any',
+              type: 'image/svg+xml',
+              purpose: 'any',
+            },
+          ],
+        },
         devOptions: {
           enabled: true,
         },
         workbox: {
+          // Novo SW assume controlo imediatamente, sem esperar que o utilizador
+          // feche todas as abas — elimina a tela branca por SW antigo em produção.
+          skipWaiting: true,
+          clientsClaim: true,
           globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff2}'],
           runtimeCaching: [
             {
