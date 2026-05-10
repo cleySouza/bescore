@@ -1,8 +1,10 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
+import { useSetAtom } from 'jotai'
 import { supabase } from '../lib/supabaseClient'
 import { logger } from '../lib/logger'
+import { sessionAtom } from '../atoms/sessionAtom'
 
 interface AuthState {
   user: User | null
@@ -18,6 +20,7 @@ interface AuthContextType extends AuthState {
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const setJotaiSession = useSetAtom(sessionAtom)
   const [state, setState] = useState<AuthState>({
     user: null,
     session: null,
@@ -29,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Resolve sessão inicial
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       logger.log('Initial session:', session)
+      setJotaiSession(session ?? null)
       setState({
         user: session?.user ?? null,
         session,
@@ -40,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen para mudanças
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       logger.log('Auth state change:', event, session)
+      setJotaiSession(session ?? null)
       setState(prev => ({
         ...prev,
         user: session?.user ?? null,
@@ -50,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [setJotaiSession])
 
   const signOut = async () => {
     setState(prev => ({ ...prev, loading: true }))

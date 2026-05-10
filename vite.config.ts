@@ -20,6 +20,12 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff2}'],
+          runtimeCaching: [
+            {
+              urlPattern: ({ url }) => /\/auth\/v1\//.test(url.pathname),
+              handler: 'NetworkOnly',
+            },
+          ],
         },
       }),
     ],

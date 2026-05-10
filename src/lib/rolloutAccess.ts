@@ -41,7 +41,7 @@ function setCachedAccess(user: User, value: boolean): void {
   })
 }
 
-/** Força nova consulta ao servidor (ex.: após `online` ou mudança de regras no admin). */
+/** Força nova consulta ao servidor (ex.: após reconectar à rede). */
 export function invalidateRolloutAccessCache(user: User): void {
   accessCache.delete(getCacheKey(user))
 }
