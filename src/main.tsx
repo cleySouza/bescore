@@ -4,10 +4,20 @@ import { Provider } from 'jotai'
 import { registerSW } from 'virtual:pwa-register'
 import { AuthProvider } from './providers/AuthProvider'
 import { AppRouter } from './router/AppRouter'
+import { ErrorBoundary } from './components/ErrorBoundary/ErrorBoundary'
+import { clearCacheOnVersionChange } from './lib/cacheVersion'
 import './styles/theme.css'
 
-// PWA registration
-registerSW({ immediate: true })
+// Limpa cache do localStorage quando a versão da app muda.
+clearCacheOnVersionChange(__APP_VERSION__)
+
+// PWA registration — onNeedRefresh força reload imediato quando SW novo está pronto.
+registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    window.location.reload()
+  },
+})
 
 // Install prompt handling
 type DeferredInstallPromptEvent = Event & {
@@ -39,12 +49,14 @@ if (typeof window !== 'undefined' && !window.__bescoreInstallPromptListenerRegis
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Provider>
-      <AuthProvider>
-        <div className="app-wrapper">
-          <AppRouter />
-        </div>
-      </AuthProvider>
-    </Provider>
+    <ErrorBoundary>
+      <Provider>
+        <AuthProvider>
+          <div className="app-wrapper">
+            <AppRouter />
+          </div>
+        </AuthProvider>
+      </Provider>
+    </ErrorBoundary>
   </StrictMode>
 )
