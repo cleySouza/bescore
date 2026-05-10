@@ -19,6 +19,14 @@ export interface TournamentSettings {
   teamAssignMode?: 'auto' | 'manual' // Como os times são atribuídos no lobby
 }
 
+/** true = só criador registra placar; false = jogadores na própria partida. Aceita JSON estrito ou string acidental. */
+export function isAdminOnlyScoring(settings: unknown): boolean {
+  const raw = (settings as { adminScores?: unknown } | null)?.adminScores
+  if (raw === false || raw === 0) return false
+  if (typeof raw === 'string' && raw.trim().toLowerCase() === 'false') return false
+  return true
+}
+
 export interface Match {
   id: string
   tournament_id: string
@@ -35,6 +43,7 @@ export interface Match {
 export interface MatchWithTeams extends Match {
   homeTeam?: {
     id: string
+    user_id?: string | null
     team_name: string
     profile?: {
       id?: string | null
@@ -45,6 +54,7 @@ export interface MatchWithTeams extends Match {
   }
   awayTeam?: {
     id: string
+    user_id?: string | null
     team_name: string
     profile?: {
       id?: string | null

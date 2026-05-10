@@ -88,6 +88,7 @@ export function normalizeMatchForDrawer(match: MatchWithTeams): MatchWithTeams {
     homeTeam: match.homeTeam
       ? {
           id: String(match.homeTeam.id),
+          user_id: match.homeTeam.user_id ?? null,
           team_name: String(match.homeTeam.team_name ?? 'TBD'),
           profile: match.homeTeam.profile
             ? {
@@ -102,6 +103,7 @@ export function normalizeMatchForDrawer(match: MatchWithTeams): MatchWithTeams {
     awayTeam: match.awayTeam
       ? {
           id: String(match.awayTeam.id),
+          user_id: match.awayTeam.user_id ?? null,
           team_name: String(match.awayTeam.team_name ?? 'TBD'),
           profile: match.awayTeam.profile
             ? {

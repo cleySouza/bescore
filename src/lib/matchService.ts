@@ -34,6 +34,7 @@ export async function getTournamentMatches(tournamentId: string): Promise<MatchW
       *,
       home_team:home_participant_id (
         id,
+        user_id,
         team_name,
         profile:user_id (
           id,
@@ -44,6 +45,7 @@ export async function getTournamentMatches(tournamentId: string): Promise<MatchW
       ),
       away_team:away_participant_id (
         id,
+        user_id,
         team_name,
         profile:user_id (
           id,

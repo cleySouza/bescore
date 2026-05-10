@@ -101,9 +101,12 @@ export async function generateMatchesByFormat(
   // 6. Atualizar status do torneio para 'active'
   // Mesclar com settings existentes para preservar isPrivate e maxParticipants
   const existingSettings = tournament.settings as Partial<TournamentSettings> | null
+  const formatSettings = JSON.parse(JSON.stringify(settings)) as Partial<TournamentSettings>
   const mergedSettings = {
     ...(existingSettings ?? {}),
-    ...JSON.parse(JSON.stringify(settings)),
+    ...formatSettings,
+    // Modal de formato não altera quem lança placar — preservar sempre do torneio
+    adminScores: existingSettings?.adminScores ?? true,
   }
 
   const { error: updateError } = await supabase
