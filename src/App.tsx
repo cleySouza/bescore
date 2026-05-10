@@ -51,8 +51,11 @@ function App() {
     return () => clearTimeout(timeoutId)
   }, [toast, setToast])
 
+  // ✅ Só mostrar footer na tela de login
+  const shouldShowFooter = !isAuthenticated
+
   return (
-    <>
+    <div className={shouldShowFooter ? styles.appWithFooter : styles.appContainer}>
       {!isAuthenticated ? (
         <SignIn />
       ) : isCheckingAccess ? (
@@ -65,6 +68,20 @@ function App() {
         <Maintenance404 />
       )}
 
+      {/* ✅ Footer só na tela de login */}
+      {shouldShowFooter && (
+        <footer className={styles.footer}>
+          <a
+            href="/privacy.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.privacyLink}
+          >
+            Política de Privacidade
+          </a>
+        </footer>
+      )}
+
       {toast && (
         <div className={styles.globalToastRoot} aria-live="polite">
           <div className={`${styles.globalToast} ${styles[`globalToast${toast.type[0].toUpperCase()}${toast.type.slice(1)}`]}`}>
@@ -72,7 +89,7 @@ function App() {
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 }
 
