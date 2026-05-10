@@ -14,6 +14,7 @@ import type { MatchWithTeams, TournamentSettings } from '../../../types/tourname
 
 interface ParticipantWithProfile {
   id: string
+  user_id: string | null
   team_name: string | null
   profile?: {
     nickname: string | null
