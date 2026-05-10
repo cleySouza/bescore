@@ -219,6 +219,7 @@ function CreateTournament() {
       // Criar torneio
       const newTournament = await createTournament(formData.name, user.id, formData.gameType, {
         isPrivate: formData.isPrivate,
+        adminScores: formData.adminScores,
         maxParticipants: formData.maxParticipants,
         format: mapCreateFormatToTournamentFormat(formData.format),
         hasReturnMatch: formData.matchType === 'double',
