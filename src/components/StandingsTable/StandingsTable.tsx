@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import { activeTournamentAtom } from '../../atoms/tournamentAtoms'
@@ -17,6 +17,8 @@ export const standingsCache = new Map<string, StandingsCacheEntry>()
 interface StandingsTableProps {
   onDataUpdate?: () => void
   playoffCutoff?: number
+  isChampionshipFormat?: boolean
+  leagueRoundCount?: number
 }
 
 type FormResult = 'win' | 'draw' | 'loss'
@@ -54,7 +56,12 @@ function getRecentForm(participantId: string, matches: MatchWithTeams[]): FormRe
     .reverse()
 }
 
-function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
+function StandingsTable({ 
+  onDataUpdate, 
+  playoffCutoff,
+  isChampionshipFormat = false,
+  leagueRoundCount = 0
+}: StandingsTableProps) {
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
 
@@ -68,6 +75,69 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
   useEffect(() => {
     onDataUpdateRef.current = onDataUpdate
   }, [onDataUpdate])
+
+  // ✅ Filtrar matches apenas da fase de liga para cálculos
+  const leagueMatches = useMemo(() => {
+    if (!isChampionshipFormat || leagueRoundCount === 0) return matches
+    return matches.filter(m => m.round <= leagueRoundCount)
+  }, [matches, isChampionshipFormat, leagueRoundCount])
+
+  useEffect(() => {
+    if (!tournament?.id) return
+    
+    const handler = (e: Event) => {
+      const custom = e as CustomEvent
+      const { matchId, homeScore, awayScore } = custom.detail || {}
+      if (!matchId) return
+      
+      setMatches((prev: any) => {
+        const updated = prev.map((m: any) => {
+          if (m.id === matchId) {
+            // ✅ Só atualiza se for match da fase de liga
+            if (isChampionshipFormat && leagueRoundCount > 0 && m.round > leagueRoundCount) {
+              return m // Não atualiza matches do mata-mata
+            }
+            return { 
+              ...m, 
+              home_score: homeScore, 
+              away_score: awayScore, 
+              status: 'finished', 
+              updated_at: new Date().toISOString() 
+            }
+          }
+          return m
+        })
+        return updated
+      })
+      
+      // ✅ Só recalcula standings se não for mata-mata
+      if (!isChampionshipFormat || leagueRoundCount === 0) {
+        // Formato normal - recalcula sempre
+        setStandings((prev) => {
+          getTournamentStandings(tournament.id).then((standingsData) => {
+            standingsCache.set(tournament.id, { standings: standingsData, matches })
+            setStandings(standingsData)
+          })
+          return prev
+        })
+      } else {
+        // Formato campeonato - só recalcula se for da liga
+        setMatches((currentMatches) => {
+          const matchToUpdate = currentMatches.find((m: any) => m.id === matchId)
+          if (matchToUpdate && matchToUpdate.round <= leagueRoundCount) {
+            getTournamentStandings(tournament.id).then((standingsData) => {
+              standingsCache.set(tournament.id, { standings: standingsData, matches: currentMatches })
+              setStandings(standingsData)
+            })
+          }
+          return currentMatches
+        })
+      }
+    }
+    
+    window.addEventListener('bescore:match-updated', handler)
+    return () => window.removeEventListener('bescore:match-updated', handler)
+  }, [tournament?.id, isChampionshipFormat, leagueRoundCount])
 
   useEffect(() => {
     if (!tournament?.id) return
@@ -109,7 +179,6 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
     loadStandings()
 
     // Setup real-time listener for matches updates.
-    // Use a unique topic per mount to avoid callback registration on an already-subscribed channel.
     const uniqueSuffix = typeof crypto !== 'undefined' && 'randomUUID' in crypto
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -127,10 +196,13 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
             table: 'matches',
             filter: `tournament_id=eq.${tournament.id}`,
           },
-          () => {
-            // Reload standings when a match is updated
-            loadStandings()
-            onDataUpdateRef.current?.()
+          (payload) => {
+            // ✅ Só recarrega se for match da liga ou se não for campeonato
+            const updatedMatch = payload.new as any
+            if (!isChampionshipFormat || !leagueRoundCount || updatedMatch.round <= leagueRoundCount) {
+              loadStandings()
+              onDataUpdateRef.current?.()
+            }
           }
         )
         .subscribe()
@@ -145,7 +217,7 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
         supabase.removeChannel(channel)
       }
     }
-  }, [tournament?.id])
+  }, [tournament?.id, isChampionshipFormat, leagueRoundCount])
 
   if (loading) {
     return <div className={styles.container}>Carregando classificação...</div>
@@ -169,7 +241,9 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
     <div className={styles.container}>
       <div className={styles.board}>
         <div className={styles.headerRow}>
-          <h2 className={styles.headerTitle}>Classificação</h2>
+          <h2 className={styles.headerTitle}>
+            {isChampionshipFormat ? 'Classificação da Liga' : 'Classificação'}
+          </h2>
           <div className={styles.headerStats}>
             <span className={styles.pointsHeader} data-label="P">P</span>
             <span data-label="J">J</span>
@@ -185,7 +259,8 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
         <div className={styles.rows}>
           {standings.map((row, idx) => {
             const isInPlayoffZone = playoffCutoff !== undefined && idx + 1 <= playoffCutoff
-            const recentForm = getRecentForm(row.participant_id, matches)
+            // ✅ Usar leagueMatches para calcular form
+            const recentForm = getRecentForm(row.participant_id, leagueMatches)
 
             return (
               <div
@@ -262,7 +337,7 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
 
           <div className={styles.legendColumn}>
             <div className={styles.performanceLegend}>
-              <span className={styles.legendTitle}>Desempenho</span>
+              <span className={styles.legendTitle}>Desempenho {isChampionshipFormat ? '(Liga)' : ''}</span>
               <div className={styles.legendItems}>
                 <span className={styles.legendItem}>
                   <span className={`${styles.performanceDot} ${styles.performanceDotWin}`} />
@@ -283,7 +358,7 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
               {playoffCutoff !== undefined && (
                 <div className={styles.statusLegendItem}>
                   <span className={`${styles.statusSquare} ${styles.classifiedSquare}`} />
-                  <span>Classificado</span>
+                  <span>Classificado para mata-mata</span>
                 </div>
               )}
 
@@ -301,4 +376,4 @@ function StandingsTable({ onDataUpdate, playoffCutoff }: StandingsTableProps) {
   )
 }
 
-export default StandingsTable
+export default StandingsTable;

@@ -1,0 +1,228 @@
+/* ============================================================
+   RECENT TIMELINE
+   ============================================================ */
+
+.recentTimeline {
+  margin-bottom: 18px;
+}
+
+.recentTimelineTitle {
+  margin: 0 0 12px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-dark-100);
+}
+
+.recentTimelineList {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 14px;
+  overflow-x: visible;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+}
+
+.recentCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 2px solid color-mix(in srgb, var(--color-dark) 40%, transparent 60%);
+  border-radius: 16px;
+  background: var(--color-white);
+  padding: 10px 12px;
+  width: auto;
+  flex: 0 0 clamp(260px, calc((100% - 28px) / 3), 420px);
+}
+
+.recentThumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--color-gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.recentThumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.recentThumbFallback {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-be);
+  font-family: var(--font-display);
+}
+
+.recentMeta {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.recentMetaName {
+  display: block;
+  font-size: 11px;
+  color: var(--color-dark-100);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recentMetaDate {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.2;
+  color: var(--color-dark);
+  white-space: nowrap;
+}
+
+.recentScoreWrap {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.recentPositionTag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--color-dark) 18%, transparent 82%);
+  background: var(--color-dark-100);
+  color: var(--color-white);
+  font-size: 8px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.recentScoreBox {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-dark) 35%, transparent 65%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-dark);
+  background: #f6f6f6;
+}
+
+.recentScoreCross {
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.timelineResultWin {
+  color: var(--color-success);
+}
+
+.timelineResultLoss {
+  color: var(--color-red);
+}
+
+.timelineResultDraw {
+  color: var(--color-dark);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 900px) {
+  .recentTimelineList {
+    justify-content: flex-start;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 4px 8px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .recentTimelineList::-webkit-scrollbar {
+    display: none;
+  }
+
+  .recentCard {
+    flex: 0 0 min(76vw, 320px);
+    width: min(76vw, 320px);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+}
+
+@media (max-width: 480px) {
+  .recentTimelineTitle {
+    font-size: 20px;
+  }
+
+  .recentCard {
+    gap: 6px;
+    padding: 9px 10px;
+    flex: 0 0 min(76vw, 328px);
+    width: min(76vw, 328px);
+    overflow: hidden;
+  }
+
+  .recentMeta {
+    min-width: 42px;
+    max-width: 2%;
+  }
+
+  .recentMetaName {
+    font-size: 10px;
+  }
+
+  .recentMetaDate {
+    font-size: 11px;
+  }
+
+  .recentPositionTag {
+    min-width: 20px;
+    height: 18px;
+    padding: 0 3px;
+    font-size: 9px;
+    border-radius: 3px;
+  }
+
+  .recentScoreWrap {
+    margin-left: 0;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+
+  .recentScoreBox {
+    width: 24px;
+    height: 24px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+
+  .recentScoreCross {
+    font-size: 16px;
+  }
+
+  .recentThumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+  }
+}

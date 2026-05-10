@@ -1,0 +1,219 @@
+/* ============================================================
+   PLAYOFF BANNER
+   ============================================================ */
+
+.playoffBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-mid) 30%, var(--color-white) 70%) 0%, var(--color-mid) 100%);
+  border: 1.5px solid var(--color-gold-100);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.playoffBannerContent {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.playoffBannerIcon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.playoffBannerContent strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-dark-100);
+  display: block;
+}
+
+.playoffBannerContent p {
+  font-size: 13px;
+  color: var(--color-dark-100);
+  margin: 3px 0 0 0;
+}
+
+.playoffBannerBtn {
+  padding: 10px 20px;
+  background: var(--gradient-primary);
+  color: var(--color-white);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.playoffBannerBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-be) 40%, transparent 60%);
+}
+
+.playoffBannerBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   PHASE SWITCH
+   ============================================================ */
+
+.phaseSwitch {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  margin: 0 auto 12px;
+  background: var(--color-white);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.phaseOption {
+  border: none;
+  background: transparent;
+  color: var(--color-dark);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.phaseOption:hover:not(:disabled) {
+  background: var(--color-be-100);
+  color: var(--color-white);
+}
+
+.phaseOption:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.phaseOptionActive {
+  background: var(--gradient-primary);
+  color: var(--color-white);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-be) 30%, transparent 70%);
+}
+
+.phaseOptionActive:hover {
+  background: var(--color-be);
+}
+
+/* ============================================================
+   LEG SWITCH
+   ============================================================ */
+
+.legSwitch {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-white);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 12px;
+}
+
+.legOption {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--color-dark);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.legOption:hover {
+  background: var(--color-be-100);
+  color: var(--color-white);
+}
+
+.legOptionActive {
+  background: var(--gradient-primary);
+  color: var(--color-white);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-be) 30%, transparent 70%);
+}
+
+.legOptionActive:hover {
+  background: var(--color-be);
+  color: var(--color-white);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .playoffBanner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .playoffBannerContent {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .playoffBannerBtn {
+    align-self: center;
+    width: fit-content;
+  }
+
+  .phaseSwitch,
+  .legSwitch {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .phaseOption,
+  .legOption {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+/* ============================================================
+   REMOVE HOVER STATES ON TOUCH DEVICES
+   ============================================================ */
+
+@media (hover: none) {
+  .playoffBannerBtn:hover:not(:disabled) {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .phaseOption:hover:not(:disabled) {
+    background: transparent;
+    color: var(--color-dark);
+  }
+
+  .phaseOptionActive:hover {
+    background: var(--gradient-primary);
+  }
+
+  .legOption:hover {
+    background: transparent;
+    color: var(--color-dark);
+  }
+
+  .legOptionActive:hover {
+    background: var(--gradient-primary);
+  }
+}

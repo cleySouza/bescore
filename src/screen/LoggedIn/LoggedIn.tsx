@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
-import { strapiCatalogAtom, strapiShieldsMapAtom } from '../../atoms/catalogAtom'
+import { useCatalog } from '../../hooks/useCatalog'
 import {
   activeTournamentAtom,
   activeTournamentTabAtom,
@@ -30,9 +30,9 @@ export function LoggedIn() {
   const setActiveTournamentTab = useSetAtom(activeTournamentTabAtom)
   const setSelectedMatch = useSetAtom(selectedMatchAtom)
   const setRecentPlayers = useSetAtom(recentPlayersAtom)
-  const setStrapiShieldsMap = useSetAtom(strapiShieldsMapAtom)
-  const setStrapiCatalog = useSetAtom(strapiCatalogAtom)
   const setTournamentError = useSetAtom(tournamentsErrorAtom)
+
+  useCatalog()
 
   useEffect(() => {
     if (!user) return
@@ -83,8 +83,6 @@ export function LoggedIn() {
       setActiveTournamentTab('matches')
       setSelectedMatch(null)
       setRecentPlayers([])
-      setStrapiShieldsMap({})
-      setStrapiCatalog(null)
     } catch (error) {
       console.error('Logout failed:', error)
     }

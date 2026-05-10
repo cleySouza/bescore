@@ -5,6 +5,8 @@ export interface StrapiCatalogCache {
   continents: Continent[]
   leaguesByContinent: { [continentId: string]: League[] }
   teamData: TeamDataMap
+  /** Unix ms da última vez que o catálogo foi obtido com sucesso do Strapi (opcional em caches antigos). */
+  fetchedAt?: number
 }
 
 /**
