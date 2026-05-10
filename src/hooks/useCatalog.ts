@@ -13,12 +13,22 @@ export function useCatalog() {
     setShieldsMap(createShieldsMap(catalog.teamData))
   }, [catalog, setShieldsMap])
 
-  // Stale-while-revalidate: atualiza em background quando há rede; ao voltar online, refetch.
+  // Stale-while-revalidate: só busca se cache ausente ou com mais de 1h.
+  // Evita bater no Strapi desnecessariamente quando o cache ainda é recente.
   useEffect(() => {
     let cancelled = false
+    const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hora
 
-    const revalidate = async () => {
+    const revalidate = async (currentCatalog: typeof catalog) => {
       if (typeof navigator !== 'undefined' && !navigator.onLine) return
+
+      const isStale =
+        !currentCatalog ||
+        !currentCatalog.fetchedAt ||
+        Date.now() - currentCatalog.fetchedAt > CACHE_TTL_MS
+
+      if (!isStale) return
+
       try {
         const data = await fetchStrapiClubCatalog()
         if (cancelled) return
@@ -29,9 +39,9 @@ export function useCatalog() {
       }
     }
 
-    void revalidate()
+    void revalidate(catalog)
 
-    const onOnline = () => void revalidate()
+    const onOnline = () => void revalidate(catalog)
     if (typeof window !== 'undefined') {
       window.addEventListener('online', onOnline)
     }
@@ -41,7 +51,7 @@ export function useCatalog() {
         window.removeEventListener('online', onOnline)
       }
     }
-  }, [setCatalog, setShieldsMap])
+  }, [catalog, setCatalog, setShieldsMap])
 
   return catalog
 }
