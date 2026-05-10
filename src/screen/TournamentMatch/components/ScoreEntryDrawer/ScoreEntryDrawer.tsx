@@ -3,6 +3,7 @@ import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../../../atoms/sessionAtom'
 import { activeTournamentAtom, globalToastAtom, selectedMatchAtom } from '../../../../atoms/tournamentAtoms'
 import { updateMatchResult } from '../../../../lib/matchService'
+import { isAdminOnlyScoring } from '../../../../types/tournament'
 import ScoreEntryTeamCrest from '../ScoreEntryTeamCrest/ScoreEntryTeamCrest'
 import './scoreEntry.css'
 
@@ -55,13 +56,16 @@ function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
   const isCreator = tournament.creator_id === user?.id
   const isFinished = selectedMatch.status === 'finished'
   const settings = tournament.settings as { adminScores?: boolean; selectedTeamShields?: Record<string, string> } | null
-  const adminScores = settings?.adminScores ?? true
+  const adminOnlyScoring = isAdminOnlyScoring(tournament.settings)
+  const myId = user?.id
 
-  // Participante é quem joga nesta partida (home ou away)
+  // Participante = lado mandante ou visitante; usa user_id do participant (confiável com RLS no perfil)
   const isParticipantInMatch =
-    !adminScores &&
-    (selectedMatch.homeTeam?.profile?.id === user?.id ||
-      selectedMatch.awayTeam?.profile?.id === user?.id)
+    !adminOnlyScoring &&
+    ((typeof selectedMatch.homeTeam?.user_id === 'string' && selectedMatch.homeTeam.user_id === myId) ||
+      (typeof selectedMatch.awayTeam?.user_id === 'string' && selectedMatch.awayTeam.user_id === myId) ||
+      selectedMatch.homeTeam?.profile?.id === myId ||
+      selectedMatch.awayTeam?.profile?.id === myId)
 
   const canEdit = !isFinished && (isCreator || isParticipantInMatch)
   const canConfirm = canEdit && homeScore !== null && awayScore !== null
@@ -288,7 +292,7 @@ function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
 
         {!canEdit && (
           <p className="score-entry-note">
-            {adminScores
+            {adminOnlyScoring
               ? 'Apenas o criador pode registrar o resultado de partidas pendentes.'
               : 'Apenas os jogadores desta partida podem registrar o resultado.'}
           </p>
