@@ -24,7 +24,6 @@ import ScoreEntryDrawerBoundary from './components/ScoreEntryDrawerBoundary/Scor
 import Accordion from '../../components/Accordion/Accordion'
 import MatchTeamCrest from './components/MatchTeamCrest/MatchTeamCrest'
 import ManageParticipantModal, { type ManagedParticipant } from '../TournamentView/components/ManageParticipantModal'
-import type { MatchWithTeams } from '../../types/tournament'
 import styles from './TournamentMatch.module.css'
 
 type LegFilter = 'first' | 'second'
@@ -79,8 +78,6 @@ function TournamentMatch() {
 
   // Match filtering
   const {
-    leagueMatches,
-    playoffMatches,
     hasPlayoffStarted,
     isLeagueFinished,
     pendingCount,
