@@ -1,40 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { canUserAccessApp, invalidateRolloutAccessCache } from '../lib/rolloutAccess'
+import { canUserAccessApp } from '../lib/rolloutAccess'
 
 export function useAccessControl(user: User | null) {
   const [hasAccess, setHasAccess] = useState(true)
-  const [loading, setLoading] = useState(false)
+  // Inicia como true quando já existe utilizador para evitar flash entre auth e acesso
+  const [loading, setLoading] = useState(() => user !== null)
   const [error, setError] = useState<string | null>(null)
-  const [accessRevision, setAccessRevision] = useState(0)
-  const userRef = useRef<User | null>(null)
-  userRef.current = user
-
-  // Listener `online` com ref para não depender da referência do objeto `user`
-  // (evita loop de refresh_token a cada TOKEN_REFRESHED).
-  useEffect(() => {
-    const onOnline = () => {
-      const u = userRef.current
-      if (!u) return
-      invalidateRolloutAccessCache(u)
-      setAccessRevision((r) => r + 1)
-    }
-    window.addEventListener('online', onOnline)
-    return () => window.removeEventListener('online', onOnline)
-  }, [])
-
-  const userId = user?.id
-  const userEmail = user?.email ?? ''
 
   useEffect(() => {
-    if (!userId) {
-      setHasAccess(true)
-      setLoading(false)
-      return
-    }
-
-    const currentUser = userRef.current
-    if (!currentUser) {
+    if (!user) {
       setHasAccess(true)
       setLoading(false)
       return
@@ -44,9 +19,11 @@ export function useAccessControl(user: User | null) {
     setLoading(true)
     setError(null)
 
-    canUserAccessApp(currentUser)
+    canUserAccessApp(user)
       .then((allowed) => {
-        if (!cancelled) setHasAccess(allowed)
+        if (!cancelled) {
+          setHasAccess(allowed)
+        }
       })
       .catch((err) => {
         if (!cancelled) {
@@ -55,13 +32,15 @@ export function useAccessControl(user: User | null) {
         }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+        }
       })
 
     return () => {
       cancelled = true
     }
-  }, [userId, userEmail, accessRevision])
+  }, [user])
 
   return { hasAccess, loading, error }
 }
