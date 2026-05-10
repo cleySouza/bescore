@@ -76,6 +76,8 @@ function TournamentMatch() {
     shieldsMap,
   } = getTournamentSettings(tournament, user.id, strapiShieldsMap, participants.length)
 
+  const myParticipantId = participants.find((p) => p.user_id === user.id)?.id ?? null
+
   // Match filtering
   const {
     hasPlayoffStarted,
@@ -441,7 +443,7 @@ function TournamentMatch() {
       )}
 
       <ScoreEntryDrawerBoundary key={selectedMatch?.id ?? 'no-match-selected'}>
-        <ScoreEntryDrawer onResultSaved={handleMatchResultUpdated} />
+        <ScoreEntryDrawer myParticipantId={myParticipantId} onResultSaved={handleMatchResultUpdated} />
       </ScoreEntryDrawerBoundary>
     </div>
   )

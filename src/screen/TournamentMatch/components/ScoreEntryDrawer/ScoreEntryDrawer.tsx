@@ -9,6 +9,8 @@ import './scoreEntry.css'
 
 interface ScoreEntryDrawerProps {
   onResultSaved?: () => void
+  /** Id na tabela participants do utilizador logado; não depende de RLS nos joins da partida */
+  myParticipantId?: string | null
 }
 
 function getDisplayName(
@@ -33,7 +35,7 @@ function getDisplayName(
   return 'Responsavel'
 }
 
-function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
+function ScoreEntryDrawer({ onResultSaved, myParticipantId = null }: ScoreEntryDrawerProps) {
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
   const [selectedMatch, setSelectedMatch] = useAtom(selectedMatchAtom)
@@ -59,13 +61,18 @@ function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
   const adminOnlyScoring = isAdminOnlyScoring(tournament.settings)
   const myId = user?.id
 
-  // Participante = lado mandante ou visitante; usa user_id do participant (confiável com RLS no perfil)
-  const isParticipantInMatch =
-    !adminOnlyScoring &&
-    ((typeof selectedMatch.homeTeam?.user_id === 'string' && selectedMatch.homeTeam.user_id === myId) ||
-      (typeof selectedMatch.awayTeam?.user_id === 'string' && selectedMatch.awayTeam.user_id === myId) ||
-      selectedMatch.homeTeam?.profile?.id === myId ||
-      selectedMatch.awayTeam?.profile?.id === myId)
+  // Preferir IDs da partida + lista de participantes (RLS costuma esconder embeds home_team/away_team).
+  const byParticipantIds =
+    typeof myParticipantId === 'string' &&
+    (selectedMatch.home_participant_id === myParticipantId ||
+      selectedMatch.away_participant_id === myParticipantId)
+  const byEmbedded =
+    (typeof selectedMatch.homeTeam?.user_id === 'string' && selectedMatch.homeTeam.user_id === myId) ||
+    (typeof selectedMatch.awayTeam?.user_id === 'string' && selectedMatch.awayTeam.user_id === myId) ||
+    selectedMatch.homeTeam?.profile?.id === myId ||
+    selectedMatch.awayTeam?.profile?.id === myId
+
+  const isParticipantInMatch = !adminOnlyScoring && (byParticipantIds || byEmbedded)
 
   const canEdit = !isFinished && (isCreator || isParticipantInMatch)
   const canConfirm = canEdit && homeScore !== null && awayScore !== null
