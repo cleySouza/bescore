@@ -7,6 +7,7 @@ import { fetchMyTournaments, getTournamentParticipants, cancelTournament } from 
 import { getTournamentMatches, getTournamentStandings } from '../../../lib/matchService'
 import { generatePlayoffMatches } from '../../../lib/matchGenerationEngine'
 import { fetchStrapiClubCatalog } from '../../../lib/strapiClubService'
+import { supabase } from '../../../lib/supabaseClient'
 import { standingsCache } from '../../../components/StandingsTable/StandingsTable'
 import type { Tournament } from '../../../atoms/tournamentAtoms'
 import type { MatchWithTeams, TournamentSettings } from '../../../types/tournament'
@@ -125,6 +126,54 @@ export function useTournamentData(tournament: Tournament | null) {
       openRound,
     })
   }, [tournament?.id, participants, matches, strapiShieldsMap, openRound])
+
+  // Realtime: atualiza placares para todos os utilizadores sem precisar de refresh manual
+  useEffect(() => {
+    if (!tournament?.id) return
+
+    const staleChannels = supabase
+      .getChannels()
+      .filter((c) => c.topic.startsWith(`realtime:tournament-matches:${tournament.id}`))
+    staleChannels.forEach((c) => supabase.removeChannel(c))
+
+    const uniqueSuffix =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+    const channel = supabase
+      .channel(`tournament-matches:${tournament.id}:${uniqueSuffix}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'matches',
+          filter: `tournament_id=eq.${tournament.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as Record<string, unknown>
+          setMatches((prev) =>
+            prev.map((m) =>
+              m.id === updated.id
+                ? {
+                    ...m,
+                    home_score: updated.home_score as number | null,
+                    away_score: updated.away_score as number | null,
+                    status: updated.status as 'pending' | 'finished',
+                    updated_at: updated.updated_at as string,
+                  }
+                : m
+            )
+          )
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [tournament?.id])
 
   // Load Strapi shields
   useEffect(() => {
