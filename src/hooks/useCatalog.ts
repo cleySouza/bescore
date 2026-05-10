@@ -13,7 +13,7 @@ export function useCatalog() {
     setShieldsMap(createShieldsMap(catalog.teamData))
   }, [catalog, setShieldsMap])
 
-  // Stale-while-revalidate: tenta atualizar em background quando há rede; ao voltar online, refetch.
+  // Stale-while-revalidate: atualiza em background quando há rede; ao voltar online, refetch.
   useEffect(() => {
     let cancelled = false
 
