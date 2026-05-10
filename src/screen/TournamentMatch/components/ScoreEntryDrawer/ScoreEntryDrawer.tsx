@@ -54,7 +54,16 @@ function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
 
   const isCreator = tournament.creator_id === user?.id
   const isFinished = selectedMatch.status === 'finished'
-  const canEdit = isCreator && !isFinished
+  const settings = tournament.settings as { adminScores?: boolean; selectedTeamShields?: Record<string, string> } | null
+  const adminScores = settings?.adminScores ?? true
+
+  // Participante é quem joga nesta partida (home ou away)
+  const isParticipantInMatch =
+    !adminScores &&
+    (selectedMatch.homeTeam?.profile?.id === user?.id ||
+      selectedMatch.awayTeam?.profile?.id === user?.id)
+
+  const canEdit = !isFinished && (isCreator || isParticipantInMatch)
   const canConfirm = canEdit && homeScore !== null && awayScore !== null
 
   const homeTeamName = selectedMatch.homeTeam?.team_name || 'TBD'
@@ -77,8 +86,7 @@ function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
     user?.id,
     currentUserName
   )
-  const tournamentSettings = tournament.settings as { selectedTeamShields?: Record<string, string> } | null
-  const shieldsMap = tournamentSettings?.selectedTeamShields ?? {}
+  const shieldsMap = settings?.selectedTeamShields ?? {}
 
   const closeDrawer = () => {
     if (loading) return
@@ -280,7 +288,9 @@ function ScoreEntryDrawer({ onResultSaved }: ScoreEntryDrawerProps) {
 
         {!canEdit && (
           <p className="score-entry-note">
-            Apenas o criador pode registrar o resultado de partidas pendentes.
+            {adminScores
+              ? 'Apenas o criador pode registrar o resultado de partidas pendentes.'
+              : 'Apenas os jogadores desta partida podem registrar o resultado.'}
           </p>
         )}
 

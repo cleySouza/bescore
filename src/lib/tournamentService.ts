@@ -38,6 +38,7 @@ export async function createTournament(
     Pick<
       TournamentSettings,
       | 'isPrivate'
+      | 'adminScores'
       | 'maxParticipants'
       | 'format'
       | 'playoffCutoff'
