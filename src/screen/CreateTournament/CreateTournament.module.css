@@ -391,6 +391,10 @@
   line-height: 1.3;
 }
 
+.campeonatoPlayoffToggle {
+  margin-top: 12px;
+}
+
 .toggleGroupLabel {
   font-size: 10px;
   font-weight: 600;

@@ -17,10 +17,14 @@ export type Database = {
       matches: {
         Row: {
           away_participant_id: string | null
+          away_penalties: number | null
           away_score: number | null
           home_participant_id: string | null
+          home_penalties: number | null
           home_score: number | null
           id: string
+          playoff_leg: number | null
+          playoff_pair_index: number | null
           round: number | null
           status: string | null
           tournament_id: string | null
@@ -28,10 +32,14 @@ export type Database = {
         }
         Insert: {
           away_participant_id?: string | null
+          away_penalties?: number | null
           away_score?: number | null
           home_participant_id?: string | null
+          home_penalties?: number | null
           home_score?: number | null
           id?: string
+          playoff_leg?: number | null
+          playoff_pair_index?: number | null
           round?: number | null
           status?: string | null
           tournament_id?: string | null
@@ -39,10 +47,14 @@ export type Database = {
         }
         Update: {
           away_participant_id?: string | null
+          away_penalties?: number | null
           away_score?: number | null
           home_participant_id?: string | null
+          home_penalties?: number | null
           home_score?: number | null
           id?: string
+          playoff_leg?: number | null
+          playoff_pair_index?: number | null
           round?: number | null
           status?: string | null
           tournament_id?: string | null

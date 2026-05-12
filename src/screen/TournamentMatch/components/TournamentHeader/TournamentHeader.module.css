@@ -1,11 +1,11 @@
 .header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   padding: 16px 20px;
   background: var(--color-white);
   border-bottom: 1px solid var(--color-gray-200);
-  gap: 16px;
 }
 
 .backBtn {
@@ -21,6 +21,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
+  justify-self: start;
 }
 
 .backBtn:hover {
@@ -37,8 +38,9 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  flex: 1;
+  justify-self: center;
   min-width: 0;
+  max-width: 100%;
 }
 
 .headerThumb {
@@ -69,6 +71,7 @@
 .headerTextBlock {
   flex: 1;
   min-width: 0;
+  text-align: center;
 }
 
 .title {
@@ -88,6 +91,10 @@
   text-transform: uppercase;
   font-weight: 500;
   letter-spacing: 0.5px;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .statusBadge {
@@ -100,12 +107,19 @@
   background: var(--color-success-100);
   color: var(--color-success);
   flex-shrink: 0;
+  justify-self: end;
 }
 
 @media (max-width: 768px) {
   .header {
     padding: 12px 16px;
-    gap: 12px;
+    gap: 8px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .headerContent {
+    justify-self: center;
+    gap: 10px;
   }
 
   .headerThumb {

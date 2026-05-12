@@ -12,6 +12,7 @@ import { signOut } from '../../lib/authGoogle'
 import { Header } from '../../components/Header/Header'
 import { useCatalog } from '../../hooks/useCatalog'
 import { GlobalToast } from './GlobalToast'
+import { GlobalRecentMatchesCarousel } from './GlobalRecentMatchesCarousel'
 import { InviteDeepLinkHandler } from './InviteDeepLinkHandler'
 import { paths } from '../navigation/paths'
 import styles from '../../screen/LoggedIn/LoggedIn.module.css'
@@ -48,6 +49,7 @@ export function AuthenticatedLayout() {
       <InviteDeepLinkHandler />
       <Header user={user} onLogout={handleLogout} />
       <main className={styles.main}>
+        <GlobalRecentMatchesCarousel />
         <Outlet />
       </main>
       <GlobalToast />

@@ -50,6 +50,7 @@ function CreateTournament() {
     teamNames: '',
     selectedTeamIds: [] as string[],
     playoffCutoff: 'top4' as 'top4' | 'top2',
+    playoffTwoLegged: false,
   })
   const [loading, setLoading] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
@@ -83,6 +84,7 @@ function CreateTournament() {
     setFormData((prev) => ({
       ...prev,
       [name]: name === 'maxParticipants' ? parseInt(value) : value,
+      ...(name === 'format' && value !== 'campeonato' ? { playoffTwoLegged: false } : {}),
       ...(name === 'format' && !['liga', 'mata-mata', 'grupos', 'campeonato'].includes(value)
         ? { matchType: 'single' as const }
         : {}),
@@ -191,6 +193,7 @@ function CreateTournament() {
       teamNames: '',
       selectedTeamIds: [],
       playoffCutoff: 'top4',
+      playoffTwoLegged: false,
     })
     setLocalError(null)
     setSuccess(false)
@@ -240,7 +243,10 @@ function CreateTournament() {
             }
           : {}),
         ...(formData.format === 'campeonato'
-          ? { playoffCutoff: formData.playoffCutoff === 'top4' ? 4 : 2 }
+          ? {
+              playoffCutoff: formData.playoffCutoff === 'top4' ? 4 : 2,
+              playoffTwoLegged: formData.playoffTwoLegged,
+            }
           : {}),
       })
 
@@ -286,6 +292,7 @@ function CreateTournament() {
         teamNames: '',
         selectedTeamIds: [],
         playoffCutoff: 'top4',
+        playoffTwoLegged: false,
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao criar torneio'
@@ -420,6 +427,25 @@ function CreateTournament() {
                           : 'Mínimo de 4 jogadores para este formato.'}
                       </span>
                     )}
+                    <div className={`${styles.toggleGroup} ${styles.campeonatoPlayoffToggle}`}>
+                      <div className={styles.toggleGroupLabel}>MATA-MATA (SEMI + FINAL)</div>
+                      <button
+                        type="button"
+                        className={`${styles.slideToggle} ${formData.playoffTwoLegged ? styles.active : ''}`}
+                        onClick={() => handleToggle('playoffTwoLegged')}
+                        disabled={loading}
+                        aria-pressed={formData.playoffTwoLegged}
+                      >
+                        <span className={styles.slideKnob} />
+                        <span className={styles.slideLabel}>
+                          {formData.playoffTwoLegged ? 'IDA E VOLTA' : 'JOGO ÚNICO'}
+                        </span>
+                      </button>
+                      <p className={styles.toggleHint}>
+                        Jogo único: empate pede placar de pênaltis na mesma partida. Ida e volta: pênaltis só na
+                        volta se o agregado empatar.
+                      </p>
+                    </div>
                   </div>
                 )}
 
@@ -674,6 +700,7 @@ function CreateTournament() {
                   autoTeams={formData.autoTeams}
                   format={formData.format}
                   playoffCutoff={formData.playoffCutoff}
+                  playoffTwoLegged={formData.format === 'campeonato' && formData.playoffTwoLegged}
                   hasReturnMatch={formData.matchType === 'double'}
                   tournamentImage={tournamentImage}
                   onImageChange={handleImageChange}

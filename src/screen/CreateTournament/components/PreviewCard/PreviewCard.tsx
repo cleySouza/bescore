@@ -11,6 +11,8 @@ interface PreviewCardProps {
   autoTeams?: boolean
   format?: string
   playoffCutoff?: 'top4' | 'top2'
+  /** Mata-mata do campeonato em duas pernas (semi + final). */
+  playoffTwoLegged?: boolean
   hasReturnMatch?: boolean
 }
 
@@ -39,6 +41,7 @@ export const PreviewCard = ({
   autoTeams = true,
   format = 'liga',
   playoffCutoff = 'top4',
+  playoffTwoLegged = false,
   hasReturnMatch = false,
 }: PreviewCardProps) => {
   const imageInputId = useId()
@@ -62,6 +65,9 @@ export const PreviewCard = ({
   const isKnockout = format === 'mata-mata'
   const isGroups = format === 'grupos'
   const playoffN = playoffCutoff === 'top4' ? 4 : 2
+  const campeonatoPlayoffRule = playoffTwoLegged
+    ? 'Semifinais e final em ida e volta; empate no agregado decide nos pênaltis.'
+    : 'Semifinais e final em jogo único; empate decide nos pênaltis.'
   const leagueRule = hasReturnMatch
     ? 'Todos se enfrentam em turno e returno.'
     : 'Todos se enfrentam em turno único.'
@@ -116,6 +122,7 @@ export const PreviewCard = ({
           <>
             <li key="camp-rule1">{leagueRule}</li>
             <li key="camp-rule2">Os {playoffN} melhores avançam para o mata-mata.</li>
+            <li key="camp-rule-playoff">{campeonatoPlayoffRule}</li>
           </>
         ) : isKnockout ? (
           <>

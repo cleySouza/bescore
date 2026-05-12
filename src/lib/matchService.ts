@@ -1,5 +1,12 @@
 import { supabase } from './supabaseClient'
-import type { MatchWithTeams, StandingsRow } from '../types/tournament'
+import type { MatchWithTeams, StandingsRow, TournamentSettings } from '../types/tournament'
+import { validateKnockoutScoreSubmission, type KnockoutMatchCore } from './playoffKnockout'
+
+function leagueRoundCountCampeonato(participantCount: number, hasReturnMatch: boolean): number {
+  if (participantCount <= 1) return 0
+  const baseCount = participantCount % 2 === 0 ? participantCount - 1 : participantCount
+  return hasReturnMatch ? baseCount * 2 : baseCount
+}
 
 /**
  * Atualiza dados administrativos de um participante (somente criador).
@@ -74,26 +81,99 @@ export async function getTournamentMatches(tournamentId: string): Promise<MatchW
   })) as MatchWithTeams[]
 }
 
+/** Omite colunas de pênaltis; use objeto para gravar ou limpar na fase final do campeonato. */
+export type UpdateMatchPenaltyMode =
+  | { mode: 'omit' }
+  | { mode: 'set'; home: number | null; away: number | null }
+
 /**
  * Atualiza o resultado de uma partida e muda seu status para 'finished'
  */
 export async function updateMatchResult(
   matchId: string,
   homeScore: number,
-  awayScore: number
+  awayScore: number,
+  penaltyMode: UpdateMatchPenaltyMode = { mode: 'omit' }
 ) {
-  // Não usar .single(): com RLS, o UPDATE pode aplicar-se mas o SELECT devolver 0 linhas —
-  // o PostgREST então falha com "Cannot coerce the result to a single JSON object".
-  const { data, error } = await supabase
+  const { data: existingRow, error: fetchErr } = await supabase
     .from('matches')
-    .update({
-      home_score: homeScore,
-      away_score: awayScore,
-      status: 'finished',
-      updated_at: new Date().toISOString(),
-    })
+    .select('*')
     .eq('id', matchId)
-    .select('id')
+    .maybeSingle()
+
+  if (fetchErr) {
+    console.error('Erro ao carregar partida:', fetchErr.message)
+    throw new Error(`Falha ao carregar partida: ${fetchErr.message}`)
+  }
+  if (!existingRow?.tournament_id) {
+    throw new Error('Partida não encontrada.')
+  }
+
+  const tournamentId = existingRow.tournament_id as string
+
+  const { data: tournamentRow, error: tournamentErr } = await supabase
+    .from('tournaments')
+    .select('settings')
+    .eq('id', tournamentId)
+    .maybeSingle()
+
+  if (tournamentErr) {
+    throw new Error(`Falha ao carregar torneio: ${tournamentErr.message}`)
+  }
+
+  const settings = (tournamentRow?.settings ?? null) as TournamentSettings | null
+  const format = settings?.format ?? 'roundRobin'
+
+  const { count: participantCountRaw } = await supabase
+    .from('participants')
+    .select('*', { count: 'exact', head: true })
+    .eq('tournament_id', tournamentId)
+
+  const participantCount = participantCountRaw ?? 0
+  const leagueRc = leagueRoundCountCampeonato(participantCount, settings?.hasReturnMatch ?? false)
+  const round = existingRow.round ?? 0
+
+  if (format === 'campeonato' && round > leagueRc) {
+    const { data: siblingsRaw } = await supabase
+      .from('matches')
+      .select(
+        'id, round, status, home_participant_id, away_participant_id, home_score, away_score, home_penalties, away_penalties, playoff_pair_index, playoff_leg'
+      )
+      .eq('tournament_id', tournamentId)
+      .eq('round', round)
+
+    const siblingSameRound = (siblingsRaw ?? []) as KnockoutMatchCore[]
+
+    validateKnockoutScoreSubmission({
+      format,
+      leagueRoundCount: leagueRc,
+      playoffTwoLegged: settings?.playoffTwoLegged === true,
+      match: existingRow as KnockoutMatchCore,
+      siblingSameRound,
+      homeScore,
+      awayScore,
+      homePenalties:
+        penaltyMode.mode === 'set' ? penaltyMode.home : ((existingRow as { home_penalties?: number | null }).home_penalties ?? null),
+      awayPenalties:
+        penaltyMode.mode === 'set' ? penaltyMode.away : ((existingRow as { away_penalties?: number | null }).away_penalties ?? null),
+    })
+  }
+
+  const patch: Record<string, unknown> = {
+    home_score: homeScore,
+    away_score: awayScore,
+    status: 'finished',
+    updated_at: new Date().toISOString(),
+  }
+
+  if (format === 'campeonato' && round > leagueRc && penaltyMode.mode === 'set') {
+    patch.home_penalties = penaltyMode.home
+    patch.away_penalties = penaltyMode.away
+  }
+
+  // Não usar .single(): com RLS, o UPDATE pode aplicar-se mas o SELECT devolver 0 linhas —
+  // o PostgREST então falha com "Cannot coerce o resultado para um único objeto".
+  const { data, error } = await supabase.from('matches').update(patch).eq('id', matchId).select('id')
 
   if (error) {
     console.error('Erro ao atualizar resultado:', error.message)

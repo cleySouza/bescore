@@ -47,6 +47,7 @@ export async function createTournament(
       | 'selectedTeamNames'
       | 'selectedTeamShields'
       | 'teamAssignMode'
+      | 'playoffTwoLegged'
     >
   >
 ): Promise<Tournament> {

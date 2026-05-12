@@ -10,6 +10,8 @@ export interface TournamentSettings {
   qualifiedCount?: number // Para Mixed (quantos avançam dos grupos)
   bracketGroups?: number // Para Grupos Cruzados (default: 2)
   playoffCutoff?: 4 | 2 // Para Campeonato: quantos avançam para mata-mata
+  /** Ida e volta na semifinal e na final (só formato campeonato). */
+  playoffTwoLegged?: boolean
   adminScores?: boolean // true = só admin lança placares; false = jogadores lançam suas próprias partidas
   isPrivate?: boolean // Torneio privado (requer código para entrar)
   maxParticipants?: number // Limite máximo de participantes
@@ -36,6 +38,12 @@ export interface Match {
   status: 'pending' | 'finished'
   home_score: number | null
   away_score: number | null
+  /** Índice do confronto no mata-mata (mesmo valor nas duas pernas). */
+  playoff_pair_index?: number | null
+  /** 1 = ida, 2 = volta; omitido/null em partida única ou fase de grupos. */
+  playoff_leg?: number | null
+  home_penalties?: number | null
+  away_penalties?: number | null
   created_at?: string
   updated_at?: string
 }

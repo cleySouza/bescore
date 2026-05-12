@@ -3,6 +3,11 @@ import type { Database } from '../types/supabase'
 import type { TournamentSettings, TournamentFormat } from '../types/tournament'
 import { validateSettingsForFormat } from '../types/tournament'
 import { getTournamentStandings } from './matchService'
+import {
+  canAdvanceFromSemifinalsToFinal,
+  extractSemifinalWinnersForFinal,
+  type KnockoutMatchCore,
+} from './playoffKnockout'
 
 type Match = Database['public']['Tables']['matches']['Insert']
 
@@ -374,7 +379,8 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
 
   const tournamentSettings = tournament.settings as TournamentSettings | null
   const cutoff = tournamentSettings?.playoffCutoff ?? 2
-  console.log('📊 Playoff cutoff:', cutoff)
+  const playoffTwoLegged = tournamentSettings?.playoffTwoLegged === true
+  console.log('📊 Playoff cutoff:', cutoff, '| Ida/volta mata-mata:', playoffTwoLegged)
 
   const { count: participantCountRaw, error: participantCountError } = await supabase
     .from('participants')
@@ -394,7 +400,9 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
   // 2. Buscar todas as partidas do torneio
   const { data: allMatches, error: matchesError } = await supabase
     .from('matches')
-    .select('id, round, home_participant_id, away_participant_id, status, home_score, away_score')
+    .select(
+      'id, round, home_participant_id, away_participant_id, status, home_score, away_score, home_penalties, away_penalties, playoff_pair_index, playoff_leg'
+    )
     .eq('tournament_id', tournamentId)
     .order('round', { ascending: true })
 
@@ -427,23 +435,65 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
 
     const nextPlayoffRound = leagueRoundCount + 1
 
-    // Criar semifinais: 1º vs 4º, 2º vs 3º
-    const semifinalMatches = [
-      {
-        tournament_id: tournamentId,
-        home_participant_id: top4[0],
-        away_participant_id: top4[3],
-        round: nextPlayoffRound,
-        status: 'pending' as const
-      },
-      {
-        tournament_id: tournamentId,
-        home_participant_id: top4[1],
-        away_participant_id: top4[2],
-        round: nextPlayoffRound,
-        status: 'pending' as const
-      }
-    ]
+    const semifinalMatches: Match[] = playoffTwoLegged
+      ? [
+          {
+            tournament_id: tournamentId,
+            home_participant_id: top4[0],
+            away_participant_id: top4[3],
+            round: nextPlayoffRound,
+            status: 'pending',
+            playoff_pair_index: 0,
+            playoff_leg: 1,
+          },
+          {
+            tournament_id: tournamentId,
+            home_participant_id: top4[3],
+            away_participant_id: top4[0],
+            round: nextPlayoffRound,
+            status: 'pending',
+            playoff_pair_index: 0,
+            playoff_leg: 2,
+          },
+          {
+            tournament_id: tournamentId,
+            home_participant_id: top4[1],
+            away_participant_id: top4[2],
+            round: nextPlayoffRound,
+            status: 'pending',
+            playoff_pair_index: 1,
+            playoff_leg: 1,
+          },
+          {
+            tournament_id: tournamentId,
+            home_participant_id: top4[2],
+            away_participant_id: top4[1],
+            round: nextPlayoffRound,
+            status: 'pending',
+            playoff_pair_index: 1,
+            playoff_leg: 2,
+          },
+        ]
+      : [
+          {
+            tournament_id: tournamentId,
+            home_participant_id: top4[0],
+            away_participant_id: top4[3],
+            round: nextPlayoffRound,
+            status: 'pending',
+            playoff_pair_index: 0,
+            playoff_leg: null,
+          },
+          {
+            tournament_id: tournamentId,
+            home_participant_id: top4[1],
+            away_participant_id: top4[2],
+            round: nextPlayoffRound,
+            status: 'pending',
+            playoff_pair_index: 1,
+            playoff_leg: null,
+          },
+        ]
 
     const { error: insertError } = await supabase.from('matches').insert(semifinalMatches)
     if (insertError) {
@@ -454,59 +504,64 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
     return
   }
 
-  // 4. Verificar se é para gerar final (semifinais terminaram)
+  // Gerar final após semifinais concluídas (partida única ou ida/volta + pênaltis se necessário)
   if (cutoff === 4) {
     const semiRound = leagueRoundCount + 1
     const finalRound = leagueRoundCount + 2
-    const semifinalMatches =
+    const semifinalFinished =
       allMatches?.filter((m) => m.round === semiRound && m.status === 'finished') ?? []
     const finalExists = allMatches?.some((m) => m.round === finalRound) ?? false
 
-    console.log('🔍 Semifinais finalizadas:', semifinalMatches.length)
+    console.log('🔍 Semifinais finalizadas:', semifinalFinished.length)
     console.log('🏆 Final já existe:', finalExists)
 
-    if (semifinalMatches.length === 2 && !finalExists) {
+    if (!finalExists && canAdvanceFromSemifinalsToFinal(semifinalFinished as KnockoutMatchCore[], playoffTwoLegged)) {
       console.log('🎯 Gerando final com vencedores das semifinais...')
-
-      // Pegar vencedores das semifinais
-      const winners = semifinalMatches.map((match) => {
-        if (match.home_score === null || match.away_score === null) {
-          throw new Error(`Semifinal ${match.id} não tem resultado definido`)
-        }
-
-        const homeScore = Number(match.home_score)
-        const awayScore = Number(match.away_score)
-
-        if (isNaN(homeScore) || isNaN(awayScore)) {
-          throw new Error(`Resultado inválido na semifinal ${match.id}`)
-        }
-
-        if (homeScore > awayScore) {
-          console.log(`🏅 Vencedor semifinal: ${match.home_participant_id} (${homeScore}-${awayScore})`)
-          return match.home_participant_id
-        }
-        if (awayScore > homeScore) {
-          console.log(`🏅 Vencedor semifinal: ${match.away_participant_id} (${awayScore}-${homeScore})`)
-          return match.away_participant_id
-        }
-
-        throw new Error(`Empate na semifinal ${match.id} (${homeScore}-${awayScore}): defina um vencedor`)
-      })
-
-      if (winners.length !== 2) {
-        throw new Error('Erro ao determinar vencedores das semifinais')
+      let winners: string[]
+      try {
+        winners = extractSemifinalWinnersForFinal(semifinalFinished as KnockoutMatchCore[], playoffTwoLegged)
+      } catch (e) {
+        throw new Error(e instanceof Error ? e.message : 'Não foi possível definir os finalistas')
       }
 
-      // Criar final
-      const finalMatch = [{
-        tournament_id: tournamentId,
-        home_participant_id: winners[0],
-        away_participant_id: winners[1],
-        round: finalRound,
-        status: 'pending' as const
-      }]
+      if (winners.length !== 2 || !winners[0] || !winners[1]) {
+        throw new Error('Erro ao determinar os dois finalistas')
+      }
 
-      const { error: insertFinalError } = await supabase.from('matches').insert(finalMatch)
+      const finalRows: Match[] = playoffTwoLegged
+        ? [
+            {
+              tournament_id: tournamentId,
+              home_participant_id: winners[0],
+              away_participant_id: winners[1],
+              round: finalRound,
+              status: 'pending',
+              playoff_pair_index: 0,
+              playoff_leg: 1,
+            },
+            {
+              tournament_id: tournamentId,
+              home_participant_id: winners[1],
+              away_participant_id: winners[0],
+              round: finalRound,
+              status: 'pending',
+              playoff_pair_index: 0,
+              playoff_leg: 2,
+            },
+          ]
+        : [
+            {
+              tournament_id: tournamentId,
+              home_participant_id: winners[0],
+              away_participant_id: winners[1],
+              round: finalRound,
+              status: 'pending',
+              playoff_pair_index: 0,
+              playoff_leg: null,
+            },
+          ]
+
+      const { error: insertFinalError } = await supabase.from('matches').insert(finalRows)
       if (insertFinalError) {
         throw new Error(`Falha ao inserir final: ${insertFinalError.message}`)
       }
@@ -517,7 +572,7 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
     }
   }
 
-  // 5. Para top2: final direta
+  // Para top2: final direta (uma ou duas pernas)
   if (cutoff === 2 && !hasPlayoffMatches) {
     console.log('🚀 Gerando final direta (top 2)...')
     
@@ -531,15 +586,40 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
 
     const nextPlayoffRound = leagueRoundCount + 1
 
-    const finalMatch = [{
-      tournament_id: tournamentId,
-      home_participant_id: top2[0],
-      away_participant_id: top2[1],
-      round: nextPlayoffRound,
-      status: 'pending' as const
-    }]
+    const finalRows: Match[] = playoffTwoLegged
+      ? [
+          {
+            tournament_id: tournamentId,
+            home_participant_id: top2[0],
+            away_participant_id: top2[1],
+            round: nextPlayoffRound,
+            status: 'pending',
+            playoff_pair_index: 0,
+            playoff_leg: 1,
+          },
+          {
+            tournament_id: tournamentId,
+            home_participant_id: top2[1],
+            away_participant_id: top2[0],
+            round: nextPlayoffRound,
+            status: 'pending',
+            playoff_pair_index: 0,
+            playoff_leg: 2,
+          },
+        ]
+      : [
+          {
+            tournament_id: tournamentId,
+            home_participant_id: top2[0],
+            away_participant_id: top2[1],
+            round: nextPlayoffRound,
+            status: 'pending',
+            playoff_pair_index: 0,
+            playoff_leg: null,
+          },
+        ]
 
-    const { error: insertFinalError } = await supabase.from('matches').insert(finalMatch)
+    const { error: insertFinalError } = await supabase.from('matches').insert(finalRows)
     if (insertFinalError) {
       throw new Error(`Falha ao inserir final: ${insertFinalError.message}`)
     }

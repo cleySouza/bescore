@@ -6,6 +6,8 @@ import { strapiShieldsMapAtom } from '../../../atoms/catalogAtom'
 import { fetchMyTournaments, getTournamentParticipants, cancelTournament } from '../../../lib/tournamentService'
 import { getTournamentMatches, getTournamentStandings } from '../../../lib/matchService'
 import { generatePlayoffMatches } from '../../../lib/matchGenerationEngine'
+import { canAdvanceFromSemifinalsToFinal } from '../../../lib/playoffKnockout'
+import type { KnockoutMatchCore } from '../../../lib/playoffKnockout'
 import { fetchStrapiClubCatalog } from '../../../lib/strapiClubService'
 import { supabase } from '../../../lib/supabaseClient'
 import { standingsCache } from '../../../components/StandingsTable/StandingsTable'
@@ -172,6 +174,10 @@ export function useTournamentData(tournament: Tournament | null) {
                     ...m,
                     home_score: updated.home_score as number | null,
                     away_score: updated.away_score as number | null,
+                    home_penalties: (updated.home_penalties ?? null) as number | null,
+                    away_penalties: (updated.away_penalties ?? null) as number | null,
+                    playoff_pair_index: (updated.playoff_pair_index ?? null) as number | null,
+                    playoff_leg: (updated.playoff_leg ?? null) as number | null,
                     status: updated.status as 'pending' | 'finished',
                     updated_at: updated.updated_at as string,
                   }
@@ -221,8 +227,9 @@ export function useTournamentData(tournament: Tournament | null) {
     const tournamentSettings = tournament.settings as TournamentSettings | null
     const isCampeonato = tournamentSettings?.format === 'campeonato'
     const playoffCutoff = isCampeonato ? (tournamentSettings?.playoffCutoff ?? 2) : undefined
+    const playoffTwoLegged = tournamentSettings?.playoffTwoLegged === true
     const isCreator = tournament.creator_id === user.id
-    
+
     if (!isCampeonato || !isCreator || playoffCutoff !== 4) return
 
     const leagueRoundCount = isCampeonato
@@ -230,17 +237,19 @@ export function useTournamentData(tournament: Tournament | null) {
       : 0
 
     const playoffMatches = matches.filter((m) => m.round !== null && m.round > leagueRoundCount)
-    const playoffRounds = [...new Set(playoffMatches.map(m => m.round))].sort((a, b) => a - b)
-    
+    const playoffRounds = [...new Set(playoffMatches.map((m) => m.round))].sort((a, b) => a - b)
+
     if (playoffRounds.length === 1) {
-      const semifinalMatches = playoffMatches.filter(m => m.round === playoffRounds[0])
-      const allSemifinalsFinished = semifinalMatches.every(m => m.status === 'finished')
-      
-      if (allSemifinalsFinished && semifinalMatches.length === 2) {
+      const semiRound = playoffRounds[0]
+      const semifinalFinished = playoffMatches.filter(
+        (m) => m.round === semiRound && m.status === 'finished'
+      )
+
+      if (canAdvanceFromSemifinalsToFinal(semifinalFinished as KnockoutMatchCore[], playoffTwoLegged)) {
         const generateFinal = async () => {
           try {
             await generatePlayoffMatches(tournament.id)
-            setRefreshKey(prev => prev + 1)
+            setRefreshKey((prev) => prev + 1)
           } catch (err) {
             console.error('Erro ao gerar final:', err)
             setError('Erro ao gerar final automaticamente')

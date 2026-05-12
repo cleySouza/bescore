@@ -5,15 +5,14 @@ import { userAtom } from '../../atoms/sessionAtom'
 import {
   activeTournamentAtom,
   activeTournamentTabAtom,
+  recentMatchesCarouselEpochAtom,
   selectedMatchAtom,
 } from '../../atoms/tournamentAtoms'
 import { paths } from '../../app/navigation/paths'
 import { useTournamentData } from './hooks/useTournamentData'
-import { useRecentTimeline } from './hooks/useRecentTimeline'
 import { getTournamentSettings, getMatchesByPhase, getRoundLabel, effectiveParticipantCount } from './utils/tournamentHelpers'
 import { normalizeMatchForDrawer } from './utils/matchHelpers'
 import TournamentHeader from './components/TournamentHeader/TournamentHeader'
-import RecentTimeline from './components/RecentTimeline/RecentTimeline'
 import PhaseControls from './components/PhaseControls/PhaseControls'
 import AdminPanel from './components/AdminPanel/AdminPanel'
 import MatchesSection from './components/MatchesSection/MatchesSection'
@@ -47,6 +46,7 @@ function TournamentMatchContent({
   user: User
 }) {
   const navigate = useNavigate()
+  const bumpRecentCarousel = useSetAtom(recentMatchesCarouselEpochAtom)
   const setSelectedMatch = useSetAtom(selectedMatchAtom)
   const selectedMatch = useAtomValue(selectedMatchAtom)
   const [activeTab, setActiveTab] = useAtom(activeTournamentTabAtom)
@@ -72,7 +72,10 @@ function TournamentMatchContent({
     strapiShieldsMap,
   } = useTournamentData(tournament)
 
-  const { recentTimelineMatches, recentTimelineRef } = useRecentTimeline(user?.id, refreshKey)
+  useEffect(() => {
+    if (refreshKey === 0) return
+    bumpRecentCarousel((n) => n + 1)
+  }, [refreshKey, bumpRecentCarousel])
 
   // Tournament settings
   const participantCountForLeague = effectiveParticipantCount(participants.length, matches)
@@ -231,6 +234,15 @@ function TournamentMatchContent({
                           <span className={styles.scoreBox}>
                             {m.status === 'finished' && m.away_score !== null ? m.away_score : ''}
                           </span>
+                          {m.playoff_leg != null && (
+                            <span className={styles.playoffLegBadge}>{m.playoff_leg === 1 ? 'Ida' : 'Volta'}</span>
+                          )}
+                          {m.status === 'finished' &&
+                            m.home_penalties != null &&
+                            m.away_penalties != null &&
+                            m.home_penalties !== m.away_penalties && (
+                              <span className={styles.penBadge}>Pen {m.home_penalties}-{m.away_penalties}</span>
+                            )}
                         </div>
 
                         <MatchTeamCrest teamName={m.awayTeam?.team_name} shieldsMap={shieldsMap} />
@@ -280,12 +292,6 @@ function TournamentMatchContent({
       />
 
       <main className={styles.main}>
-        <RecentTimeline
-          matches={recentTimelineMatches}
-          shieldsMap={shieldsMap}
-          ref={recentTimelineRef}
-        />
-
         {error && <div className={styles.errorMessage}>{error}</div>}
 
         <PhaseControls
@@ -453,8 +459,13 @@ function TournamentMatchContent({
         />
       )}
 
-      <ScoreEntryDrawerBoundary key={selectedMatch?.id ?? 'no-match-selected'}>
-        <ScoreEntryDrawer myParticipantId={myParticipantId} onResultSaved={handleMatchResultUpdated} />
+        <ScoreEntryDrawerBoundary key={selectedMatch?.id ?? 'no-match-selected'}>
+        <ScoreEntryDrawer
+          matches={matches}
+          leagueRoundCount={leagueRoundCount}
+          myParticipantId={myParticipantId}
+          onResultSaved={handleMatchResultUpdated}
+        />
       </ScoreEntryDrawerBoundary>
     </div>
   )
