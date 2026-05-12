@@ -70,7 +70,23 @@
   box-shadow: 0 4px 14px color-mix(in srgb, var(--color-be) 12%, transparent 88%);
 }
 
-.rowTitle {
+.rowBtnDisabled {
+  cursor: default;
+  opacity: 0.92;
+  background: var(--color-gray-100);
+  border-style: dashed;
+}
+
+.rowBtnDisabled:hover {
+  border-color: var(--color-gray-200);
+  box-shadow: none;
+}
+
+.rowStatus {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-gray-300);
+}
   font-size: 15px;
   font-weight: 700;
   color: var(--color-dark-100);

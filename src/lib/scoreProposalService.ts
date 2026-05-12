@@ -124,20 +124,21 @@ function normalizeTournamentEmbed(raw: unknown): ProposalNotificationTournament 
   return { id: o.id, name: o.name, settings: (o.settings ?? null) as Json | null }
 }
 
+/** Últimas ~72h de propostas já encerradas ainda aparecem na lista (desabilitadas). */
+const RECENT_SETTLED_MS = 72 * 60 * 60 * 1000
+
 /**
- * Pending score proposals the user should vote on: participant tournaments, scoreValidation on,
- * not proposed by this user (same idea as the in-tournament realtime toast).
+ * Feed de notificações: propostas pendentes + encerradas recentes (aprovada/recusada/expirada).
+ * Participante do torneio, scoreValidation ligado, não propostas pelo próprio utilizador.
  */
-export async function fetchParticipantPendingProposalNotifications(
-  userId: string
-): Promise<ProposalNotificationRow[]> {
+export async function fetchParticipantProposalNotificationFeed(userId: string): Promise<ProposalNotificationRow[]> {
   const { data: parts, error: pe } = await supabase
     .from('participants')
     .select('tournament_id')
     .eq('user_id', userId)
 
   if (pe) {
-    console.error('fetchParticipantPendingProposalNotifications participants:', pe.message)
+    console.error('fetchParticipantProposalNotificationFeed participants:', pe.message)
     throw new Error(`Falha ao carregar participações: ${pe.message}`)
   }
 
@@ -167,18 +168,25 @@ export async function fetchParticipantPendingProposalNotifications(
       )
     `
     )
-    .eq('status', 'pending')
     .neq('proposed_by_user_id', userId)
     .in('tournament_id', tournamentIds)
+    .in('status', ['pending', 'approved', 'rejected', 'expired'])
 
   if (error) {
-    console.error('fetchParticipantPendingProposalNotifications:', error.message)
+    console.error('fetchParticipantProposalNotificationFeed:', error.message)
     throw new Error(`Falha ao carregar notificações: ${error.message}`)
   }
 
+  const cutoff = Date.now() - RECENT_SETTLED_MS
   const rows = (data ?? []) as Record<string, unknown>[]
   const out: ProposalNotificationRow[] = []
   for (const raw of rows) {
+    const status = raw.status as MatchScoreProposalStatus
+    if (status !== 'pending') {
+      const u = Date.parse(typeof raw.updated_at === 'string' ? raw.updated_at : '')
+      if (!Number.isFinite(u) || u < cutoff) continue
+    }
+
     const tournaments = normalizeTournamentEmbed(raw.tournaments)
     if (!tournaments || !isScoreValidationEnabled(tournaments.settings)) continue
     out.push({
@@ -190,14 +198,31 @@ export async function fetchParticipantPendingProposalNotifications(
       away_score: raw.away_score as number,
       home_penalties: (raw.home_penalties ?? null) as number | null,
       away_penalties: (raw.away_penalties ?? null) as number | null,
-      status: raw.status as MatchScoreProposalStatus,
-      expires_at: raw.expires_at as string,
+      status,
+      expires_at: typeof raw.expires_at === 'string' ? raw.expires_at : '',
       created_at: typeof raw.created_at === 'string' ? raw.created_at : '',
       updated_at: typeof raw.updated_at === 'string' ? raw.updated_at : '',
       tournaments,
     })
   }
+
+  out.sort((a, b) => {
+    const ap = a.status === 'pending'
+    const bp = b.status === 'pending'
+    if (ap && !bp) return -1
+    if (!ap && bp) return 1
+    if (ap && bp) return Date.parse(a.expires_at) - Date.parse(b.expires_at)
+    return Date.parse(b.updated_at) - Date.parse(a.updated_at)
+  })
+
   return out
+}
+
+/** @deprecated Use {@link fetchParticipantProposalNotificationFeed}. */
+export async function fetchParticipantPendingProposalNotifications(
+  userId: string
+): Promise<ProposalNotificationRow[]> {
+  return fetchParticipantProposalNotificationFeed(userId)
 }
 
 export async function finalizeMatchScoreProposal(

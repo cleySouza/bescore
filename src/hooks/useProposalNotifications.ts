@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSetAtom } from 'jotai'
 import { globalToastAtom } from '../atoms/tournamentAtoms'
 import {
-  fetchParticipantPendingProposalNotifications,
+  fetchParticipantProposalNotificationFeed,
   type ProposalNotificationRow,
 } from '../lib/scoreProposalService'
 import { supabase } from '../lib/supabaseClient'
@@ -24,7 +24,7 @@ export function useProposalNotifications(userId: string | undefined) {
   const setGlobalToast = useSetAtom(globalToastAtom)
   const [proposals, setProposals] = useState<ProposalNotificationRow[]>([])
   const [lastViewedAt, setLastViewedAt] = useState<string>(() => readLastViewedAt(userId))
-  /** First fetch seeds ids so existing pendências não disparam toast ao abrir o app */
+  /** Primeiro fetch: baseline só de IDs pendentes para não disparar toast ao abrir o app */
   const seededBaselineRef = useRef(false)
   const knownPendingIdsRef = useRef<Set<string>>(new Set())
 
@@ -40,28 +40,27 @@ export function useProposalNotifications(userId: string | undefined) {
       return
     }
     try {
-      const rows = await fetchParticipantPendingProposalNotifications(userId)
-      rows.sort((a, b) => Date.parse(b.created_at || '') - Date.parse(a.created_at || ''))
-
-      const nextIds = new Set(rows.map((r) => r.id))
+      const rows = await fetchParticipantProposalNotificationFeed(userId)
+      const pendingRows = rows.filter((r) => r.status === 'pending')
 
       if (!seededBaselineRef.current) {
         seededBaselineRef.current = true
-        knownPendingIdsRef.current = nextIds
+        knownPendingIdsRef.current = new Set(pendingRows.map((r) => r.id))
         setProposals(rows)
         return
       }
 
       const prev = knownPendingIdsRef.current
-      const hasNewForUser = rows.some((r) => !prev.has(r.id))
-      if (hasNewForUser) {
+      const hasNewPending = pendingRows.some((r) => !prev.has(r.id))
+      if (hasNewPending) {
         setGlobalToast({
           type: 'info',
           message: 'Nova proposta de placar — abra Notificações ou a partida para votar.',
+          persist: true,
         })
       }
 
-      knownPendingIdsRef.current = nextIds
+      knownPendingIdsRef.current = new Set(pendingRows.map((r) => r.id))
       setProposals(rows)
     } catch (e) {
       console.error('useProposalNotifications load:', e)
@@ -119,6 +118,7 @@ export function useProposalNotifications(userId: string | undefined) {
     const parsed = lastViewedAt ? Date.parse(lastViewedAt) : 0
     const thresholdMs = Number.isFinite(parsed) ? parsed : 0
     return proposals.reduce((acc, p) => {
+      if (p.status !== 'pending') return acc
       const t = Date.parse(p.created_at || '')
       return acc + (Number.isFinite(t) && t > thresholdMs ? 1 : 0)
     }, 0)
