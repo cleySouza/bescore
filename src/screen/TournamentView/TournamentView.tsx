@@ -10,7 +10,7 @@ import {
 } from '../../atoms/tournamentAtoms'
 import { fetchMyTournaments, getTournamentParticipants, joinTournamentById, deleteTournament, cancelTournament, seedMockParticipants } from '../../lib/tournamentService'
 import { getTournamentMatches } from '../../lib/matchService'
-import { generatePlayoffMatches } from '../../lib/matchGenerationEngine'
+import { generatePlayoffMatches, campeonatoLeagueRoundCount } from '../../lib/matchGenerationEngine'
 import { logger } from '../../lib/logger'
 import { env } from '../../config/env'
 import type { Participant } from '../../atoms/tournamentAtoms'
@@ -128,9 +128,17 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   const seedTargetTotal = Math.max(2, maxParticipants ?? (isCreatorAlreadyParticipant ? participantCount + 1 : participantCount + 2))
   const seedMissingCount = Math.max(0, seedTargetTotal - participantCount)
 
-  // Derivações de fase
-  const leagueMatches = matches.filter((m) => m.round === 1)
-  const playoffMatches = matches.filter((m) => m.round === 2)
+  const leagueRoundCount =
+    isCampeonato && participantCount > 0
+      ? campeonatoLeagueRoundCount(participantCount, tournamentSettings?.hasReturnMatch ?? false)
+      : 1
+
+  const leagueMatches = isCampeonato
+    ? matches.filter((m) => m.round !== null && m.round <= leagueRoundCount)
+    : matches.filter((m) => m.round === 1)
+  const playoffMatches = isCampeonato
+    ? matches.filter((m) => m.round !== null && m.round > leagueRoundCount)
+    : matches.filter((m) => m.round === 2)
   const hasPlayoffStarted = playoffMatches.length > 0
   const isLeagueFinished =
     isCampeonato &&

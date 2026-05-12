@@ -12,6 +12,19 @@ function getRoundRobinRoundCount(participantCount: number, hasReturnMatch = fals
   return hasReturnMatch ? baseCount * 2 : baseCount
 }
 
+/** Evita leagueRoundCount = 0 antes da lista de participantes hidratar (banner/playoff dependem disto). */
+export function effectiveParticipantCount(
+  participantsLength: number,
+  matches: Array<{ home_participant_id?: string | null; away_participant_id?: string | null }>
+): number {
+  const ids = new Set<string>()
+  for (const m of matches) {
+    if (m.home_participant_id) ids.add(m.home_participant_id)
+    if (m.away_participant_id) ids.add(m.away_participant_id)
+  }
+  return Math.max(participantsLength, ids.size)
+}
+
 export function getTournamentSettings(
   tournament: Tournament,
   userId: string,

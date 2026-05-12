@@ -9,7 +9,7 @@ import {
 } from '../../atoms/tournamentAtoms'
 import { useTournamentData } from './hooks/useTournamentData'
 import { useRecentTimeline } from './hooks/useRecentTimeline'
-import { getTournamentSettings, getMatchesByPhase, getRoundLabel } from './utils/tournamentHelpers'
+import { getTournamentSettings, getMatchesByPhase, getRoundLabel, effectiveParticipantCount } from './utils/tournamentHelpers'
 import { normalizeMatchForDrawer } from './utils/matchHelpers'
 import TournamentHeader from './components/TournamentHeader/TournamentHeader'
 import RecentTimeline from './components/RecentTimeline/RecentTimeline'
@@ -65,6 +65,7 @@ function TournamentMatch() {
   const { recentTimelineMatches, recentTimelineRef } = useRecentTimeline(user?.id, refreshKey)
 
   // Tournament settings
+  const participantCountForLeague = effectiveParticipantCount(participants.length, matches)
   const {
     isCreator,
     tournamentSettings,
@@ -74,7 +75,7 @@ function TournamentMatch() {
     leagueRoundCount,
     managedTeamOptions,
     shieldsMap,
-  } = getTournamentSettings(tournament, user.id, strapiShieldsMap, participants.length)
+  } = getTournamentSettings(tournament, user.id, strapiShieldsMap, participantCountForLeague)
 
   const myParticipantId = participants.find((p) => p.user_id === user.id)?.id ?? null
 
