@@ -16,6 +16,28 @@
   object-fit: contain;
 }
 
+.loginBtn {
+  margin-left: auto;
+  border: 1px solid var(--color-be-100);
+  padding: 9px 18px;
+  border-radius: 10px;
+  background: var(--color-dark-100);
+  color: var(--color-white);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.12s ease;
+}
+
+.loginBtn:hover {
+  border-color: color-mix(in srgb, var(--color-be) 45%, transparent 55%);
+  background: color-mix(in srgb, var(--color-dark-100) 92%, var(--color-white) 8%);
+}
+
+.loginBtn:active {
+  transform: scale(0.98);
+}
+
 .userTrigger {
   display: flex;
   align-items: center;
@@ -180,6 +202,11 @@
 
   .logo {
     height: 34px;
+  }
+
+  .loginBtn {
+    padding: 8px 14px;
+    font-size: 13px;
   }
 
   .userTrigger {

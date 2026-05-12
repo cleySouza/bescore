@@ -34,7 +34,7 @@ type PhaseFilter = 'league' | 'playoff'
 function TournamentMatch() {
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
-  if (!tournament || !user) return null
+  if (!tournament) return null
   return <TournamentMatchContent tournament={tournament} user={user} />
 }
 
@@ -43,7 +43,7 @@ function TournamentMatchContent({
   user,
 }: {
   tournament: TournamentWithParticipants
-  user: User
+  user: User | null
 }) {
   const navigate = useNavigate()
   const bumpRecentCarousel = useSetAtom(recentMatchesCarouselEpochAtom)
@@ -88,9 +88,11 @@ function TournamentMatchContent({
     leagueRoundCount,
     managedTeamOptions,
     shieldsMap,
-  } = getTournamentSettings(tournament, user.id, strapiShieldsMap, participantCountForLeague)
+  } = getTournamentSettings(tournament, user?.id ?? '', strapiShieldsMap, participantCountForLeague)
 
-  const myParticipantId = participants.find((p) => p.user_id === user.id)?.id ?? null
+  const myParticipantId = user
+    ? (participants.find((p) => p.user_id === user.id)?.id ?? null)
+    : null
 
   // Match filtering
   const {
@@ -219,7 +221,7 @@ function TournamentMatchContent({
                       <div className={styles.matchRowMain}>
                         <div className={styles.matchTeamBlock}>
                           <span className={styles.matchClub}>{m.homeTeam?.team_name || 'TBD'}</span>
-                          <span className={`${styles.matchBrand} ${m.homeTeam?.profile?.id === user.id ? styles.matchBrandCurrentUser : ''}`}>
+                          <span className={`${styles.matchBrand} ${m.homeTeam?.profile?.id === user?.id ? styles.matchBrandCurrentUser : ''}`}>
                             {m.homeTeam?.profile?.nickname || 'csbeep'}
                           </span>
                         </div>
@@ -249,7 +251,7 @@ function TournamentMatchContent({
 
                         <div className={`${styles.matchTeamBlock} ${styles.matchTeamAway}`}>
                           <span className={styles.matchClub}>{m.awayTeam?.team_name || 'TBD'}</span>
-                          <span className={`${styles.matchBrand} ${m.awayTeam?.profile?.id === user.id ? styles.matchBrandCurrentUser : ''}`}>
+                          <span className={`${styles.matchBrand} ${m.awayTeam?.profile?.id === user?.id ? styles.matchBrandCurrentUser : ''}`}>
                             {m.awayTeam?.profile?.nickname || 'csbeep'}
                           </span>
                         </div>

@@ -180,6 +180,49 @@ export async function fetchMyTournaments(userId: string): Promise<TournamentWith
 }
 
 /**
+ * Lista torneios públicos em aberto — pensado para utilizador não autenticado (RLS anon).
+ * Filtra client-side por status e isPrivate como em {@link fetchMyTournaments}.
+ */
+export async function fetchPublicTournaments(): Promise<TournamentWithParticipants[]> {
+  const { data: rows, error } = await supabase.from('tournaments').select('*').order('created_at', {
+    ascending: false,
+  })
+
+  if (error) {
+    console.error('Erro ao buscar torneios públicos:', error.message)
+    if (isMissingTableError(error, 'tournaments')) {
+      logger.warn(getSetupErrorMessage('tournaments'))
+      return []
+    }
+    throw new Error(`Falha ao buscar torneios públicos: ${error.message}`)
+  }
+
+  const filtered = (rows || []).filter((tournament) => {
+    const settings = tournament.settings as TournamentSettings | null
+    const isJoinableStatus = tournament.status === 'draft' || tournament.status === 'active'
+    return settings?.isPrivate !== true && isJoinableStatus
+  })
+
+  const enriched = await Promise.all(
+    filtered.map(async (tournament) => {
+      const { count } = await supabase
+        .from('participants')
+        .select('*', { count: 'exact', head: true })
+        .eq('tournament_id', tournament.id)
+
+      return {
+        ...tournament,
+        participantCount: count || 0,
+        isCreator: false,
+        isParticipant: false,
+      } as TournamentWithParticipants
+    })
+  )
+
+  return enriched
+}
+
+/**
  * Busca um torneio pelo invite_code
  */
 export async function getTournamentByCode(code: string): Promise<Tournament | null> {
@@ -293,11 +336,12 @@ export async function joinTournamentById(
 }
 
 /**
- * Busca um torneio por ID com enriquecimento de dados
+ * Busca um torneio por ID com enriquecimento. Sem `viewerUserId`, não consulta participação
+ * (visitante anônimo: `isCreator` / `isParticipant` falsos). RLS restringe torneios privados.
  */
-export async function getTournamentById(
+export async function getTournamentByIdForViewer(
   id: string,
-  userId: string
+  viewerUserId?: string | null
 ): Promise<TournamentWithParticipants> {
   const { data, error } = await supabase
     .from('tournaments')
@@ -315,15 +359,20 @@ export async function getTournamentById(
     .select('*', { count: 'exact', head: true })
     .eq('tournament_id', id)
 
-  const isCreator = data.creator_id === userId
-  const { data: participantData } = await supabase
-    .from('participants')
-    .select('id')
-    .eq('tournament_id', id)
-    .eq('user_id', userId)
-    .single()
+  let isCreator = false
+  let isParticipant = false
 
-  const isParticipant = !!participantData
+  if (viewerUserId) {
+    isCreator = data.creator_id === viewerUserId
+    const { data: participantData } = await supabase
+      .from('participants')
+      .select('id')
+      .eq('tournament_id', id)
+      .eq('user_id', viewerUserId)
+      .maybeSingle()
+
+    isParticipant = !!participantData
+  }
 
   return {
     ...data,
@@ -331,6 +380,13 @@ export async function getTournamentById(
     isCreator,
     isParticipant,
   }
+}
+
+/**
+ * Busca um torneio por ID com enriquecimento de dados (utilizador autenticado)
+ */
+export async function getTournamentById(id: string, userId: string): Promise<TournamentWithParticipants> {
+  return getTournamentByIdForViewer(id, userId)
 }
 
 /**
@@ -470,6 +526,27 @@ export async function cancelTournament(id: string): Promise<void> {
     console.error('Erro ao cancelar torneio:', error.message)
     throw new Error(`Falha ao cancelar torneio: ${error.message}`)
   }
+}
+
+/**
+ * Marca o torneio como encerrado no banco, apenas se ainda estiver `active` (idempotente).
+ * Retorna true se uma linha foi atualizada.
+ */
+export async function markTournamentFinishedIfStillActive(tournamentId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('tournaments')
+    .update({ status: 'finished' })
+    .eq('id', tournamentId)
+    .eq('status', 'active')
+    .select('id')
+
+  if (error) {
+    console.error('Erro ao finalizar torneio:', error.message)
+    return false
+  }
+
+  const rows = Array.isArray(data) ? data : data ? [data] : []
+  return rows.length > 0
 }
 
 /**

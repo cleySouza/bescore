@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import { activeTournamentAtom } from '../../atoms/tournamentAtoms'
-import { getTournamentById } from '../../lib/tournamentService'
+import { getTournamentByIdForViewer } from '../../lib/tournamentService'
 
 export type EnsureTournamentStatus = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -11,25 +11,19 @@ export type EnsureTournamentStatus = 'idle' | 'loading' | 'ready' | 'error'
  */
 export function useEnsureActiveTournament(tournamentId: string | undefined): EnsureTournamentStatus {
   const user = useAtomValue(userAtom)
-  const tournament = useAtomValue(activeTournamentAtom)
   const setActive = useSetAtom(activeTournamentAtom)
   const [status, setStatus] = useState<EnsureTournamentStatus>('idle')
 
   useEffect(() => {
-    if (!tournamentId || !user?.id) {
+    if (!tournamentId) {
       setStatus('idle')
-      return
-    }
-
-    if (tournament?.id === tournamentId) {
-      setStatus('ready')
       return
     }
 
     let cancelled = false
     setStatus('loading')
 
-    getTournamentById(tournamentId, user.id)
+    getTournamentByIdForViewer(tournamentId, user?.id ?? null)
       .then((t) => {
         if (cancelled) return
         setActive(t)
@@ -42,7 +36,7 @@ export function useEnsureActiveTournament(tournamentId: string | undefined): Ens
     return () => {
       cancelled = true
     }
-  }, [tournamentId, user?.id, tournament?.id, setActive])
+  }, [tournamentId, user?.id, setActive])
 
   return status
 }

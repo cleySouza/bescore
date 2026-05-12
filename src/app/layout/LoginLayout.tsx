@@ -1,14 +1,13 @@
-import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../providers/AuthProvider'
 import { SignIn } from '../../screen/SingIn/SignIn'
 import styles from '../../App.module.css'
-import { paths } from '../navigation/paths'
+import { PostLoginRedirect } from '../router/PostLoginRedirect'
 
 export function LoginLayout() {
   const { user } = useAuth()
 
   if (user) {
-    return <Navigate to={paths.home} replace />
+    return <PostLoginRedirect />
   }
 
   return (

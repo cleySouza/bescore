@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import {
@@ -66,6 +66,7 @@ function TournamentLobby() {
   const setActiveTournament = useSetAtom(activeTournamentAtom)
   const setMyTournaments = useSetAtom(myTournamentsAtom)
   const navigate = useNavigate()
+  const location = useLocation()
   const setShowConfigModal = useSetAtom(showConfigModalAtom)
 
   const [participants, setParticipants] = useState<ParticipantWithProfile[]>([])
@@ -100,9 +101,9 @@ function TournamentLobby() {
     loadData()
   }, [tournament, navigate, refreshKey])
 
-  if (!tournament || !user) return null
+  if (!tournament) return null
 
-  const isCreator = tournament.creator_id === user.id
+  const isCreator = !!user && tournament.creator_id === user.id
   const participantCount = participants.length
   const tournamentSettings = tournament.settings as TournamentSettings | null
   const managedTeamOptions = Array.isArray(tournamentSettings?.selectedTeamNames)
@@ -132,7 +133,8 @@ function TournamentLobby() {
       .filter((name) => name.length > 0)
   )
   const availableJoinTeams = predefinedTeams.filter((name) => !usedTeams.has(name))
-  const isParticipant = tournament.isParticipant ?? participants.some((p) => p.user_id === user.id)
+  const isParticipant =
+    !!user && (tournament.isParticipant || participants.some((p) => p.user_id === user.id))
   const isVisitor = !isCreator && !isParticipant
   const isMockSeedEnabled = env.features.enableMockSeed
   const isCreatorAlreadyParticipant = participants.some((p) => p.user_id === tournament.creator_id)
@@ -154,6 +156,7 @@ function TournamentLobby() {
   }
 
   const handleDeleteTournament = async () => {
+    if (!user) return
     if (!window.confirm('⚠️ Esta ação não pode ser desfeita. O torneio será removido permanentemente.')) return
     try {
       await deleteTournament(tournament.id)
@@ -203,6 +206,7 @@ function TournamentLobby() {
 
   // ─── DEV ONLY ──────────────────────────────────────────────────────────────
   const handleSeedParticipants = async () => {
+    if (!user) return
     try {
       await seedMockParticipants(tournament.id, seedTargetTotal, tournament.creator_id)
       const updated = await fetchMyTournaments(user.id)
@@ -366,7 +370,21 @@ function TournamentLobby() {
           {/* Visitor: join */}
           {isVisitor && (
             <div className={styles.joinSection}>
-              {isFull ? (
+              {!user ? (
+                <>
+                  <p className={styles.joinHint}>Entre na sua conta para participar deste torneio.</p>
+                  <button
+                    type="button"
+                    className={styles.joinBtn}
+                    onClick={() => {
+                      const target = `${location.pathname}${location.search}`
+                      navigate(`${paths.login}?redirect=${encodeURIComponent(target)}`)
+                    }}
+                  >
+                    Entrar ou criar conta
+                  </button>
+                </>
+              ) : isFull ? (
                 <span className={styles.fullBadge}>🔒 Torneio Lotado</span>
               ) : isPrivate ? (
                 <>

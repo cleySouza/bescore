@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import { activeTournamentAtom } from '../../atoms/tournamentAtoms'
-import { getTournamentById } from '../../lib/tournamentService'
+import { getTournamentByIdForViewer } from '../../lib/tournamentService'
 import { paths } from '../navigation/paths'
 import { RouteSpinner } from '../layout/RouteSpinner'
 
@@ -15,11 +15,11 @@ export function TournamentIndexRedirect() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (!tournamentId || !user?.id) return
+    if (!tournamentId) return
 
     let cancelled = false
 
-    getTournamentById(tournamentId, user.id)
+    getTournamentByIdForViewer(tournamentId, user?.id ?? null)
       .then((t) => {
         if (cancelled) return
         setActive(t)
@@ -37,7 +37,7 @@ export function TournamentIndexRedirect() {
     }
   }, [tournamentId, user?.id, navigate, setActive])
 
-  if (!user?.id || !tournamentId) {
+  if (!tournamentId) {
     return <Navigate to={paths.home} replace />
   }
 

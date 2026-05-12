@@ -1,13 +1,10 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from '../../providers/AuthProvider'
-import { useAccessControl } from '../../hooks/useAccessControl'
-import { Maintenance404 } from '../../screen/Maintenance404/Maintenance404'
 import { LoginLayout } from '../layout/LoginLayout'
-import { AuthenticatedLayout } from '../layout/AuthenticatedLayout'
+import { AppShellLayout } from '../layout/AppShellLayout'
 import { TournamentContextGate } from './TournamentContextGate'
 import { TournamentIndexRedirect } from './TournamentIndexRedirect'
-import { RedirectToLogin } from './RedirectToLogin'
-import { PostLoginRedirect } from './PostLoginRedirect'
+import { RequireAuth } from './RequireAuth'
 import { RouteSpinner } from '../layout/RouteSpinner'
 import Dashboard from '../../screen/Dashboard/Dashboard'
 import TournamentLobby from '../../screen/TournamentLobby/TournamentLobby'
@@ -18,37 +15,30 @@ import { paths } from '../navigation/paths'
 
 /**
  * Raiz de navegação: um BrowserRouter, URLs estáveis (sem “view” em atom persistido).
+ * Rotas públicas no shell; lobby/partidas do torneio leem dados via RLS. Criar/entrar exigem sessão ({@link RequireAuth}).
  */
 export function AppRouter() {
-  const { user, loading: authLoading } = useAuth()
-  const { hasAccess, loading: accessLoading } = useAccessControl(user)
-
-  const waitingSessionOrRollout = authLoading || (!!user && accessLoading)
+  const { loading: authLoading } = useAuth()
 
   return (
     <BrowserRouter>
-      {waitingSessionOrRollout ? (
+      {authLoading ? (
         <RouteSpinner />
-      ) : !user ? (
-        <Routes>
-          <Route path="/login" element={<LoginLayout />} />
-          <Route path="*" element={<RedirectToLogin />} />
-        </Routes>
-      ) : !hasAccess ? (
-        <Maintenance404 />
       ) : (
         <Routes>
-          <Route element={<AuthenticatedLayout />}>
+          <Route path="/login" element={<LoginLayout />} />
+          <Route element={<AppShellLayout />}>
             <Route path="/" element={<Dashboard />} />
-            <Route path={paths.join} element={<JoinByCode />} />
-            <Route path={paths.createTournament} element={<CreateTournament />} />
             <Route path="/tournaments/:tournamentId" element={<TournamentIndexRedirect />} />
             <Route element={<TournamentContextGate />}>
               <Route path="/tournaments/:tournamentId/lobby" element={<TournamentLobby />} />
               <Route path="/tournaments/:tournamentId/matches" element={<TournamentMatch />} />
             </Route>
+            <Route element={<RequireAuth />}>
+              <Route path={paths.join} element={<JoinByCode />} />
+              <Route path={paths.createTournament} element={<CreateTournament />} />
+            </Route>
           </Route>
-          <Route path="/login" element={<PostLoginRedirect />} />
           <Route path="*" element={<Navigate to={paths.home} replace />} />
         </Routes>
       )}

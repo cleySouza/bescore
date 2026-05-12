@@ -1,6 +1,8 @@
 import { supabase } from './supabaseClient'
 import type { MatchWithTeams, StandingsRow, TournamentSettings } from '../types/tournament'
 import { validateKnockoutScoreSubmission, type KnockoutMatchCore } from './playoffKnockout'
+import { isTournamentRunComplete } from './tournamentCompletion'
+import { markTournamentFinishedIfStillActive } from './tournamentService'
 
 function leagueRoundCountCampeonato(participantCount: number, hasReturnMatch: boolean): number {
   if (participantCount <= 1) return 0
@@ -185,6 +187,18 @@ export async function updateMatchResult(
     throw new Error(
       'Não foi possível salvar o placar (nenhuma linha atualizada). Peça ao admin para conferir no Supabase as políticas RLS de UPDATE/SELECT na tabela matches para participantes da partida.'
     )
+  }
+
+  const { data: completionMatchesRaw } = await supabase
+    .from('matches')
+    .select(
+      'id, round, status, home_participant_id, away_participant_id, home_score, away_score, home_penalties, away_penalties, playoff_pair_index, playoff_leg'
+    )
+    .eq('tournament_id', tournamentId)
+
+  const completionMatches = (completionMatchesRaw ?? []) as MatchWithTeams[]
+  if (isTournamentRunComplete(completionMatches, settings, participantCount)) {
+    await markTournamentFinishedIfStillActive(tournamentId)
   }
 
   return rows[0]

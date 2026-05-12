@@ -3,7 +3,11 @@ import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../../atoms/sessionAtom'
 import { myTournamentsAtom, activeTournamentAtom } from '../../../atoms/tournamentAtoms'
 import { strapiShieldsMapAtom } from '../../../atoms/catalogAtom'
-import { fetchMyTournaments, getTournamentParticipants, cancelTournament } from '../../../lib/tournamentService'
+import {
+  fetchMyTournaments,
+  getTournamentParticipants,
+  cancelTournament,
+} from '../../../lib/tournamentService'
 import { getTournamentMatches, getTournamentStandings } from '../../../lib/matchService'
 import { generatePlayoffMatches } from '../../../lib/matchGenerationEngine'
 import { canAdvanceFromSemifinalsToFinal } from '../../../lib/playoffKnockout'
@@ -13,6 +17,7 @@ import { supabase } from '../../../lib/supabaseClient'
 import { standingsCache } from '../../../components/StandingsTable/StandingsTable'
 import type { Tournament } from '../../../atoms/tournamentAtoms'
 import type { MatchWithTeams, TournamentSettings } from '../../../types/tournament'
+import { useTournamentFinishedSync } from './useTournamentFinishedSync'
 
 interface ParticipantWithProfile {
   id: string
@@ -192,6 +197,8 @@ export function useTournamentData(tournament: Tournament | null) {
       supabase.removeChannel(channel)
     }
   }, [tournament?.id])
+
+  useTournamentFinishedSync(tournament, matches, participants.length, setActiveTournament, setMyTournaments)
 
   // Load Strapi shields
   useEffect(() => {

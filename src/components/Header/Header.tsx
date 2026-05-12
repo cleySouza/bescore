@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Drawer } from '../Drawer/Drawer'
 import logoName from '../../assets/logo_name.svg'
 import { env } from '../../config/env'
+import { paths } from '../../app/navigation/paths'
+import { safeRedirectTarget } from '../../app/router/requireAuthPaths'
 import styles from './Header.module.css'
 
 type BeforeInstallPromptEvent = Event & {
@@ -22,6 +25,8 @@ interface HeaderProps {
 }
 
 export const Header = ({ user, onLogout }: HeaderProps) => {
+  const navigate = useNavigate()
+  const location = useLocation()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isInstalled, setIsInstalled] = useState(false)
@@ -39,6 +44,13 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
     typeof user?.user_metadata?.avatar_url === 'string' ? user.user_metadata.avatar_url : ''
   const appVersion = env.appVersion
   const canInstallApp = !isInstalled
+
+  const goLogin = () => {
+    const next = `${location.pathname}${location.search}`
+    const target = safeRedirectTarget(next)
+    const qs = target ? `?redirect=${encodeURIComponent(target)}` : ''
+    navigate(`${paths.login}${qs}`)
+  }
 
   useEffect(() => {
     const standaloneMedia = window.matchMedia('(display-mode: standalone)')
@@ -95,74 +107,82 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
     <>
       <header className={styles.header}>
         <img src={logoName} alt="BeScore" className={styles.logo} />
-        <button
-          type="button"
-          className={styles.userTrigger}
-          onClick={() => setIsMenuOpen(true)}
-          aria-label="Abrir menu do usuario"
-          aria-expanded={isMenuOpen}
-        >
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="Avatar" className={styles.avatar} />
-          ) : (
-            <div className={styles.avatarFallback} aria-hidden="true">
-              {userName.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <span className={styles.userNameLabel}>{userName}</span>
-          <span className={styles.chevron} aria-hidden="true">
-            v
-          </span>
-        </button>
+        {!user ? (
+          <button type="button" className={styles.loginBtn} onClick={goLogin} aria-label="Entrar na conta">
+            Entrar
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={styles.userTrigger}
+            onClick={() => setIsMenuOpen(true)}
+            aria-label="Abrir menu do usuario"
+            aria-expanded={isMenuOpen}
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className={styles.avatar} />
+            ) : (
+              <div className={styles.avatarFallback} aria-hidden="true">
+                {userName.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span className={styles.userNameLabel}>{userName}</span>
+            <span className={styles.chevron} aria-hidden="true">
+              v
+            </span>
+          </button>
+        )}
       </header>
 
-      <Drawer
-        isOpen={isMenuOpen}
-        onClose={() => setIsMenuOpen(false)}
-        ariaLabel="Menu do usuario"
-        title="Minha conta"
-        panelClassName={styles.profileDrawer}
-      >
-        <div className={styles.userCard}>
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="Avatar do usuario" className={styles.avatarLarge} />
-          ) : (
-            <div className={styles.avatarLargeFallback} aria-hidden="true">
-              {userName.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <p className={styles.userNameFull}>{userName}</p>
-        </div>
-
-        {canInstallApp && (
-          <>
-            <button
-              type="button"
-              onClick={handleInstallApp}
-              className={styles.installBtn}
-            >
-              Instalar app
-            </button>
-
-            {showInstallHelp && (
-              <p className={styles.installHelpText}>
-                Se o prompt nao abrir: no Android/Desktop use o menu do navegador e clique em
-                "Instalar app". No iPhone, abra Compartilhar e toque em "Adicionar a Tela de
-                Inicio".
-              </p>
-            )}
-          </>
-        )}
-
-        <button
-          type="button"
-          onClick={onLogout}
-          className={styles.logoutBtn}
+      {user && (
+        <Drawer
+          isOpen={isMenuOpen}
+          onClose={() => setIsMenuOpen(false)}
+          ariaLabel="Menu do usuario"
+          title="Minha conta"
+          panelClassName={styles.profileDrawer}
         >
-          Sair
-        </button>
-        <p className={styles.versionText}>v{appVersion}</p>
-      </Drawer>
+          <div className={styles.userCard}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar do usuario" className={styles.avatarLarge} />
+            ) : (
+              <div className={styles.avatarLargeFallback} aria-hidden="true">
+                {userName.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <p className={styles.userNameFull}>{userName}</p>
+          </div>
+
+          {canInstallApp && (
+            <>
+              <button
+                type="button"
+                onClick={handleInstallApp}
+                className={styles.installBtn}
+              >
+                Instalar app
+              </button>
+
+              {showInstallHelp && (
+                <p className={styles.installHelpText}>
+                  Se o prompt nao abrir: no Android/Desktop use o menu do navegador e clique em
+                  "Instalar app". No iPhone, abra Compartilhar e toque em "Adicionar a Tela de
+                  Inicio".
+                </p>
+              )}
+            </>
+          )}
+
+          <button
+            type="button"
+            onClick={onLogout}
+            className={styles.logoutBtn}
+          >
+            Sair
+          </button>
+          <p className={styles.versionText}>v{appVersion}</p>
+        </Drawer>
+      )}
     </>
   )
-};
+}

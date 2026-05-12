@@ -10,9 +10,17 @@
 
 .header {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  margin-bottom: 24px;
+  min-width: 0;
+}
+
+.headerTop {
+  display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
   flex-wrap: wrap;
   gap: 14px;
   min-width: 0;
@@ -27,8 +35,10 @@
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   min-width: 0;
+  justify-content: flex-end;
 }
 
 .joinBtn,
@@ -53,6 +63,58 @@
   border-color: var(--color-dark-100);
 }
 
+.joinBtnActive {
+  background: color-mix(in srgb, var(--color-be) 12%, var(--color-white) 88%);
+  border-color: color-mix(in srgb, var(--color-be-100) 45%, var(--color-gray-200) 55%);
+  color: var(--color-dark-100);
+}
+
+.searchPanel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 10px;
+  font-size: 15px;
+  font-family: inherit;
+  background: var(--color-white);
+  color: var(--color-dark-100);
+  box-sizing: border-box;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--color-be-100) 55%, var(--color-gray-200) 45%);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-be) 18%, transparent 82%);
+}
+
+.clearFilterBtn {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 8px;
+  background: var(--color-white);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-dark-100);
+  cursor: pointer;
+}
+
+.clearFilterBtn:hover {
+  border-color: var(--color-dark-100);
+  background: var(--color-gray-100);
+}
+
 .createBtn {
   background: var(--color-be-100);
   color: var(--color-white);
@@ -70,9 +132,13 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
-  margin-top: 12px;
+  gap: 24px;
+  row-gap: 28px;
+  column-gap: 24px;
+  margin-top: 8px;
+  padding-bottom: 32px;
   min-width: 0;
+  align-content: start;
 }
 
 @media (max-width: 768px) {
@@ -82,7 +148,10 @@
 
   .grid {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 12px;
+    gap: 20px;
+    row-gap: 24px;
+    column-gap: 20px;
+    padding-bottom: 28px;
   }
 
   .title {
@@ -103,7 +172,9 @@
   .grid {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 20px;
+    row-gap: 20px;
+    padding-bottom: 28px;
   }
 
   .title {
@@ -111,26 +182,43 @@
   }
 
   .header {
-    flex-direction: column;
-    align-items: stretch;
     margin-bottom: 14px;
     gap: 10px;
     min-width: 0;
   }
 
+  .headerTop {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    min-width: 0;
+  }
+
   .actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
     gap: 8px;
+    justify-content: stretch;
     min-width: 0;
   }
 
   .joinBtn,
   .createBtn {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     min-height: 42px;
     padding: 10px 12px;
     font-size: 13px;
+  }
+
+  .searchPanel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .clearFilterBtn {
+    width: 100%;
   }
 }
 
@@ -181,6 +269,13 @@
   font-size: 15px;
   color: var(--color-gray-300);
   margin-bottom: 14px;
+}
+
+.emptyHint {
+  font-size: 13px;
+  color: var(--color-dark);
+  opacity: 0.85;
+  margin-bottom: 16px !important;
 }
 
 .emptyCreateBtn {

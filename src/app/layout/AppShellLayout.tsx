@@ -17,7 +17,8 @@ import { InviteDeepLinkHandler } from './InviteDeepLinkHandler'
 import { paths } from '../navigation/paths'
 import styles from '../../screen/LoggedIn/LoggedIn.module.css'
 
-export function AuthenticatedLayout() {
+/** Shell principal com cabeçalho — funciona com ou sem utilizador (exploração pública). */
+export function AppShellLayout() {
   const user = useAtomValue(userAtom)
   const navigate = useNavigate()
   const setActiveTournament = useSetAtom(activeTournamentAtom)
@@ -31,7 +32,7 @@ export function AuthenticatedLayout() {
   const handleLogout = async () => {
     try {
       await signOut()
-      navigate(paths.login, { replace: true })
+      navigate(paths.home, { replace: true })
       setActiveTournament(null)
       setMyTournaments([])
       setActiveTournamentTab('matches')
@@ -41,8 +42,6 @@ export function AuthenticatedLayout() {
       console.error('Logout failed:', error)
     }
   }
-
-  if (!user) return null
 
   return (
     <div className={styles.appContainer}>
