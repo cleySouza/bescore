@@ -258,7 +258,7 @@ function ScoreEntryDrawer({
       }
 
       if (scoreValidationOn) {
-        const created = await createMatchScoreProposal({
+        await createMatchScoreProposal({
           matchId: selectedMatch.id,
           homeScore,
           awayScore,
@@ -269,22 +269,6 @@ function ScoreEntryDrawer({
           type: 'info',
           message: 'Proposta de placar enviada. Participe da votação abaixo.',
         })
-        const fin = await finalizeMatchScoreProposal(created.id)
-        if (fin.status === 'approved') {
-          setGlobalToast({ type: 'success', message: 'Placar aprovado e salvo.' })
-          window.dispatchEvent(
-            new CustomEvent('bescore:match-updated', {
-              detail: {
-                matchId: selectedMatch.id,
-                homeScore,
-                awayScore,
-              },
-            })
-          )
-          onResultSaved?.()
-          setSelectedMatch(null)
-          return
-        }
         await reloadProposalState()
         return
       }

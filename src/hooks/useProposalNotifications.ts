@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSetAtom } from 'jotai'
+import { globalToastAtom } from '../atoms/tournamentAtoms'
 import {
   fetchParticipantPendingProposalNotifications,
   type ProposalNotificationRow,
@@ -19,11 +21,17 @@ function readLastViewedAt(userId: string | undefined): string {
 }
 
 export function useProposalNotifications(userId: string | undefined) {
+  const setGlobalToast = useSetAtom(globalToastAtom)
   const [proposals, setProposals] = useState<ProposalNotificationRow[]>([])
   const [lastViewedAt, setLastViewedAt] = useState<string>(() => readLastViewedAt(userId))
+  /** First fetch seeds ids so existing pendências não disparam toast ao abrir o app */
+  const seededBaselineRef = useRef(false)
+  const knownPendingIdsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     setLastViewedAt(readLastViewedAt(userId))
+    seededBaselineRef.current = false
+    knownPendingIdsRef.current = new Set()
   }, [userId])
 
   const load = useCallback(async () => {
@@ -34,11 +42,31 @@ export function useProposalNotifications(userId: string | undefined) {
     try {
       const rows = await fetchParticipantPendingProposalNotifications(userId)
       rows.sort((a, b) => Date.parse(b.created_at || '') - Date.parse(a.created_at || ''))
+
+      const nextIds = new Set(rows.map((r) => r.id))
+
+      if (!seededBaselineRef.current) {
+        seededBaselineRef.current = true
+        knownPendingIdsRef.current = nextIds
+        setProposals(rows)
+        return
+      }
+
+      const prev = knownPendingIdsRef.current
+      const hasNewForUser = rows.some((r) => !prev.has(r.id))
+      if (hasNewForUser) {
+        setGlobalToast({
+          type: 'info',
+          message: 'Nova proposta de placar — abra Notificações ou a partida para votar.',
+        })
+      }
+
+      knownPendingIdsRef.current = nextIds
       setProposals(rows)
     } catch (e) {
       console.error('useProposalNotifications load:', e)
     }
-  }, [userId])
+  }, [userId, setGlobalToast])
 
   useEffect(() => {
     void load()
