@@ -200,6 +200,26 @@ function ScoreEntryDrawer({
           setSelectedMatch(null)
           return
         }
+        if (fin.status === 'rejected') {
+          setGlobalToast({
+            type: 'warning',
+            message: 'Placar recusado pela maioria. O jogo voltou a ficar sem resultado — envie uma nova proposta.',
+          })
+          window.dispatchEvent(
+            new CustomEvent('bescore:match-updated', {
+              detail: {
+                matchId: selectedMatch.id,
+                homeScore: null,
+                awayScore: null,
+              },
+            })
+          )
+          onResultSavedRef.current?.()
+          setPendingProposal(null)
+          setProposalVotes([])
+          setSelectedMatch(null)
+          return
+        }
         if (fin.status === 'expired') {
           setGlobalToast({ type: 'warning', message: 'Proposta de placar expirou sem maioria a favor.' })
           setPendingProposal(null)
@@ -327,6 +347,23 @@ function ScoreEntryDrawer({
           )
           onResultSaved?.()
           setSelectedMatch(null)
+          return
+        }
+        if (fin.status === 'rejected') {
+          setGlobalToast({
+            type: 'warning',
+            message: 'Placar recusado pela maioria. O jogo voltou a ficar sem resultado — envie uma nova proposta.',
+          })
+          window.dispatchEvent(
+            new CustomEvent('bescore:match-updated', {
+              detail: {
+                matchId: pendingProposal.match_id,
+                homeScore: null,
+                awayScore: null,
+              },
+            })
+          )
+          onResultSaved?.()
           return
         }
         if (fin.status === 'expired') {

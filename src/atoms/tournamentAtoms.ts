@@ -54,6 +54,10 @@ export const recentMatchesCarouselEpochAtom = atom(0)
 export interface GlobalToast {
   message: string
   type: 'success' | 'info' | 'warning' | 'error'
+  /** Sem timeout até o utilizador fechar (ex.: proposta de placar). */
+  persist?: boolean
+  /** Milissegundos até fechar sozinho; ignorado se `persist`. Omisso: 9000. */
+  durationMs?: number
 }
 
 // Notificacao global tipo push/toast (fora dos componentes locais)
