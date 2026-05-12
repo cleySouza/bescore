@@ -104,12 +104,15 @@
 /* Container único horizontal com borda — as três tags dentro */
 .tagsContainer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
   padding: 8px 12px;
   border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   background: var(--color-white);
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Tag padrão: texto cinza, sem fundo */
