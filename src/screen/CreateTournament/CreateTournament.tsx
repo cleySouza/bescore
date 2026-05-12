@@ -45,6 +45,7 @@ function CreateTournament() {
     autoTeams: true,
     adminDraft: true,    // true = admin escolhe times; false = participante escolhe na inscrição
     adminScores: true,   // true = só admin lança placares; false = jogadores lançam próprias partidas
+    scoreValidation: false,
     matchType: 'single' as 'single' | 'double',
     willPlay: true,
     teamNames: '',
@@ -188,6 +189,7 @@ function CreateTournament() {
       autoTeams: true,
       adminDraft: true,
       adminScores: true,
+      scoreValidation: false,
       matchType: 'single',
       willPlay: true,
       teamNames: '',
@@ -231,6 +233,7 @@ function CreateTournament() {
       const newTournament = await createTournament(formData.name, user.id, formData.gameType, {
         isPrivate: formData.isPrivate,
         adminScores: formData.adminScores,
+        scoreValidation: formData.scoreValidation,
         maxParticipants: formData.maxParticipants,
         format: mapCreateFormatToTournamentFormat(formData.format),
         hasReturnMatch: formData.matchType === 'double',
@@ -287,6 +290,7 @@ function CreateTournament() {
         autoTeams: true,
         adminDraft: true,
         adminScores: true,
+        scoreValidation: false,
         matchType: 'single',
         willPlay: true,
         teamNames: '',
@@ -611,6 +615,21 @@ function CreateTournament() {
                       <span className={styles.slideKnob} />
                       <span className={styles.slideLabel}>
                         {formData.adminScores ? 'ADMIN' : 'JOGAD.'}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* VALIDAÇÃO DE PLACAR (votação entre participantes) */}
+                  <div className={styles.toggleGroup}>
+                    <div className={styles.toggleGroupLabel}>VOTAÇÃO</div>
+                    <button
+                      type="button"
+                      className={`${styles.slideToggle} ${formData.scoreValidation ? styles.active : ''}`}
+                      onClick={() => handleToggle('scoreValidation')}
+                    >
+                      <span className={styles.slideKnob} />
+                      <span className={styles.slideLabel}>
+                        {formData.scoreValidation ? 'SIM' : 'NÃO'}
                       </span>
                     </button>
                   </div>

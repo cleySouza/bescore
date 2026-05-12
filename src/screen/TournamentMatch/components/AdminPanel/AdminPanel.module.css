@@ -72,6 +72,59 @@
   margin: 0 0 16px 0;
 }
 
+.adminPanelTitle + .adminPanelTitle {
+  margin-top: 28px;
+}
+
+.adminSettingsHint {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-gray-600);
+  margin: 0 0 12px;
+}
+
+.adminCheckboxRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--color-dark);
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.adminCheckboxRow input {
+  margin-top: 3px;
+}
+
+.adminSettingsError {
+  font-size: 13px;
+  color: var(--color-red);
+  margin: 0 0 10px;
+}
+
+.adminSaveSettingsBtn {
+  padding: 10px 16px;
+  background: var(--color-dark);
+  color: var(--color-white);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 24px;
+  transition: filter 0.15s ease;
+}
+
+.adminSaveSettingsBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.adminSaveSettingsBtn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
 .adminParticipantList {
   display: flex;
   flex-direction: column;

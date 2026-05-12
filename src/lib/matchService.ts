@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient'
 import type { MatchWithTeams, StandingsRow, TournamentSettings } from '../types/tournament'
+import { isScoreValidationEnabled } from '../types/tournament'
 import { validateKnockoutScoreSubmission, type KnockoutMatchCore } from './playoffKnockout'
 import { isTournamentRunComplete } from './tournamentCompletion'
 import { markTournamentFinishedIfStillActive } from './tournamentService'
@@ -124,6 +125,13 @@ export async function updateMatchResult(
   }
 
   const settings = (tournamentRow?.settings ?? null) as TournamentSettings | null
+
+  if (isScoreValidationEnabled(settings)) {
+    throw new Error(
+      'Este torneio usa validação de placar por votação. Use uma proposta de placar e aguarde a aprovação dos participantes.'
+    )
+  }
+
   const format = settings?.format ?? 'roundRobin'
 
   const { count: participantCountRaw } = await supabase

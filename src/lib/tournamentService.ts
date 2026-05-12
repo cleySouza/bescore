@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient'
 import { logger } from './logger'
-import type { Tables } from '../types/supabase'
+import type { Json, Tables } from '../types/supabase'
 import type { TournamentWithParticipants, Participant } from '../atoms/tournamentAtoms'
 import type { TournamentSettings } from '../types/tournament'
 
@@ -79,6 +79,7 @@ export async function createTournament(
       | 'selectedTeamShields'
       | 'teamAssignMode'
       | 'playoffTwoLegged'
+      | 'scoreValidation'
     >
   >
 ): Promise<Tournament> {
@@ -106,6 +107,38 @@ export async function createTournament(
   }
 
   return data
+}
+
+/**
+ * Mescla campos em `tournaments.settings` (só colunas existentes no JSON).
+ */
+export async function mergeTournamentSettings(
+  tournamentId: string,
+  patch: Partial<TournamentSettings>
+): Promise<TournamentSettings> {
+  const { data: row, error: fetchErr } = await supabase
+    .from('tournaments')
+    .select('settings')
+    .eq('id', tournamentId)
+    .maybeSingle()
+
+  if (fetchErr) {
+    throw new Error(`Falha ao carregar torneio: ${fetchErr.message}`)
+  }
+
+  const base = (row?.settings ?? {}) as Record<string, unknown>
+  const merged = { ...base, ...patch } as TournamentSettings
+
+  const { error: updErr } = await supabase
+    .from('tournaments')
+    .update({ settings: merged as unknown as Json })
+    .eq('id', tournamentId)
+
+  if (updErr) {
+    throw new Error(`Falha ao salvar configurações: ${updErr.message}`)
+  }
+
+  return merged
 }
 
 /**

@@ -14,6 +14,101 @@ export type Database = {
   }
   public: {
     Tables: {
+      match_score_proposal_votes: {
+        Row: {
+          created_at: string | null
+          id: string
+          proposal_id: string
+          updated_at: string | null
+          user_id: string
+          vote: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          proposal_id: string
+          updated_at?: string | null
+          user_id: string
+          vote: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          proposal_id?: string
+          updated_at?: string | null
+          user_id?: string
+          vote?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'match_score_proposal_votes_proposal_id_fkey'
+            columns: ['proposal_id']
+            isOneToOne: false
+            referencedRelation: 'match_score_proposals'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      match_score_proposals: {
+        Row: {
+          away_penalties: number | null
+          away_score: number
+          created_at: string | null
+          expires_at: string
+          home_penalties: number | null
+          home_score: number
+          id: string
+          match_id: string
+          proposed_by_user_id: string
+          status: string
+          tournament_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          away_penalties?: number | null
+          away_score: number
+          created_at?: string | null
+          expires_at?: string
+          home_penalties?: number | null
+          home_score: number
+          id?: string
+          match_id: string
+          proposed_by_user_id?: string
+          status?: string
+          tournament_id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          away_penalties?: number | null
+          away_score?: number
+          created_at?: string | null
+          expires_at?: string
+          home_penalties?: number | null
+          home_score?: number
+          id?: string
+          match_id?: string
+          proposed_by_user_id?: string
+          status?: string
+          tournament_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'match_score_proposals_match_id_fkey'
+            columns: ['match_id']
+            isOneToOne: false
+            referencedRelation: 'matches'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'match_score_proposals_tournament_id_fkey'
+            columns: ['tournament_id']
+            isOneToOne: false
+            referencedRelation: 'tournaments'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       matches: {
         Row: {
           away_participant_id: string | null
@@ -202,7 +297,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      finalize_match_score_proposal: {
+        Args: { p_proposal_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

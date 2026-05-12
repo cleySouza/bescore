@@ -1,13 +1,33 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../../../atoms/sessionAtom'
 import { activeTournamentAtom, globalToastAtom, selectedMatchAtom } from '../../../../atoms/tournamentAtoms'
 import { updateMatchResult, type UpdateMatchPenaltyMode } from '../../../../lib/matchService'
+import {
+  castProposalVote,
+  createMatchScoreProposal,
+  fetchPendingProposalForMatch,
+  fetchVotesForProposal,
+  finalizeMatchScoreProposal,
+  type MatchScoreProposal,
+  type ProposalVoteRow,
+} from '../../../../lib/scoreProposalService'
 import { isTwoLegAggregateTie } from '../../../../lib/playoffKnockout'
 import type { MatchWithTeams, TournamentSettings } from '../../../../types/tournament'
-import { isAdminOnlyScoring } from '../../../../types/tournament'
+import { isAdminOnlyScoring, isScoreValidationEnabled } from '../../../../types/tournament'
 import ScoreEntryTeamCrest from '../ScoreEntryTeamCrest/ScoreEntryTeamCrest'
 import './scoreEntry.css'
+
+export interface ScoreDrawerParticipant {
+  id: string
+  user_id: string | null
+  team_name: string | null
+  profile?: {
+    nickname: string | null
+    avatar_url: string | null
+    email: string
+  } | null
+}
 
 interface ScoreEntryDrawerProps {
   matches: MatchWithTeams[]
@@ -15,6 +35,7 @@ interface ScoreEntryDrawerProps {
   onResultSaved?: () => void
   /** Id na tabela participants do utilizador logado; não depende de RLS nos joins da partida */
   myParticipantId?: string | null
+  participants?: ScoreDrawerParticipant[]
 }
 
 function getDisplayName(
@@ -44,6 +65,7 @@ function ScoreEntryDrawer({
   leagueRoundCount,
   onResultSaved,
   myParticipantId = null,
+  participants = [],
 }: ScoreEntryDrawerProps) {
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
@@ -58,6 +80,12 @@ function ScoreEntryDrawer({
   const [scorePhase, setScorePhase] = useState<'scores' | 'penalties'>('scores')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pendingProposal, setPendingProposal] = useState<MatchScoreProposal | null>(null)
+  const [proposalVotes, setProposalVotes] = useState<ProposalVoteRow[]>([])
+  const [voteBusy, setVoteBusy] = useState(false)
+
+  const onResultSavedRef = useRef(onResultSaved)
+  onResultSavedRef.current = onResultSaved
 
   useEffect(() => {
     if (!selectedMatch) return
@@ -70,8 +98,14 @@ function ScoreEntryDrawer({
   }, [selectedMatch])
 
   const tournamentSettings = tournament?.settings as TournamentSettings | null
+  const scoreValidationOn = isScoreValidationEnabled(tournamentSettings)
   const isCampeonato = tournamentSettings?.format === 'campeonato'
   const playoffTwoLegged = tournamentSettings?.playoffTwoLegged === true
+
+  const eligibleVoters = useMemo(
+    () => participants.filter((p): p is ScoreDrawerParticipant & { user_id: string } => typeof p.user_id === 'string'),
+    [participants]
+  )
 
   const round = selectedMatch?.round ?? 0
   const siblingRoundMatches = useMemo(
@@ -104,6 +138,9 @@ function ScoreEntryDrawer({
     return !isFinished && (isCreator || isParticipantInMatch)
   }, [selectedMatch, tournament, user, myParticipantId, myId, adminOnlyScoring])
 
+  const scoresLocked = scoreValidationOn && !!pendingProposal
+  const canEditScores = canEdit && !scoresLocked
+
   const knockoutNeedsPenalties = useMemo(() => {
     if (!selectedMatch || !tournament || homeScore === null || awayScore === null || !isKnockoutPhase) {
       return false
@@ -133,6 +170,68 @@ function ScoreEntryDrawer({
     siblingRoundMatches,
   ])
 
+  const reloadProposalState = useCallback(async () => {
+    if (!selectedMatch || !scoreValidationOn) {
+      setPendingProposal(null)
+      setProposalVotes([])
+      return
+    }
+    try {
+      const p = await fetchPendingProposalForMatch(selectedMatch.id)
+      setPendingProposal(p)
+      if (p) {
+        const v = await fetchVotesForProposal(p.id)
+        setProposalVotes(v)
+        const fin = await finalizeMatchScoreProposal(p.id)
+        if (fin.status === 'approved') {
+          setGlobalToast({ type: 'success', message: 'Placar aprovado pela maioria.' })
+          window.dispatchEvent(
+            new CustomEvent('bescore:match-updated', {
+              detail: {
+                matchId: selectedMatch.id,
+                homeScore: p.home_score,
+                awayScore: p.away_score,
+              },
+            })
+          )
+          onResultSavedRef.current?.()
+          setPendingProposal(null)
+          setProposalVotes([])
+          setSelectedMatch(null)
+          return
+        }
+        if (fin.status === 'expired') {
+          setGlobalToast({ type: 'warning', message: 'Proposta de placar expirou sem maioria a favor.' })
+          setPendingProposal(null)
+          setProposalVotes([])
+        }
+      } else {
+        setProposalVotes([])
+      }
+    } catch (err) {
+      console.error('reloadProposalState', err)
+    }
+  }, [selectedMatch, scoreValidationOn, setGlobalToast, setSelectedMatch])
+
+  useEffect(() => {
+    void reloadProposalState()
+  }, [selectedMatch?.id, scoreValidationOn, reloadProposalState])
+
+  useEffect(() => {
+    if (!pendingProposal?.id || !scoreValidationOn) return
+    const t = window.setInterval(() => {
+      void reloadProposalState()
+    }, 12000)
+    return () => window.clearInterval(t)
+  }, [pendingProposal?.id, scoreValidationOn, reloadProposalState])
+
+  const [, setCountdownTick] = useState(0)
+  useEffect(() => {
+    if (!pendingProposal) return
+    const i = window.setInterval(() => setCountdownTick((n) => n + 1), 1000)
+    return () => window.clearInterval(i)
+  }, [pendingProposal?.id])
+
   const pensFilled =
     homePenalties !== null &&
     awayPenalties !== null &&
@@ -140,8 +239,8 @@ function ScoreEntryDrawer({
     Number.isFinite(awayPenalties) &&
     homePenalties !== awayPenalties
 
-  const canProceedScores = canEdit && homeScore !== null && awayScore !== null
-  const canSavePenalties = canEdit && knockoutNeedsPenalties && pensFilled
+  const canProceedScores = canEditScores && homeScore !== null && awayScore !== null
+  const canSavePenalties = canEditScores && knockoutNeedsPenalties && pensFilled
 
   const persistResult = useCallback(
     async (opts: { needsKnockoutPenalties: boolean }) => {
@@ -156,6 +255,38 @@ function ScoreEntryDrawer({
           home: opts.needsKnockoutPenalties ? homePenalties : null,
           away: opts.needsKnockoutPenalties ? awayPenalties : null,
         }
+      }
+
+      if (scoreValidationOn) {
+        const created = await createMatchScoreProposal({
+          matchId: selectedMatch.id,
+          homeScore,
+          awayScore,
+          homePenalties: penaltyMode.mode === 'set' ? penaltyMode.home : null,
+          awayPenalties: penaltyMode.mode === 'set' ? penaltyMode.away : null,
+        })
+        setGlobalToast({
+          type: 'info',
+          message: 'Proposta de placar enviada. Participe da votação abaixo.',
+        })
+        const fin = await finalizeMatchScoreProposal(created.id)
+        if (fin.status === 'approved') {
+          setGlobalToast({ type: 'success', message: 'Placar aprovado e salvo.' })
+          window.dispatchEvent(
+            new CustomEvent('bescore:match-updated', {
+              detail: {
+                matchId: selectedMatch.id,
+                homeScore,
+                awayScore,
+              },
+            })
+          )
+          onResultSaved?.()
+          setSelectedMatch(null)
+          return
+        }
+        await reloadProposalState()
+        return
       }
 
       await updateMatchResult(selectedMatch.id, homeScore, awayScore, penaltyMode)
@@ -183,14 +314,54 @@ function ScoreEntryDrawer({
       homePenalties,
       awayPenalties,
       isKnockoutPhase,
+      scoreValidationOn,
       setGlobalToast,
       setSelectedMatch,
       onResultSaved,
+      reloadProposalState,
     ]
   )
 
+  const handleCastVote = useCallback(
+    async (approve: boolean) => {
+      if (!pendingProposal || !user || voteBusy) return
+      setVoteBusy(true)
+      setError(null)
+      try {
+        await castProposalVote(pendingProposal.id, approve ? 'approve' : 'reject')
+        const fin = await finalizeMatchScoreProposal(pendingProposal.id)
+        if (fin.status === 'approved') {
+          setGlobalToast({ type: 'success', message: 'Placar aprovado pela maioria.' })
+          window.dispatchEvent(
+            new CustomEvent('bescore:match-updated', {
+              detail: {
+                matchId: pendingProposal.match_id,
+                homeScore: pendingProposal.home_score,
+                awayScore: pendingProposal.away_score,
+              },
+            })
+          )
+          onResultSaved?.()
+          setSelectedMatch(null)
+          return
+        }
+        if (fin.status === 'expired') {
+          setGlobalToast({ type: 'warning', message: 'Proposta de placar expirou sem maioria a favor.' })
+        }
+        await reloadProposalState()
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro ao votar'
+        setError(message)
+        setGlobalToast({ type: 'error', message })
+      } finally {
+        setVoteBusy(false)
+      }
+    },
+    [pendingProposal, user, voteBusy, setGlobalToast, setSelectedMatch, onResultSaved, reloadProposalState]
+  )
+
   const handleProceedScores = useCallback(async () => {
-    if (!selectedMatch || !tournament || loading || !canEdit) return
+    if (!selectedMatch || !tournament || loading || !canEditScores) return
 
     if (homeScore === null || awayScore === null) {
       const message = 'Preencha o placar dos dois times antes de confirmar.'
@@ -222,7 +393,7 @@ function ScoreEntryDrawer({
     selectedMatch,
     tournament,
     loading,
-    canEdit,
+    canEditScores,
     homeScore,
     awayScore,
     isKnockoutPhase,
@@ -232,7 +403,7 @@ function ScoreEntryDrawer({
   ])
 
   const handleSavePenalties = useCallback(async () => {
-    if (!selectedMatch || loading || !canEdit) return
+    if (!selectedMatch || loading || !canEditScores) return
 
     if (!knockoutNeedsPenalties || !pensFilled) {
       const message = 'Informe os pênaltis com dois valores diferentes.'
@@ -255,7 +426,7 @@ function ScoreEntryDrawer({
   }, [
     selectedMatch,
     loading,
-    canEdit,
+    canEditScores,
     knockoutNeedsPenalties,
     pensFilled,
     persistResult,
@@ -271,7 +442,7 @@ function ScoreEntryDrawer({
   }
 
   useEffect(() => {
-    if (!selectedMatch || !canEdit) return
+    if (!selectedMatch || !canEditScores) return
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (typeof window !== 'undefined' && window.innerWidth < 768) return
@@ -318,7 +489,7 @@ function ScoreEntryDrawer({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [
     selectedMatch,
-    canEdit,
+    canEditScores,
     loading,
     scorePhase,
     canProceedScores,
@@ -353,6 +524,28 @@ function ScoreEntryDrawer({
   )
   const shieldsMap = settings?.selectedTeamShields ?? {}
 
+  const countdownLabel = (() => {
+    if (!pendingProposal) return null
+    const ms = new Date(pendingProposal.expires_at).getTime() - Date.now()
+    if (ms <= 0) return 'Expirado'
+    const m = Math.floor(ms / 60000)
+    const s = Math.floor((ms % 60000) / 1000)
+    return `${m}:${s.toString().padStart(2, '0')}`
+  })()
+
+  const submitterIsParticipant =
+    !!pendingProposal &&
+    eligibleVoters.some((p) => p.user_id === pendingProposal.proposed_by_user_id)
+  const approveVotesTally =
+    (submitterIsParticipant ? 1 : 0) + proposalVotes.filter((v) => v.vote === 'approve').length
+  const majorityNeed =
+    eligibleVoters.length > 0 ? Math.floor(eligibleVoters.length / 2) + 1 : 0
+  const canCastVote =
+    !!pendingProposal &&
+    !!user &&
+    !!myParticipantId &&
+    pendingProposal.proposed_by_user_id !== user.id
+
   const drawerRoundLabel =
     isKnockoutPhase && selectedMatch.playoff_leg === 1
       ? `Mata-mata · Ida · R${selectedMatch.round}`
@@ -368,19 +561,19 @@ function ScoreEntryDrawer({
   }
 
   const increment = (side: 'home' | 'away') => {
-    if (!canEdit || loading || scorePhase === 'penalties') return
+    if (!canEditScores || loading || scorePhase === 'penalties') return
     if (side === 'home') setHomeScore((prev) => (prev === null ? 1 : prev + 1))
     else setAwayScore((prev) => (prev === null ? 1 : prev + 1))
   }
 
   const decrement = (side: 'home' | 'away') => {
-    if (!canEdit || loading || scorePhase === 'penalties') return
+    if (!canEditScores || loading || scorePhase === 'penalties') return
     if (side === 'home') setHomeScore((prev) => (prev === null ? 0 : Math.max(0, prev - 1)))
     else setAwayScore((prev) => (prev === null ? 0 : Math.max(0, prev - 1)))
   }
 
   const handleInputChange = (side: 'home' | 'away', rawValue: string) => {
-    if (!canEdit || loading || scorePhase === 'penalties') return
+    if (!canEditScores || loading || scorePhase === 'penalties') return
 
     if (rawValue === '') {
       if (side === 'home') setHomeScore(null)
@@ -397,7 +590,7 @@ function ScoreEntryDrawer({
   }
 
   const handlePenaltyInput = (side: 'home' | 'away', rawValue: string) => {
-    if (!canEdit || loading || scorePhase !== 'penalties') return
+    if (!canEditScores || loading || scorePhase !== 'penalties') return
     if (rawValue === '') {
       if (side === 'home') setHomePenalties(null)
       else setAwayPenalties(null)
@@ -411,13 +604,13 @@ function ScoreEntryDrawer({
   }
 
   const incrementPenalty = (side: 'home' | 'away') => {
-    if (!canEdit || loading || scorePhase !== 'penalties') return
+    if (!canEditScores || loading || scorePhase !== 'penalties') return
     if (side === 'home') setHomePenalties((prev) => (prev === null ? 1 : prev + 1))
     else setAwayPenalties((prev) => (prev === null ? 1 : prev + 1))
   }
 
   const decrementPenalty = (side: 'home' | 'away') => {
-    if (!canEdit || loading || scorePhase !== 'penalties') return
+    if (!canEditScores || loading || scorePhase !== 'penalties') return
     if (side === 'home') setHomePenalties((prev) => (prev === null ? 0 : Math.max(0, prev - 1)))
     else setAwayPenalties((prev) => (prev === null ? 0 : Math.max(0, prev - 1)))
   }
@@ -446,7 +639,7 @@ function ScoreEntryDrawer({
         </header>
 
         <section
-          className={`score-entry-grid${scorePhase === 'penalties' && canEdit ? ' score-entry-grid--locked' : ''}`}
+          className={`score-entry-grid${scorePhase === 'penalties' && canEditScores ? ' score-entry-grid--locked' : ''}`}
         >
           <article className="score-entry-team">
             <div className="score-entry-team-head">
@@ -460,7 +653,7 @@ function ScoreEntryDrawer({
               <button
                 type="button"
                 onClick={() => decrement('home')}
-                disabled={!canEdit || loading || scorePhase === 'penalties'}
+                disabled={!canEditScores || loading || scorePhase === 'penalties'}
               >
                 -
               </button>
@@ -477,13 +670,13 @@ function ScoreEntryDrawer({
                 }}
                 className="score-entry-input"
                 placeholder="-"
-                disabled={!canEdit || loading || scorePhase === 'penalties'}
+                disabled={!canEditScores || loading || scorePhase === 'penalties'}
                 aria-label="Placar mandante"
               />
               <button
                 type="button"
                 onClick={() => increment('home')}
-                disabled={!canEdit || loading || scorePhase === 'penalties'}
+                disabled={!canEditScores || loading || scorePhase === 'penalties'}
               >
                 +
               </button>
@@ -504,7 +697,7 @@ function ScoreEntryDrawer({
               <button
                 type="button"
                 onClick={() => decrement('away')}
-                disabled={!canEdit || loading || scorePhase === 'penalties'}
+                disabled={!canEditScores || loading || scorePhase === 'penalties'}
               >
                 -
               </button>
@@ -521,13 +714,13 @@ function ScoreEntryDrawer({
                 }}
                 className="score-entry-input"
                 placeholder="-"
-                disabled={!canEdit || loading || scorePhase === 'penalties'}
+                disabled={!canEditScores || loading || scorePhase === 'penalties'}
                 aria-label="Placar visitante"
               />
               <button
                 type="button"
                 onClick={() => increment('away')}
-                disabled={!canEdit || loading || scorePhase === 'penalties'}
+                disabled={!canEditScores || loading || scorePhase === 'penalties'}
               >
                 +
               </button>
@@ -535,7 +728,7 @@ function ScoreEntryDrawer({
           </article>
         </section>
 
-        {scorePhase === 'penalties' && knockoutNeedsPenalties && canEdit && homeScore !== null && awayScore !== null && (
+        {scorePhase === 'penalties' && knockoutNeedsPenalties && canEditScores && homeScore !== null && awayScore !== null && (
           <div className="score-entry-penalties">
             <p className="score-entry-score-recap">
               Placar confirmado:{' '}
@@ -561,7 +754,7 @@ function ScoreEntryDrawer({
                   <button
                     type="button"
                     onClick={() => decrementPenalty('home')}
-                    disabled={!canEdit || loading}
+                    disabled={!canEditScores || loading}
                   >
                     -
                   </button>
@@ -578,11 +771,11 @@ function ScoreEntryDrawer({
                     }}
                     className="score-entry-input"
                     placeholder="-"
-                    disabled={!canEdit || loading}
+                    disabled={!canEditScores || loading}
                     aria-label="Pênaltis mandante"
                     aria-required
                   />
-                  <button type="button" onClick={() => incrementPenalty('home')} disabled={!canEdit || loading}>
+                  <button type="button" onClick={() => incrementPenalty('home')} disabled={!canEditScores || loading}>
                     +
                   </button>
                 </div>
@@ -602,7 +795,7 @@ function ScoreEntryDrawer({
                   <button
                     type="button"
                     onClick={() => decrementPenalty('away')}
-                    disabled={!canEdit || loading}
+                    disabled={!canEditScores || loading}
                   >
                     -
                   </button>
@@ -619,11 +812,11 @@ function ScoreEntryDrawer({
                     }}
                     className="score-entry-input"
                     placeholder="-"
-                    disabled={!canEdit || loading}
+                    disabled={!canEditScores || loading}
                     aria-label="Pênaltis visitante"
                     aria-required
                   />
-                  <button type="button" onClick={() => incrementPenalty('away')} disabled={!canEdit || loading}>
+                  <button type="button" onClick={() => incrementPenalty('away')} disabled={!canEditScores || loading}>
                     +
                   </button>
                 </div>
@@ -632,7 +825,7 @@ function ScoreEntryDrawer({
           </div>
         )}
 
-        {!canEdit && (
+        {!canEdit && !(scoreValidationOn && pendingProposal && myParticipantId) && (
           <p className="score-entry-note">
             {adminOnlyScoring
               ? 'Apenas o criador pode registrar o resultado de partidas pendentes.'
@@ -640,13 +833,82 @@ function ScoreEntryDrawer({
           </p>
         )}
 
-        {canEdit && scorePhase === 'scores' && (
+        {scoreValidationOn && pendingProposal && scoresLocked && canEdit && (
+          <p className="score-entry-note">
+            Há uma proposta pendente — placar bloqueado até aprovação ou expiração. Maioria: mais de 50% dos{' '}
+            {eligibleVoters.length} participantes com conta (abstenções não aumentam essa meta). Prazo:{' '}
+            {countdownLabel ?? '—'}.
+          </p>
+        )}
+
+        {scoreValidationOn && pendingProposal && myParticipantId && (
+          <section className="score-entry-proposal-vote">
+            <h4 className="score-entry-proposal-title">Votação do placar</h4>
+            <p className="score-entry-proposal-meta">
+              Proposta: {pendingProposal.home_score} × {pendingProposal.away_score}
+              {countdownLabel ? ` · Tempo restante: ${countdownLabel}` : ''}
+            </p>
+            <p className="score-entry-proposal-majority">
+              Aprovações: {approveVotesTally} — para aprovar precisa &gt; metade de {eligibleVoters.length}{' '}
+              participante{eligibleVoters.length !== 1 ? 's' : ''} ({majorityNeed} ou mais).
+            </p>
+            <ul className="score-entry-proposal-list">
+              {eligibleVoters.map((p) => {
+                const uid = p.user_id
+                const label = getDisplayName(
+                  p.profile?.nickname,
+                  p.profile?.email,
+                  uid,
+                  user?.id,
+                  currentUserName
+                )
+                const isSubmitter = pendingProposal.proposed_by_user_id === uid
+                const rowVote = proposalVotes.find((v) => v.user_id === uid)
+                let status = 'Pendente'
+                if (isSubmitter) status = 'Aprovação automática (quem propôs)'
+                else if (rowVote?.vote === 'approve') status = 'Aprovou'
+                else if (rowVote?.vote === 'reject') status = 'Rejeitou'
+                return (
+                  <li key={p.id} className="score-entry-proposal-list-item">
+                    <span className="score-entry-proposal-name">{p.team_name || label}</span>
+                    <span className="score-entry-proposal-status">{status}</span>
+                  </li>
+                )
+              })}
+            </ul>
+            {user && pendingProposal.proposed_by_user_id === user.id && submitterIsParticipant && (
+              <p className="score-entry-proposal-hint">Seu voto conta como aprovação automática.</p>
+            )}
+            {canCastVote && (
+              <div className="score-entry-proposal-actions">
+                <button
+                  type="button"
+                  className="score-entry-proposal-btn score-entry-proposal-btn-approve"
+                  disabled={voteBusy || loading}
+                  onClick={() => void handleCastVote(true)}
+                >
+                  Aprovar
+                </button>
+                <button
+                  type="button"
+                  className="score-entry-proposal-btn score-entry-proposal-btn-reject"
+                  disabled={voteBusy || loading}
+                  onClick={() => void handleCastVote(false)}
+                >
+                  Rejeitar
+                </button>
+              </div>
+            )}
+          </section>
+        )}
+
+        {canEditScores && scorePhase === 'scores' && (
           <p className="score-entry-shortcuts">
             Atalhos: ↑/↓ mandante, ←/→ visitante, Enter para confirmar o placar
           </p>
         )}
 
-        {canEdit && scorePhase === 'penalties' && (
+        {canEditScores && scorePhase === 'penalties' && (
           <p className="score-entry-shortcuts">
             Atalhos: ↑/↓ mandante, ←/→ visitante, Enter para salvar
           </p>
@@ -654,7 +916,7 @@ function ScoreEntryDrawer({
 
         {error && <p className="score-entry-error">{error}</p>}
 
-        {scorePhase === 'penalties' && knockoutNeedsPenalties && canEdit ? (
+        {scorePhase === 'penalties' && knockoutNeedsPenalties && canEditScores ? (
           <footer className="score-entry-footer score-entry-footer-penalties">
             <button
               type="button"
@@ -673,7 +935,7 @@ function ScoreEntryDrawer({
               onClick={() => void handleSavePenalties()}
               disabled={!canSavePenalties || loading}
             >
-              {loading ? 'Salvando...' : 'Salvar resultado'}
+              {loading ? 'Salvando...' : scoreValidationOn ? 'Enviar proposta' : 'Salvar resultado'}
             </button>
           </footer>
         ) : (
@@ -687,7 +949,7 @@ function ScoreEntryDrawer({
               onClick={() => void handleProceedScores()}
               disabled={!canProceedScores || loading}
             >
-              {loading ? 'Salvando...' : 'Confirmar'}
+              {loading ? 'Salvando...' : scoreValidationOn ? 'Enviar proposta' : 'Confirmar'}
             </button>
           </footer>
         )}

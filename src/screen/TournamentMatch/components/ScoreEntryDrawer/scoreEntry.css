@@ -537,3 +537,100 @@
     transform: translateX(0);
   }
 }
+
+.score-entry-proposal-vote {
+  border: 1px solid var(--color-gray-200);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--color-be-100) 6%, var(--color-white));
+}
+
+.score-entry-proposal-title {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-dark-100);
+}
+
+.score-entry-proposal-meta,
+.score-entry-proposal-majority,
+.score-entry-proposal-hint {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-dark);
+}
+
+.score-entry-proposal-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.score-entry-proposal-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+}
+
+.score-entry-proposal-name {
+  font-weight: 600;
+  color: var(--color-dark-100);
+}
+
+.score-entry-proposal-status {
+  font-size: 12px;
+  color: var(--color-dark);
+  text-align: right;
+}
+
+.score-entry-proposal-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.score-entry-proposal-btn {
+  flex: 1;
+  min-width: 120px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1px solid var(--color-gray-200);
+  transition: filter 0.12s ease, transform 0.12s ease;
+}
+
+.score-entry-proposal-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.score-entry-proposal-btn-approve {
+  background: color-mix(in srgb, var(--color-be-100) 18%, var(--color-white));
+  border-color: var(--color-be-100);
+  color: var(--color-dark-100);
+}
+
+.score-entry-proposal-btn-reject {
+  background: var(--color-white);
+  color: var(--color-dark-100);
+}
+
+.score-entry-proposal-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}

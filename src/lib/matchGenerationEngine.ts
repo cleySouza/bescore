@@ -119,6 +119,7 @@ export async function generateMatchesByFormat(
     ...formatSettings,
     // Modal de formato não altera quem lança placar — preservar sempre do torneio
     adminScores: existingSettings?.adminScores ?? true,
+    scoreValidation: existingSettings?.scoreValidation ?? false,
   }
 
   const { error: updateError } = await supabase

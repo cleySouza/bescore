@@ -12,6 +12,8 @@ export interface TournamentSettings {
   playoffCutoff?: 4 | 2 // Para Campeonato: quantos avançam para mata-mata
   /** Ida e volta na semifinal e na final (só formato campeonato). */
   playoffTwoLegged?: boolean
+  /** Quando true, placares pendentes passam por proposta + votação entre participantes (MVP). */
+  scoreValidation?: boolean
   adminScores?: boolean // true = só admin lança placares; false = jogadores lançam suas próprias partidas
   isPrivate?: boolean // Torneio privado (requer código para entrar)
   maxParticipants?: number // Limite máximo de participantes
@@ -27,6 +29,14 @@ export function isAdminOnlyScoring(settings: unknown): boolean {
   if (raw === false || raw === 0) return false
   if (typeof raw === 'string' && raw.trim().toLowerCase() === 'false') return false
   return true
+}
+
+/** Torneio com validação de placar por votação entre participantes. */
+export function isScoreValidationEnabled(settings: unknown): boolean {
+  const raw = (settings as { scoreValidation?: unknown } | null)?.scoreValidation
+  if (raw === true || raw === 1) return true
+  if (typeof raw === 'string' && raw.trim().toLowerCase() === 'true') return true
+  return false
 }
 
 export interface Match {
