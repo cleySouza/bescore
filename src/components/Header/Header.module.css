@@ -8,6 +8,9 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   flex-wrap: wrap;
   gap: 16px;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .logo {
