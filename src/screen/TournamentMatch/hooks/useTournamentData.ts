@@ -1,16 +1,24 @@
 import { useEffect, useState, useRef } from 'react'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../../atoms/sessionAtom'
-import { myTournamentsAtom, activeTournamentAtom } from '../../../atoms/tournamentAtoms'
+import { myTournamentsAtom, activeTournamentAtom, globalToastAtom } from '../../../atoms/tournamentAtoms'
 import { strapiShieldsMapAtom } from '../../../atoms/catalogAtom'
-import { fetchMyTournaments, getTournamentParticipants, cancelTournament } from '../../../lib/tournamentService'
+import {
+  fetchMyTournaments,
+  getTournamentParticipants,
+  cancelTournament,
+} from '../../../lib/tournamentService'
 import { getTournamentMatches, getTournamentStandings } from '../../../lib/matchService'
 import { generatePlayoffMatches } from '../../../lib/matchGenerationEngine'
+import { canAdvanceFromSemifinalsToFinal } from '../../../lib/playoffKnockout'
+import type { KnockoutMatchCore } from '../../../lib/playoffKnockout'
 import { fetchStrapiClubCatalog } from '../../../lib/strapiClubService'
 import { supabase } from '../../../lib/supabaseClient'
 import { standingsCache } from '../../../components/StandingsTable/StandingsTable'
 import type { Tournament } from '../../../atoms/tournamentAtoms'
 import type { MatchWithTeams, TournamentSettings } from '../../../types/tournament'
+import { isScoreValidationEnabled } from '../../../types/tournament'
+import { useTournamentFinishedSync } from './useTournamentFinishedSync'
 
 interface ParticipantWithProfile {
   id: string
@@ -42,6 +50,7 @@ export function useTournamentData(tournament: Tournament | null) {
   const user = useAtomValue(userAtom)
   const setMyTournaments = useSetAtom(myTournamentsAtom)
   const setActiveTournament = useSetAtom(activeTournamentAtom)
+  const setGlobalToast = useSetAtom(globalToastAtom)
   const globalStrapiShieldsMap = useAtomValue(strapiShieldsMapAtom)
   const setGlobalStrapiShieldsMap = useSetAtom(strapiShieldsMapAtom)
 
@@ -172,6 +181,10 @@ export function useTournamentData(tournament: Tournament | null) {
                     ...m,
                     home_score: updated.home_score as number | null,
                     away_score: updated.away_score as number | null,
+                    home_penalties: (updated.home_penalties ?? null) as number | null,
+                    away_penalties: (updated.away_penalties ?? null) as number | null,
+                    playoff_pair_index: (updated.playoff_pair_index ?? null) as number | null,
+                    playoff_leg: (updated.playoff_leg ?? null) as number | null,
                     status: updated.status as 'pending' | 'finished',
                     updated_at: updated.updated_at as string,
                   }
@@ -186,6 +199,53 @@ export function useTournamentData(tournament: Tournament | null) {
       supabase.removeChannel(channel)
     }
   }, [tournament?.id])
+
+  // Realtime: novas propostas de placar (notificação in-app para participantes)
+  useEffect(() => {
+    if (!tournament?.id || !user) return
+    if (!isScoreValidationEnabled(tournament.settings)) return
+
+    const isParticipant = participants.some((p) => p.user_id === user.id)
+    if (!isParticipant) return
+
+    const stale = supabase
+      .getChannels()
+      .filter((c) => c.topic.startsWith(`realtime:tournament-score-proposals:${tournament.id}`))
+    stale.forEach((c) => supabase.removeChannel(c))
+
+    const suffix =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+    const channel = supabase
+      .channel(`tournament-score-proposals:${tournament.id}:${suffix}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'match_score_proposals',
+          filter: `tournament_id=eq.${tournament.id}`,
+        },
+        (payload) => {
+          const row = payload.new as { proposed_by_user_id?: string | null }
+          if (row.proposed_by_user_id && row.proposed_by_user_id !== user.id) {
+            setGlobalToast({
+              type: 'info',
+              message: 'Nova proposta de placar — abra o jogo para votar.',
+            })
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [tournament?.id, tournament?.settings, user, participants, setGlobalToast])
+
+  useTournamentFinishedSync(tournament, matches, participants.length, setActiveTournament, setMyTournaments)
 
   // Load Strapi shields
   useEffect(() => {
@@ -221,8 +281,9 @@ export function useTournamentData(tournament: Tournament | null) {
     const tournamentSettings = tournament.settings as TournamentSettings | null
     const isCampeonato = tournamentSettings?.format === 'campeonato'
     const playoffCutoff = isCampeonato ? (tournamentSettings?.playoffCutoff ?? 2) : undefined
+    const playoffTwoLegged = tournamentSettings?.playoffTwoLegged === true
     const isCreator = tournament.creator_id === user.id
-    
+
     if (!isCampeonato || !isCreator || playoffCutoff !== 4) return
 
     const leagueRoundCount = isCampeonato
@@ -230,17 +291,19 @@ export function useTournamentData(tournament: Tournament | null) {
       : 0
 
     const playoffMatches = matches.filter((m) => m.round !== null && m.round > leagueRoundCount)
-    const playoffRounds = [...new Set(playoffMatches.map(m => m.round))].sort((a, b) => a - b)
-    
+    const playoffRounds = [...new Set(playoffMatches.map((m) => m.round))].sort((a, b) => a - b)
+
     if (playoffRounds.length === 1) {
-      const semifinalMatches = playoffMatches.filter(m => m.round === playoffRounds[0])
-      const allSemifinalsFinished = semifinalMatches.every(m => m.status === 'finished')
-      
-      if (allSemifinalsFinished && semifinalMatches.length === 2) {
+      const semiRound = playoffRounds[0]
+      const semifinalFinished = playoffMatches.filter(
+        (m) => m.round === semiRound && m.status === 'finished'
+      )
+
+      if (canAdvanceFromSemifinalsToFinal(semifinalFinished as KnockoutMatchCore[], playoffTwoLegged)) {
         const generateFinal = async () => {
           try {
             await generatePlayoffMatches(tournament.id)
-            setRefreshKey(prev => prev + 1)
+            setRefreshKey((prev) => prev + 1)
           } catch (err) {
             console.error('Erro ao gerar final:', err)
             setError('Erro ao gerar final automaticamente')

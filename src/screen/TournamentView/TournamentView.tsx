@@ -20,6 +20,7 @@ import TournamentConfig from '../../components/TournamentConfig'
 import MatchCard from '../../components/MatchCard'
 import StandingsTable from '../../components/StandingsTable/StandingsTable'
 import ManageParticipantModal, { type ManagedParticipant } from './components/ManageParticipantModal'
+import { useTournamentFinishedSync } from '../TournamentMatch/hooks/useTournamentFinishedSync'
 import styles from './TournamentView.module.css'
 
 interface ParticipantWithProfile extends Participant {
@@ -83,6 +84,14 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
 
     loadData()
   }, [tournament, navigate, refreshKey])
+
+  useTournamentFinishedSync(
+    tournament ?? undefined,
+    matches,
+    participants.length,
+    setActiveTournament,
+    setMyTournaments
+  )
 
   if (!tournament || !user) {
     return null

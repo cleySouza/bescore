@@ -1,10 +1,41 @@
 import { supabase } from './supabaseClient'
 import { logger } from './logger'
-import type { Tables } from '../types/supabase'
+import type { Json, Tables } from '../types/supabase'
 import type { TournamentWithParticipants, Participant } from '../atoms/tournamentAtoms'
 import type { TournamentSettings } from '../types/tournament'
 
 type Tournament = Tables<'tournaments'>
+
+/** Colunas usadas pelo TournamentCard e listagens do dashboard (evita `*`). */
+const TOURNAMENT_LIST_SELECT =
+  'id,name,status,game_type,invite_code,created_at,creator_id,settings' as const
+
+type TournamentListRow = Pick<
+  Tournament,
+  'id' | 'name' | 'status' | 'game_type' | 'invite_code' | 'created_at' | 'creator_id' | 'settings'
+>
+
+async function getParticipantCountsByTournament(tournamentIds: string[]): Promise<Map<string, number>> {
+  const counts = new Map<string, number>()
+  if (tournamentIds.length === 0) return counts
+
+  const { data, error } = await supabase
+    .from('participants')
+    .select('tournament_id')
+    .in('tournament_id', tournamentIds)
+
+  if (error) {
+    console.error('Erro ao contar participantes em lote:', error.message)
+    return counts
+  }
+
+  for (const row of data ?? []) {
+    const tid = row.tournament_id
+    if (!tid) continue
+    counts.set(tid, (counts.get(tid) ?? 0) + 1)
+  }
+  return counts
+}
 
 function isMissingTableError(error: { message?: string } | null | undefined, table: string): boolean {
   if (!error?.message) return false
@@ -47,6 +78,8 @@ export async function createTournament(
       | 'selectedTeamNames'
       | 'selectedTeamShields'
       | 'teamAssignMode'
+      | 'playoffTwoLegged'
+      | 'scoreValidation'
     >
   >
 ): Promise<Tournament> {
@@ -77,6 +110,38 @@ export async function createTournament(
 }
 
 /**
+ * Mescla campos em `tournaments.settings` (só colunas existentes no JSON).
+ */
+export async function mergeTournamentSettings(
+  tournamentId: string,
+  patch: Partial<TournamentSettings>
+): Promise<TournamentSettings> {
+  const { data: row, error: fetchErr } = await supabase
+    .from('tournaments')
+    .select('settings')
+    .eq('id', tournamentId)
+    .maybeSingle()
+
+  if (fetchErr) {
+    throw new Error(`Falha ao carregar torneio: ${fetchErr.message}`)
+  }
+
+  const base = (row?.settings ?? {}) as Record<string, unknown>
+  const merged = { ...base, ...patch } as TournamentSettings
+
+  const { error: updErr } = await supabase
+    .from('tournaments')
+    .update({ settings: merged as unknown as Json })
+    .eq('id', tournamentId)
+
+  if (updErr) {
+    throw new Error(`Falha ao salvar configurações: ${updErr.message}`)
+  }
+
+  return merged
+}
+
+/**
  * Busca torneios visíveis para o usuário:
  * - todos os torneios públicos
  * - torneios privados que ele criou
@@ -86,7 +151,7 @@ export async function fetchMyTournaments(userId: string): Promise<TournamentWith
   // 1. Buscar torneios criados pelo usuário
   const { data: createdTournaments, error: createdError } = await supabase
     .from('tournaments')
-    .select('*')
+    .select(TOURNAMENT_LIST_SELECT)
     .eq('creator_id', userId)
 
   if (createdError) {
@@ -114,68 +179,108 @@ export async function fetchMyTournaments(userId: string): Promise<TournamentWith
   }
 
   const tournamentIds = participantTournaments?.map((p) => p.tournament_id).filter((id): id is string => id !== null) || []
+  const participantIdSet = new Set(tournamentIds)
 
-  let joinedTournaments: Tournament[] = []
+  let joinedTournaments: TournamentListRow[] = []
   if (tournamentIds.length > 0) {
     const { data: joined, error: joinedError } = await supabase
       .from('tournaments')
-      .select('*')
+      .select(TOURNAMENT_LIST_SELECT)
       .in('id', tournamentIds)
 
     if (joinedError) {
       console.error('Erro ao buscar torneios unidos:', joinedError.message)
     } else {
-      joinedTournaments = joined || []
+      joinedTournaments = (joined || []) as TournamentListRow[]
     }
   }
 
-  // 3. Buscar torneios públicos globais
-  const { data: allTournamentsRaw, error: allTournamentsError } = await supabase
-    .from('tournaments')
-    .select('*')
+  // 3. Torneios públicos adicionais (só draft/active no servidor; não varre finished/cancelled)
+  const createdIds = new Set((createdTournaments || []).map((t) => t.id))
+  const joinedIds = new Set(joinedTournaments.map((t) => t.id))
+  const excludePublicIds = new Set([...createdIds, ...joinedIds])
 
-  if (allTournamentsError) {
-    console.error('Erro ao buscar torneios públicos:', allTournamentsError.message)
-    throw new Error(`Falha ao buscar torneios públicos: ${allTournamentsError.message}`)
+  const { data: joinableRowsRaw, error: joinableError } = await supabase
+    .from('tournaments')
+    .select(TOURNAMENT_LIST_SELECT)
+    .in('status', ['draft', 'active'])
+    .order('created_at', { ascending: false })
+
+  if (joinableError) {
+    console.error('Erro ao buscar torneios públicos:', joinableError.message)
+    throw new Error(`Falha ao buscar torneios públicos: ${joinableError.message}`)
   }
 
-  const publicTournaments = (allTournamentsRaw || []).filter((tournament) => {
+  const additionalPublic = (joinableRowsRaw || []).filter((tournament) => {
+    if (excludePublicIds.has(tournament.id)) return false
     const settings = tournament.settings as TournamentSettings | null
-    const isJoinableStatus = tournament.status === 'draft' || tournament.status === 'active'
-    return settings?.isPrivate !== true && isJoinableStatus
-  })
+    return settings?.isPrivate !== true
+  }) as TournamentListRow[]
 
   // 4. Combinar e remover duplicatas
-  const allTournaments = [...(createdTournaments || []), ...joinedTournaments, ...publicTournaments]
-  const uniqueTournaments = Array.from(
-    new Map(allTournaments.map((t) => [t.id, t])).values()
-  ).sort((a, b) => {
+  const allTournaments: TournamentListRow[] = [
+    ...(createdTournaments || []) as TournamentListRow[],
+    ...joinedTournaments,
+    ...additionalPublic,
+  ]
+  const uniqueTournaments = Array.from(new Map(allTournaments.map((t) => [t.id, t])).values()).sort((a, b) => {
     const aTime = a.created_at ? new Date(a.created_at).getTime() : 0
     const bTime = b.created_at ? new Date(b.created_at).getTime() : 0
     return bTime - aTime
   })
 
-  // 5. Contar participantes e adicionar flags
-  const enriched = await Promise.all(
-    uniqueTournaments.map(async (tournament) => {
-      const { count } = await supabase
-        .from('participants')
-        .select('*', { count: 'exact', head: true })
-        .eq('tournament_id', tournament.id)
+  const uniqueIds = uniqueTournaments.map((t) => t.id)
+  const participantCounts = await getParticipantCountsByTournament(uniqueIds)
 
-      const isCreator = tournament.creator_id === userId
-      const isParticipant = tournamentIds.includes(tournament.id)
+  const enriched: TournamentWithParticipants[] = uniqueTournaments.map((tournament) => {
+    const isCreator = tournament.creator_id === userId
+    const isParticipant = participantIdSet.has(tournament.id)
 
-      return {
-        ...tournament,
-        participantCount: count || 0,
-        isCreator,
-        isParticipant,
-      } as TournamentWithParticipants
-    })
-  )
+    return {
+      ...tournament,
+      participantCount: participantCounts.get(tournament.id) ?? 0,
+      isCreator,
+      isParticipant,
+    } as TournamentWithParticipants
+  })
 
   return enriched
+}
+
+/**
+ * Lista torneios públicos em aberto — pensado para utilizador não autenticado (RLS anon).
+ * Filtra client-side por status e isPrivate como em {@link fetchMyTournaments}.
+ */
+export async function fetchPublicTournaments(): Promise<TournamentWithParticipants[]> {
+  const { data: rows, error } = await supabase
+    .from('tournaments')
+    .select(TOURNAMENT_LIST_SELECT)
+    .in('status', ['draft', 'active'])
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Erro ao buscar torneios públicos:', error.message)
+    if (isMissingTableError(error, 'tournaments')) {
+      logger.warn(getSetupErrorMessage('tournaments'))
+      return []
+    }
+    throw new Error(`Falha ao buscar torneios públicos: ${error.message}`)
+  }
+
+  const filtered = (rows || []).filter((tournament) => {
+    const settings = tournament.settings as TournamentSettings | null
+    return settings?.isPrivate !== true
+  }) as TournamentListRow[]
+
+  const ids = filtered.map((t) => t.id)
+  const participantCounts = await getParticipantCountsByTournament(ids)
+
+  return filtered.map((tournament) => ({
+    ...tournament,
+    participantCount: participantCounts.get(tournament.id) ?? 0,
+    isCreator: false,
+    isParticipant: false,
+  })) as TournamentWithParticipants[]
 }
 
 /**
@@ -292,11 +397,12 @@ export async function joinTournamentById(
 }
 
 /**
- * Busca um torneio por ID com enriquecimento de dados
+ * Busca um torneio por ID com enriquecimento. Sem `viewerUserId`, não consulta participação
+ * (visitante anônimo: `isCreator` / `isParticipant` falsos). RLS restringe torneios privados.
  */
-export async function getTournamentById(
+export async function getTournamentByIdForViewer(
   id: string,
-  userId: string
+  viewerUserId?: string | null
 ): Promise<TournamentWithParticipants> {
   const { data, error } = await supabase
     .from('tournaments')
@@ -314,15 +420,20 @@ export async function getTournamentById(
     .select('*', { count: 'exact', head: true })
     .eq('tournament_id', id)
 
-  const isCreator = data.creator_id === userId
-  const { data: participantData } = await supabase
-    .from('participants')
-    .select('id')
-    .eq('tournament_id', id)
-    .eq('user_id', userId)
-    .single()
+  let isCreator = false
+  let isParticipant = false
 
-  const isParticipant = !!participantData
+  if (viewerUserId) {
+    isCreator = data.creator_id === viewerUserId
+    const { data: participantData } = await supabase
+      .from('participants')
+      .select('id')
+      .eq('tournament_id', id)
+      .eq('user_id', viewerUserId)
+      .maybeSingle()
+
+    isParticipant = !!participantData
+  }
 
   return {
     ...data,
@@ -330,6 +441,13 @@ export async function getTournamentById(
     isCreator,
     isParticipant,
   }
+}
+
+/**
+ * Busca um torneio por ID com enriquecimento de dados (utilizador autenticado)
+ */
+export async function getTournamentById(id: string, userId: string): Promise<TournamentWithParticipants> {
+  return getTournamentByIdForViewer(id, userId)
 }
 
 /**
@@ -469,6 +587,27 @@ export async function cancelTournament(id: string): Promise<void> {
     console.error('Erro ao cancelar torneio:', error.message)
     throw new Error(`Falha ao cancelar torneio: ${error.message}`)
   }
+}
+
+/**
+ * Marca o torneio como encerrado no banco, apenas se ainda estiver `active` (idempotente).
+ * Retorna true se uma linha foi atualizada.
+ */
+export async function markTournamentFinishedIfStillActive(tournamentId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('tournaments')
+    .update({ status: 'finished' })
+    .eq('id', tournamentId)
+    .eq('status', 'active')
+    .select('id')
+
+  if (error) {
+    console.error('Erro ao finalizar torneio:', error.message)
+    return false
+  }
+
+  const rows = Array.isArray(data) ? data : data ? [data] : []
+  return rows.length > 0
 }
 
 /**

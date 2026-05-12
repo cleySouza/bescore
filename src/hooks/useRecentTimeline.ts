@@ -1,11 +1,16 @@
 import { useEffect, useState, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useAtomValue } from 'jotai'
-import { myTournamentsAtom, activeTournamentAtom } from '../../../atoms/tournamentAtoms'
-import { fetchMyTournaments } from '../../../lib/tournamentService'
-import { getTournamentMatches } from '../../../lib/matchService'
-import { supabase } from '../../../lib/supabaseClient'
-import type { MatchWithTeams, TournamentSettings } from '../../../types/tournament'
-import { getMatchesWithSnapshotPositions } from '../utils/matchHelpers'
+import {
+  myTournamentsAtom,
+  activeTournamentAtom,
+  recentMatchesCarouselEpochAtom,
+} from '../atoms/tournamentAtoms'
+import { fetchMyTournaments } from '../lib/tournamentService'
+import { getTournamentMatches } from '../lib/matchService'
+import { supabase } from '../lib/supabaseClient'
+import type { MatchWithTeams, TournamentSettings } from '../types/tournament'
+import { getMatchesWithSnapshotPositions } from '../screen/TournamentMatch/utils/matchHelpers'
 
 interface RecentTimelineMatch extends MatchWithTeams {
   loggedParticipantId: string
@@ -15,12 +20,26 @@ interface RecentTimelineMatch extends MatchWithTeams {
   awayPosition: number | null
 }
 
-export function useRecentTimeline(userId: string | undefined, refreshKey: number) {
+export function useRecentTimeline(userId: string | undefined) {
+  const location = useLocation()
   const myTournaments = useAtomValue(myTournamentsAtom)
   const tournament = useAtomValue(activeTournamentAtom)
+  const carouselEpoch = useAtomValue(recentMatchesCarouselEpochAtom)
+
   const [recentTimelineMatches, setRecentTimelineMatches] = useState<RecentTimelineMatch[]>([])
   const recentTimelineRef = useRef<HTMLDivElement | null>(null)
   const recentTimelineIndexRef = useRef(0)
+  const [tabFocusEpoch, setTabFocusEpoch] = useState(0)
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        setTabFocusEpoch((n) => n + 1)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -76,11 +95,11 @@ export function useRecentTimeline(userId: string | undefined, refreshKey: number
             return snapshotMatches.map(({ match, homePosition, awayPosition }) => {
               const loggedIsHome = Boolean(
                 (match.home_participant_id && myParticipantIds.has(match.home_participant_id)) ||
-                match.homeTeam?.profile?.id === userId
+                  match.homeTeam?.profile?.id === userId
               )
               const loggedIsAway = Boolean(
                 (match.away_participant_id && myParticipantIds.has(match.away_participant_id)) ||
-                match.awayTeam?.profile?.id === userId
+                  match.awayTeam?.profile?.id === userId
               )
 
               let loggedParticipantId = ''
@@ -101,11 +120,12 @@ export function useRecentTimeline(userId: string | undefined, refreshKey: number
               } as RecentTimelineMatch
             })
           })
-          .filter((match) =>
-            match.status === 'finished' &&
-            match.home_score !== null &&
-            match.away_score !== null &&
-            Boolean(match.loggedParticipantId)
+          .filter(
+            (match) =>
+              match.status === 'finished' &&
+              match.home_score !== null &&
+              match.away_score !== null &&
+              Boolean(match.loggedParticipantId)
           )
           .sort((left, right) => {
             const leftDate = left.updated_at ?? left.created_at ?? ''
@@ -132,12 +152,18 @@ export function useRecentTimeline(userId: string | undefined, refreshKey: number
     return () => {
       cancelled = true
     }
-  }, [userId, refreshKey, myTournaments, tournament])
+  }, [
+    userId,
+    myTournaments,
+    tournament,
+    location.pathname,
+    tabFocusEpoch,
+    carouselEpoch,
+  ])
 
-  // Auto-scroll timeline on mobile
   useEffect(() => {
     recentTimelineIndexRef.current = 0
-  }, [tournament?.id])
+  }, [location.pathname])
 
   useEffect(() => {
     const timelineList = recentTimelineRef.current

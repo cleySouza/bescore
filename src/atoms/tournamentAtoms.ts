@@ -48,6 +48,9 @@ export const activeTournamentTabAtom = atomWithStorage<'matches' | 'standings'>(
 // Navegação autenticada: usar React Router (`src/app/router`) e `paths` em `src/app/navigation/paths.ts`.
 export const selectedMatchAtom = atom<MatchWithTeams | null>(null)
 
+/** Incrementa quando as últimas partidas devem ser recarregadas (ex.: placar salvo na tela de jogos). */
+export const recentMatchesCarouselEpochAtom = atom(0)
+
 export interface GlobalToast {
   message: string
   type: 'success' | 'info' | 'warning' | 'error'

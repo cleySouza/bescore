@@ -15,6 +15,8 @@ interface StandingsCacheEntry {
 export const standingsCache = new Map<string, StandingsCacheEntry>()
 
 interface StandingsTableProps {
+  /** Se definido, partidas vêm do pai (ex.: useTournamentData) — evita 2º canal realtime e getTournamentMatches duplicado. */
+  matches?: MatchWithTeams[]
   onDataUpdate?: () => void
   playoffCutoff?: number
   isChampionshipFormat?: boolean
@@ -57,6 +59,7 @@ function getRecentForm(participantId: string, matches: MatchWithTeams[]): FormRe
 }
 
 function StandingsTable({ 
+  matches: matchesProp,
   onDataUpdate, 
   playoffCutoff,
   isChampionshipFormat = false,
@@ -92,7 +95,8 @@ function StandingsTable({
 
   useEffect(() => {
     if (!tournament?.id) return
-    
+    if (matchesProp !== undefined) return
+
     const handler = (e: Event) => {
       const custom = e as CustomEvent
       const { matchId, homeScore, awayScore } = custom.detail || {}
@@ -149,10 +153,42 @@ function StandingsTable({
     
     window.addEventListener('bescore:match-updated', handler)
     return () => window.removeEventListener('bescore:match-updated', handler)
-  }, [tournament?.id, isChampionshipFormat, leagueRoundCount, standingsLeagueQuery])
+  }, [tournament?.id, isChampionshipFormat, leagueRoundCount, standingsLeagueQuery, matchesProp])
+
+  useEffect(() => {
+    if (!tournament?.id || matchesProp === undefined) return
+
+    let cancelled = false
+    const hasCached = standingsCache.has(tournament.id)
+    if (!hasCached) setLoading(true)
+
+    const run = async () => {
+      try {
+        setError(null)
+        const standingsData = await getTournamentStandings(tournament.id, standingsLeagueQuery)
+        if (cancelled) return
+        standingsCache.set(tournament.id, { standings: standingsData, matches: matchesProp })
+        setStandings(standingsData)
+        setMatches(matchesProp)
+      } catch (err) {
+        if (cancelled) return
+        const message = err instanceof Error ? err.message : 'Erro ao carregar classificação'
+        setError(message)
+        console.error('Erro:', err)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [tournament?.id, standingsLeagueQuery, matchesProp])
 
   useEffect(() => {
     if (!tournament?.id) return
+    if (matchesProp !== undefined) return
 
     let isCancelled = false
     const hasCached = standingsCache.has(tournament.id)
@@ -203,7 +239,7 @@ function StandingsTable({
         .on(
           'postgres_changes',
           {
-            event: '*',
+            event: 'UPDATE',
             schema: 'public',
             table: 'matches',
             filter: `tournament_id=eq.${tournament.id}`,
@@ -230,6 +266,7 @@ function StandingsTable({
         supabase.removeChannel(channel)
       }
     }
+    // `matchesProp` omitido: modo interno (TournamentView); com partidas do pai este efeito retorna cedo.
   }, [tournament?.id, isChampionshipFormat, leagueRoundCount, standingsLeagueQuery])
 
   if (loading) {

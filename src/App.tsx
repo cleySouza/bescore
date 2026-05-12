@@ -3,7 +3,6 @@ import { useAtom, useAtomValue } from 'jotai'
 import { isAuthenticatedAtom, userAtom } from './atoms/sessionAtom'
 import { globalToastAtom } from './atoms/tournamentAtoms'
 import { canUserAccessApp } from './lib/rolloutAccess'
-import { SignIn } from './screen/SingIn/SignIn'
 import { AppRouter } from './app/router/AppRouter'
 import { Maintenance404 } from './screen/Maintenance404/Maintenance404'
 import styles from './App.module.css'
@@ -51,35 +50,20 @@ function App() {
     return () => clearTimeout(timeoutId)
   }, [toast, setToast])
 
-  // ✅ Só mostrar footer na tela de login
-  const shouldShowFooter = !isAuthenticated
+  const blockRouter = isAuthenticated && (isCheckingAccess || !hasAccess)
 
   return (
-    <div className={shouldShowFooter ? styles.appWithFooter : styles.appContainer}>
-      {!isAuthenticated ? (
-        <SignIn />
-      ) : isCheckingAccess ? (
-        <div className="app-loading-screen" role="status" aria-label="Validando acesso">
-          <div className="app-loading-spinner" aria-hidden="true" />
-        </div>
-      ) : hasAccess ? (
-        <AppRouter />
+    <div className={styles.appContainer}>
+      {blockRouter ? (
+        isCheckingAccess ? (
+          <div className="app-loading-screen" role="status" aria-label="Validando acesso">
+            <div className="app-loading-spinner" aria-hidden="true" />
+          </div>
+        ) : (
+          <Maintenance404 />
+        )
       ) : (
-        <Maintenance404 />
-      )}
-
-      {/* ✅ Footer só na tela de login */}
-      {shouldShowFooter && (
-        <footer className={styles.footer}>
-          <a
-            href="/privacy.html"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.privacyLink}
-          >
-            Política de Privacidade
-          </a>
-        </footer>
+        <AppRouter />
       )}
 
       {toast && (

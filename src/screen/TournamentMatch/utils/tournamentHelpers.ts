@@ -1,5 +1,9 @@
 import type { Tournament } from '../../../atoms/tournamentAtoms'
 import type { MatchWithTeams, TournamentSettings } from '../../../types/tournament'
+import {
+  resolveSingleLegKnockoutWinner,
+  resolveTwoLegKnockoutWinner,
+} from '../../../lib/playoffKnockout'
 
 interface SideSummary {
   teamName: string
@@ -130,10 +134,8 @@ export function getMatchesByPhase(
     }
   }
 
-  // Get playoff results
-  const playoffFinalMatch = getPlayoffFinalMatch(playoffMatches)
-  const playoffChampion = playoffFinalMatch ? getFinishedWinner(playoffFinalMatch) : null
-  const playoffVice = playoffFinalMatch ? getFinishedLoser(playoffFinalMatch) : null
+  // Campeão / vice do mata-mata (final em partida única ou ida/volta)
+  const { playoffChampion, playoffVice } = resolveCampeonatoFinalChampionVice(playoffMatches)
 
   return {
     leagueMatches,
@@ -147,12 +149,55 @@ export function getMatchesByPhase(
   }
 }
 
-function getPlayoffFinalMatch(playoffMatches: MatchWithTeams[]): MatchWithTeams | undefined {
-  const playoffRounds = [...new Set(playoffMatches.map((m) => m.round))].sort((a, b) => a - b)
-  const finalsRoundMatches = playoffRounds.length > 1
-    ? playoffMatches.filter((m) => m.round === playoffRounds[1])
-    : playoffMatches
-  return finalsRoundMatches[0]
+function resolveCampeonatoFinalChampionVice(
+  playoffMatches: MatchWithTeams[]
+): { playoffChampion: SideSummary | null; playoffVice: SideSummary | null } {
+  const playoffRounds = [...new Set(playoffMatches.map((m) => m.round ?? 0))].sort((a, b) => a - b)
+  if (playoffRounds.length === 0) return { playoffChampion: null, playoffVice: null }
+
+  const finalRound = playoffRounds[playoffRounds.length - 1]
+  const finalsRoundMatches = playoffMatches.filter((m) => m.round === finalRound)
+
+  const twoLegFinal =
+    finalsRoundMatches.length === 2 &&
+    finalsRoundMatches.some((m) => m.playoff_leg === 1) &&
+    finalsRoundMatches.some((m) => m.playoff_leg === 2)
+
+  if (twoLegFinal) {
+    const leg1 = finalsRoundMatches.find((m) => m.playoff_leg === 1)!
+    const leg2 = finalsRoundMatches.find((m) => m.playoff_leg === 2)!
+    if (leg1.status !== 'finished' || leg2.status !== 'finished') {
+      return { playoffChampion: null, playoffVice: null }
+    }
+    const winnerId = resolveTwoLegKnockoutWinner(leg1, leg2)
+    if (!winnerId) return { playoffChampion: null, playoffVice: null }
+    const viceId =
+      winnerId === leg1.home_participant_id ? leg1.away_participant_id : leg1.home_participant_id
+    return {
+      playoffChampion: sideSummaryForParticipant(leg1, winnerId),
+      playoffVice: viceId ? sideSummaryForParticipant(leg1, viceId) : null,
+    }
+  }
+
+  if (finalsRoundMatches.length !== 1) {
+    return { playoffChampion: null, playoffVice: null }
+  }
+
+  const m = finalsRoundMatches[0]
+  const winnerId = resolveSingleLegKnockoutWinner(m)
+  if (!winnerId || !m.home_participant_id || !m.away_participant_id) {
+    return { playoffChampion: null, playoffVice: null }
+  }
+  const viceId = winnerId === m.home_participant_id ? m.away_participant_id : m.home_participant_id
+  return {
+    playoffChampion: sideSummaryForParticipant(m, winnerId),
+    playoffVice: sideSummaryForParticipant(m, viceId),
+  }
+}
+
+function sideSummaryForParticipant(match: MatchWithTeams, participantId: string): SideSummary {
+  if (match.home_participant_id === participantId) return getMatchSideSummary(match, 'home')
+  return getMatchSideSummary(match, 'away')
 }
 
 function getMatchSideSummary(match: MatchWithTeams, side: 'home' | 'away'): SideSummary {
@@ -161,26 +206,6 @@ function getMatchSideSummary(match: MatchWithTeams, side: 'home' | 'away'): Side
     teamName: team?.team_name || 'A definir',
     nickname: team?.profile?.nickname || '—',
   }
-}
-
-function getFinishedWinner(match: MatchWithTeams): SideSummary | null {
-  if (match.status !== 'finished' || match.home_score === null || match.away_score === null) {
-    return null
-  }
-  if (match.home_score === match.away_score) return null
-  return match.home_score > match.away_score
-    ? getMatchSideSummary(match, 'home')
-    : getMatchSideSummary(match, 'away')
-}
-
-function getFinishedLoser(match: MatchWithTeams): SideSummary | null {
-  if (match.status !== 'finished' || match.home_score === null || match.away_score === null) {
-    return null
-  }
-  if (match.home_score === match.away_score) return null
-  return match.home_score < match.away_score
-    ? getMatchSideSummary(match, 'home')
-    : getMatchSideSummary(match, 'away')
 }
 
 export function getRoundLabel(round: number, isCampeonato: boolean, leagueRoundCount: number, playoffCutoff?: number): string {

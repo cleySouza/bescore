@@ -45,11 +45,13 @@ function CreateTournament() {
     autoTeams: true,
     adminDraft: true,    // true = admin escolhe times; false = participante escolhe na inscrição
     adminScores: true,   // true = só admin lança placares; false = jogadores lançam próprias partidas
+    scoreValidation: false,
     matchType: 'single' as 'single' | 'double',
     willPlay: true,
     teamNames: '',
     selectedTeamIds: [] as string[],
     playoffCutoff: 'top4' as 'top4' | 'top2',
+    playoffTwoLegged: false,
   })
   const [loading, setLoading] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
@@ -83,6 +85,7 @@ function CreateTournament() {
     setFormData((prev) => ({
       ...prev,
       [name]: name === 'maxParticipants' ? parseInt(value) : value,
+      ...(name === 'format' && value !== 'campeonato' ? { playoffTwoLegged: false } : {}),
       ...(name === 'format' && !['liga', 'mata-mata', 'grupos', 'campeonato'].includes(value)
         ? { matchType: 'single' as const }
         : {}),
@@ -186,11 +189,13 @@ function CreateTournament() {
       autoTeams: true,
       adminDraft: true,
       adminScores: true,
+      scoreValidation: false,
       matchType: 'single',
       willPlay: true,
       teamNames: '',
       selectedTeamIds: [],
       playoffCutoff: 'top4',
+      playoffTwoLegged: false,
     })
     setLocalError(null)
     setSuccess(false)
@@ -228,6 +233,7 @@ function CreateTournament() {
       const newTournament = await createTournament(formData.name, user.id, formData.gameType, {
         isPrivate: formData.isPrivate,
         adminScores: formData.adminScores,
+        scoreValidation: formData.scoreValidation,
         maxParticipants: formData.maxParticipants,
         format: mapCreateFormatToTournamentFormat(formData.format),
         hasReturnMatch: formData.matchType === 'double',
@@ -240,7 +246,10 @@ function CreateTournament() {
             }
           : {}),
         ...(formData.format === 'campeonato'
-          ? { playoffCutoff: formData.playoffCutoff === 'top4' ? 4 : 2 }
+          ? {
+              playoffCutoff: formData.playoffCutoff === 'top4' ? 4 : 2,
+              playoffTwoLegged: formData.playoffTwoLegged,
+            }
           : {}),
       })
 
@@ -281,11 +290,13 @@ function CreateTournament() {
         autoTeams: true,
         adminDraft: true,
         adminScores: true,
+        scoreValidation: false,
         matchType: 'single',
         willPlay: true,
         teamNames: '',
         selectedTeamIds: [],
         playoffCutoff: 'top4',
+        playoffTwoLegged: false,
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao criar torneio'
@@ -420,6 +431,25 @@ function CreateTournament() {
                           : 'Mínimo de 4 jogadores para este formato.'}
                       </span>
                     )}
+                    <div className={`${styles.toggleGroup} ${styles.campeonatoPlayoffToggle}`}>
+                      <div className={styles.toggleGroupLabel}>MATA-MATA (SEMI + FINAL)</div>
+                      <button
+                        type="button"
+                        className={`${styles.slideToggle} ${formData.playoffTwoLegged ? styles.active : ''}`}
+                        onClick={() => handleToggle('playoffTwoLegged')}
+                        disabled={loading}
+                        aria-pressed={formData.playoffTwoLegged}
+                      >
+                        <span className={styles.slideKnob} />
+                        <span className={styles.slideLabel}>
+                          {formData.playoffTwoLegged ? 'IDA E VOLTA' : 'JOGO ÚNICO'}
+                        </span>
+                      </button>
+                      <p className={styles.toggleHint}>
+                        Jogo único: empate pede placar de pênaltis na mesma partida. Ida e volta: pênaltis só na
+                        volta se o agregado empatar.
+                      </p>
+                    </div>
                   </div>
                 )}
 
@@ -589,6 +619,21 @@ function CreateTournament() {
                     </button>
                   </div>
 
+                  {/* VALIDAÇÃO DE PLACAR (votação entre participantes) */}
+                  <div className={styles.toggleGroup}>
+                    <div className={styles.toggleGroupLabel}>VOTAÇÃO</div>
+                    <button
+                      type="button"
+                      className={`${styles.slideToggle} ${formData.scoreValidation ? styles.active : ''}`}
+                      onClick={() => handleToggle('scoreValidation')}
+                    >
+                      <span className={styles.slideKnob} />
+                      <span className={styles.slideLabel}>
+                        {formData.scoreValidation ? 'SIM' : 'NÃO'}
+                      </span>
+                    </button>
+                  </div>
+
                   {/* VOU JOGAR — span full width */}
                   <div className={`${styles.toggleGroup} ${styles.toggleGroupFull}`}>
                     <div className={styles.toggleGroupLabel}>VOU JOGAR</div>
@@ -674,6 +719,7 @@ function CreateTournament() {
                   autoTeams={formData.autoTeams}
                   format={formData.format}
                   playoffCutoff={formData.playoffCutoff}
+                  playoffTwoLegged={formData.format === 'campeonato' && formData.playoffTwoLegged}
                   hasReturnMatch={formData.matchType === 'double'}
                   tournamentImage={tournamentImage}
                   onImageChange={handleImageChange}

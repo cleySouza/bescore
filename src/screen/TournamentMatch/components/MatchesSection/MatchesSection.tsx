@@ -8,14 +8,11 @@ interface MatchesSectionProps {
   content: ReactNode
 }
 
-function MatchesSection({ pendingCount, legSwitch, loading, content }: MatchesSectionProps) {
+function MatchesSection({ legSwitch, loading, content }: MatchesSectionProps) {
   return (
     <>
       <h2 className={styles.title}>
         Proximas partidas:
-        {pendingCount > 0 && (
-          <span className={styles.pendingCountBadge}>{pendingCount} pendentes</span>
-        )}
       </h2>
       {legSwitch}
       {loading ? (
