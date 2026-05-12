@@ -87,6 +87,8 @@
   font-weight: 600;
   color: var(--color-gray-300);
 }
+
+.rowTitle {
   font-size: 15px;
   font-weight: 700;
   color: var(--color-dark-100);
