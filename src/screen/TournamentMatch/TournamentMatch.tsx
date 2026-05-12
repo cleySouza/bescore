@@ -352,6 +352,7 @@ function TournamentMatchContent({
               <ScoutsSection champion={playoffChampion} vice={playoffVice} />
             ) : (
               <StandingsSection
+                matches={matches}
                 onDataUpdate={handleMatchResultUpdated}
                 playoffCutoff={playoffCutoff}
                 isChampionshipFormat={isCampeonato}
@@ -420,6 +421,7 @@ function TournamentMatchContent({
                 <ScoutsSection champion={playoffChampion} vice={playoffVice} />
               ) : (
                 <StandingsSection
+                  matches={matches}
                   onDataUpdate={handleMatchResultUpdated}
                   playoffCutoff={playoffCutoff}
                   isChampionshipFormat={isCampeonato}

@@ -30,6 +30,7 @@ function matchesFilter(t: TournamentWithParticipants, q: string): boolean {
 
 function Dashboard() {
   const user = useAtomValue(userAtom)
+  const userId = user?.id
   const [myTournaments, setMyTournaments] = useAtom(myTournamentsAtom)
   const [publicTournaments, setPublicTournaments] = useState<TournamentWithParticipants[]>([])
   const [loading, setLoading] = useAtom(tournamentsLoadingAtom)
@@ -44,12 +45,12 @@ function Dashboard() {
     let cancelled = false
 
     const load = async () => {
-      if (user) {
+      if (userId) {
         const hasCachedTournaments = myTournaments.length > 0
         setLoading(!hasCachedTournaments)
         setError(null)
         try {
-          const tournaments = await fetchMyTournaments(user.id)
+          const tournaments = await fetchMyTournaments(userId)
           if (!cancelled) setMyTournaments(tournaments)
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Erro ao carregar torneios'
@@ -81,7 +82,8 @@ function Dashboard() {
     return () => {
       cancelled = true
     }
-  }, [user, myTournaments.length, setMyTournaments, setLoading, setError])
+    // `myTournaments.length` omitido de deps: atualização pós-fetch não deve recarregar.
+  }, [userId, setMyTournaments, setLoading, setError])
 
   const displayList = user ? myTournaments : publicTournaments
 

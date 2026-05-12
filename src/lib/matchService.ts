@@ -189,16 +189,26 @@ export async function updateMatchResult(
     )
   }
 
-  const { data: completionMatchesRaw } = await supabase
+  const { count: pendingNotFinished, error: pendingErr } = await supabase
     .from('matches')
-    .select(
-      'id, round, status, home_participant_id, away_participant_id, home_score, away_score, home_penalties, away_penalties, playoff_pair_index, playoff_leg'
-    )
+    .select('id', { count: 'exact', head: true })
     .eq('tournament_id', tournamentId)
+    .neq('status', 'finished')
 
-  const completionMatches = (completionMatchesRaw ?? []) as MatchWithTeams[]
-  if (isTournamentRunComplete(completionMatches, settings, participantCount)) {
-    await markTournamentFinishedIfStillActive(tournamentId)
+  if (pendingErr) {
+    console.error('Erro ao verificar partidas pendentes:', pendingErr.message)
+  } else if ((pendingNotFinished ?? 0) === 0) {
+    const { data: completionMatchesRaw } = await supabase
+      .from('matches')
+      .select(
+        'id, round, status, home_participant_id, away_participant_id, home_score, away_score, home_penalties, away_penalties, playoff_pair_index, playoff_leg'
+      )
+      .eq('tournament_id', tournamentId)
+
+    const completionMatches = (completionMatchesRaw ?? []) as MatchWithTeams[]
+    if (isTournamentRunComplete(completionMatches, settings, participantCount)) {
+      await markTournamentFinishedIfStillActive(tournamentId)
+    }
   }
 
   return rows[0]
@@ -384,7 +394,7 @@ export async function getTournamentStandings(
 
     let dbQuery = supabase
       .from('matches')
-      .select('*')
+      .select('home_participant_id,away_participant_id,home_score,away_score')
       .eq('tournament_id', tournamentId)
       .eq('status', 'finished')
 

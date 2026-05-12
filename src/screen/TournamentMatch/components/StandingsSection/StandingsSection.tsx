@@ -1,7 +1,9 @@
+import type { MatchWithTeams } from '../../../../types/tournament'
 import StandingsTable from '../../../../components/StandingsTable/StandingsTable'
 import styles from './StandingsSection.module.css'
 
 interface StandingsSectionProps {
+  matches?: MatchWithTeams[]
   playoffCutoff?: number
   onDataUpdate?: () => void
   isChampionshipFormat?: boolean
@@ -9,6 +11,7 @@ interface StandingsSectionProps {
 }
 
 function StandingsSection({ 
+  matches,
   playoffCutoff, 
   onDataUpdate,
   isChampionshipFormat = false,
@@ -17,6 +20,7 @@ function StandingsSection({
   return (
     <div className={styles.wrapper}>
       <StandingsTable 
+        matches={matches}
         onDataUpdate={onDataUpdate} 
         playoffCutoff={playoffCutoff}
         isChampionshipFormat={isChampionshipFormat}
