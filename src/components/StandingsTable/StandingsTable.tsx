@@ -109,12 +109,15 @@ function StandingsTable({
             if (isChampionshipFormat && leagueRoundCount > 0 && m.round != null && m.round > leagueRoundCount) {
               return m // Não atualiza matches do mata-mata
             }
-            return { 
-              ...m, 
-              home_score: homeScore, 
-              away_score: awayScore, 
-              status: 'finished', 
-              updated_at: new Date().toISOString() 
+            const cleared = homeScore === null || awayScore === null
+            return {
+              ...m,
+              home_score: homeScore,
+              away_score: awayScore,
+              home_penalties: cleared ? null : m.home_penalties,
+              away_penalties: cleared ? null : m.away_penalties,
+              status: cleared ? 'pending' : 'finished',
+              updated_at: new Date().toISOString(),
             }
           }
           return m
