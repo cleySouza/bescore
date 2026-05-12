@@ -82,6 +82,8 @@ export async function updateMatchResult(
   homeScore: number,
   awayScore: number
 ) {
+  // Não usar .single(): com RLS, o UPDATE pode aplicar-se mas o SELECT devolver 0 linhas —
+  // o PostgREST então falha com "Cannot coerce the result to a single JSON object".
   const { data, error } = await supabase
     .from('matches')
     .update({
@@ -91,15 +93,21 @@ export async function updateMatchResult(
       updated_at: new Date().toISOString(),
     })
     .eq('id', matchId)
-    .select()
-    .single()
+    .select('id')
 
   if (error) {
     console.error('Erro ao atualizar resultado:', error.message)
     throw new Error(`Falha ao atualizar resultado: ${error.message}`)
   }
 
-  return data
+  const rows = Array.isArray(data) ? data : data ? [data] : []
+  if (rows.length === 0) {
+    throw new Error(
+      'Não foi possível salvar o placar (nenhuma linha atualizada). Peça ao admin para conferir no Supabase as políticas RLS de UPDATE/SELECT na tabela matches para participantes da partida.'
+    )
+  }
+
+  return rows[0]
 }
 
 /**
