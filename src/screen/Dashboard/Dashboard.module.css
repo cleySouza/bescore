@@ -132,13 +132,14 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 24px;
-  row-gap: 28px;
   column-gap: 24px;
+  /* Mais espaço entre linhas — cartões com height:100% esticavam e “fechavam” visualmente o gap */
+  row-gap: 44px;
   margin-top: 8px;
   padding-bottom: 32px;
   min-width: 0;
   align-content: start;
+  align-items: start;
 }
 
 @media (max-width: 768px) {
@@ -148,9 +149,8 @@
 
   .grid {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 20px;
-    row-gap: 24px;
     column-gap: 20px;
+    row-gap: 36px;
     padding-bottom: 28px;
   }
 
@@ -172,8 +172,7 @@
   .grid {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    row-gap: 20px;
+    gap: 28px;
     padding-bottom: 28px;
   }
 
