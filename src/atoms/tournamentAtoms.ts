@@ -45,12 +45,7 @@ export const activeTournamentTabAtom = atomWithStorage<'matches' | 'standings'>(
   'matches'
 )
 
-// View atual
-export const currentViewAtom = atomWithStorage<
-  'dashboard' | 'tournament-lobby' | 'tournament-match' | 'create-tournament' | 'join-by-code'
->('bescore.currentView', 'dashboard')
-
-// Partida selecionada para edição de placar (drawer responsivo)
+// Navegação autenticada: usar React Router (`src/app/router`) e `paths` em `src/app/navigation/paths.ts`.
 export const selectedMatchAtom = atom<MatchWithTeams | null>(null)
 
 export interface GlobalToast {

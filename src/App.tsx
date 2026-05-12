@@ -4,7 +4,7 @@ import { isAuthenticatedAtom, userAtom } from './atoms/sessionAtom'
 import { globalToastAtom } from './atoms/tournamentAtoms'
 import { canUserAccessApp } from './lib/rolloutAccess'
 import { SignIn } from './screen/SingIn/SignIn'
-import { LoggedIn } from './screen/LoggedIn/LoggedIn'
+import { AppRouter } from './app/router/AppRouter'
 import { Maintenance404 } from './screen/Maintenance404/Maintenance404'
 import styles from './App.module.css'
 
@@ -63,7 +63,7 @@ function App() {
           <div className="app-loading-spinner" aria-hidden="true" />
         </div>
       ) : hasAccess ? (
-        <LoggedIn />
+        <AppRouter />
       ) : (
         <Maintenance404 />
       )}

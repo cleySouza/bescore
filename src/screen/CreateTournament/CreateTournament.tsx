@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import {
   myTournamentsAtom,
   tournamentsErrorAtom,
   activeTournamentAtom,
-  currentViewAtom,
   recentPlayersAtom,
 } from '../../atoms/tournamentAtoms'
+import { paths } from '../../app/navigation/paths'
 import { createTournament, fetchMyTournaments, getTournamentById, joinTournamentById } from '../../lib/tournamentService'
 import { PreviewCard, TeamSelectModal } from './components'
 import styles from './CreateTournament.module.css'
@@ -31,8 +32,9 @@ function CreateTournament() {
   const setMyTournaments = useSetAtom(myTournamentsAtom)
   const setError = useSetAtom(tournamentsErrorAtom)
   const setActiveTournament = useSetAtom(activeTournamentAtom)
-  const setCurrentView = useSetAtom(currentViewAtom)
+  const navigate = useNavigate()
   const recentPlayers = useAtomValue(recentPlayersAtom)
+  const lastCreatedTournamentIdRef = useRef<string | null>(null)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -159,16 +161,22 @@ function CreateTournament() {
       // Silently ignore — user can copy manually
     })
     if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current)
-    redirectTimerRef.current = setTimeout(() => setCurrentView('tournament-lobby'), 1500)
+    redirectTimerRef.current = setTimeout(() => {
+      const id = lastCreatedTournamentIdRef.current
+      if (id) navigate(paths.tournamentLobby(id))
+    }, 1500)
   }
 
   const handleShareClick = () => {
     if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current)
-    redirectTimerRef.current = setTimeout(() => setCurrentView('tournament-lobby'), 1500)
+    redirectTimerRef.current = setTimeout(() => {
+      const id = lastCreatedTournamentIdRef.current
+      if (id) navigate(paths.tournamentLobby(id))
+    }, 1500)
   }
 
   const handleBack = () => {
-    setCurrentView('dashboard')
+    navigate(paths.home)
     setFormData({
       name: '',
       format: 'liga',
@@ -247,6 +255,7 @@ function CreateTournament() {
 
       setSuccessData({ name: formData.name, inviteCode: newTournament.invite_code ?? '' })
       setSuccess(true)
+      lastCreatedTournamentIdRef.current = newTournament.id
 
       // Recarregar lista de torneios
       const tournaments = await fetchMyTournaments(user.id)
@@ -258,7 +267,8 @@ function CreateTournament() {
 
       // Redirecionar após 3s (ou 1.5s se o usuário interagiu com os botões de compartilhar)
       redirectTimerRef.current = setTimeout(() => {
-        setCurrentView('tournament-lobby')
+        const id = lastCreatedTournamentIdRef.current
+        if (id) navigate(paths.tournamentLobby(id))
       }, 3000)
 
       // Limpar formulário
@@ -289,7 +299,7 @@ function CreateTournament() {
 
   const whatsappUrl = successData
     ? (() => {
-        const inviteLink = `${window.location.origin}/?invite=${encodeURIComponent(successData.inviteCode)}`
+        const inviteLink = `${window.location.origin}${paths.join}?invite=${encodeURIComponent(successData.inviteCode)}`
         return `https://wa.me/?text=${encodeURIComponent(
           `🏆 Participe do torneio *${successData.name}* no beScore!\n\nEntrar agora: ${inviteLink}\n\nCódigo de convite: *${successData.inviteCode}*`
         )}`

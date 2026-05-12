@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
-import {
-  activeTournamentAtom,
-  tournamentsErrorAtom,
-  currentViewAtom,
-} from '../../atoms/tournamentAtoms'
+import { activeTournamentAtom, tournamentsErrorAtom } from '../../atoms/tournamentAtoms'
+import { paths } from '../../app/navigation/paths'
 import {
   getTournamentByCode,
   getTournamentById,
@@ -21,7 +19,8 @@ function JoinByCode() {
   const user = useAtomValue(userAtom)
   const setActiveTournament = useSetAtom(activeTournamentAtom)
   const setError = useSetAtom(tournamentsErrorAtom)
-  const setCurrentView = useSetAtom(currentViewAtom)
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const [formData, setFormData] = useState({
     code: '',
@@ -120,6 +119,13 @@ function JoinByCode() {
     }
   }, [formData.code])
 
+  useEffect(() => {
+    const invite = searchParams.get('invite')?.trim().toUpperCase()
+    if (invite && invite.length === 6) {
+      setFormData((prev) => ({ ...prev, code: invite }))
+    }
+  }, [searchParams])
+
   if (!user) {
     return null
   }
@@ -134,7 +140,7 @@ function JoinByCode() {
   }
 
   const handleBack = () => {
-    setCurrentView('dashboard')
+    navigate(paths.home)
     setFormData({ code: '', teamName: '' })
     setPreviewTournament(null)
     setAvailableTeams([])
@@ -187,8 +193,7 @@ function JoinByCode() {
       const detailedTournament = await getTournamentById(tournament.id, user.id)
       setActiveTournament(detailedTournament)
 
-      // Mudar view para tournament
-      setCurrentView('tournament-lobby')
+      navigate(paths.tournamentLobby(detailedTournament.id))
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao entrar no torneio'
       setLocalError(message)

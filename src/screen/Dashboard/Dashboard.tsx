@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import {
@@ -6,10 +7,10 @@ import {
   activeTournamentAtom,
   tournamentsLoadingAtom,
   tournamentsErrorAtom,
-  currentViewAtom,
 } from '../../atoms/tournamentAtoms'
 import { fetchMyTournaments } from '../../lib/tournamentService'
 import TournamentCard from '../../components/TournamentCard'
+import { paths } from '../../app/navigation/paths'
 import styles from './Dashboard.module.css'
 
 function Dashboard() {
@@ -18,7 +19,7 @@ function Dashboard() {
   const [loading, setLoading] = useAtom(tournamentsLoadingAtom)
   const [error, setError] = useAtom(tournamentsErrorAtom)
   const setActiveTournament = useSetAtom(activeTournamentAtom)
-  const setCurrentView = useSetAtom(currentViewAtom)
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (!user) return
@@ -46,7 +47,11 @@ function Dashboard() {
     const tournament = myTournaments.find((t) => t.id === tournamentId)
     if (tournament) {
       setActiveTournament(tournament)
-      setCurrentView(tournament.status === 'active' ? 'tournament-match' : 'tournament-lobby')
+      navigate(
+        tournament.status === 'active'
+          ? paths.tournamentMatches(tournament.id)
+          : paths.tournamentLobby(tournament.id)
+      )
     }
   }
 
@@ -57,14 +62,14 @@ function Dashboard() {
         <div className={styles.actions}>
           <button
             className={styles.joinBtn}
-            onClick={() => setCurrentView('join-by-code')}
+            onClick={() => navigate(paths.join)}
             aria-label="Entrar em um torneio"
           >
             Buscar
           </button>
           <button
             className={styles.createBtn}
-            onClick={() => setCurrentView('create-tournament')}
+            onClick={() => navigate(paths.createTournament)}
             aria-label="Criar novo torneio"
           >
             Novo Torneio
@@ -81,7 +86,7 @@ function Dashboard() {
           <p>Nenhum torneio ainda.</p>
           <button
             className={styles.emptyCreateBtn}
-            onClick={() => setCurrentView('create-tournament')}
+            onClick={() => navigate(paths.createTournament)}
           >
             Crie seu primeiro torneio
           </button>
