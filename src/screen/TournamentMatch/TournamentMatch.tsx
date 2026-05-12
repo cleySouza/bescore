@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import {
   activeTournamentAtom,
-  currentViewAtom,
   activeTournamentTabAtom,
   selectedMatchAtom,
 } from '../../atoms/tournamentAtoms'
+import { paths } from '../../app/navigation/paths'
 import { useTournamentData } from './hooks/useTournamentData'
 import { useRecentTimeline } from './hooks/useRecentTimeline'
-import { getTournamentSettings, getMatchesByPhase, getRoundLabel } from './utils/tournamentHelpers'
+import { getTournamentSettings, getMatchesByPhase, getRoundLabel, effectiveParticipantCount } from './utils/tournamentHelpers'
 import { normalizeMatchForDrawer } from './utils/matchHelpers'
 import TournamentHeader from './components/TournamentHeader/TournamentHeader'
 import RecentTimeline from './components/RecentTimeline/RecentTimeline'
@@ -25,6 +26,8 @@ import Accordion from '../../components/Accordion/Accordion'
 import MatchTeamCrest from './components/MatchTeamCrest/MatchTeamCrest'
 import ManageParticipantModal, { type ManagedParticipant } from '../TournamentView/components/ManageParticipantModal'
 import styles from './TournamentMatch.module.css'
+import type { User } from '@supabase/supabase-js'
+import type { TournamentWithParticipants } from '../../atoms/tournamentAtoms'
 
 type LegFilter = 'first' | 'second'
 type PhaseFilter = 'league' | 'playoff'
@@ -32,15 +35,22 @@ type PhaseFilter = 'league' | 'playoff'
 function TournamentMatch() {
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
-  const setCurrentView = useSetAtom(currentViewAtom)
+  if (!tournament || !user) return null
+  return <TournamentMatchContent tournament={tournament} user={user} />
+}
+
+function TournamentMatchContent({
+  tournament,
+  user,
+}: {
+  tournament: TournamentWithParticipants
+  user: User
+}) {
+  const navigate = useNavigate()
   const setSelectedMatch = useSetAtom(selectedMatchAtom)
   const selectedMatch = useAtomValue(selectedMatchAtom)
   const [activeTab, setActiveTab] = useAtom(activeTournamentTabAtom)
 
-  // ✅ EARLY RETURN ANTES DE TODOS OS HOOKS
-  if (!tournament || !user) return null
-
-  // Local state
   const [legFilter, setLegFilter] = useState<LegFilter>('first')
   const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>('league')
   const [managedParticipant, setManagedParticipant] = useState<ManagedParticipant | null>(null)
@@ -65,6 +75,7 @@ function TournamentMatch() {
   const { recentTimelineMatches, recentTimelineRef } = useRecentTimeline(user?.id, refreshKey)
 
   // Tournament settings
+  const participantCountForLeague = effectiveParticipantCount(participants.length, matches)
   const {
     isCreator,
     tournamentSettings,
@@ -74,7 +85,7 @@ function TournamentMatch() {
     leagueRoundCount,
     managedTeamOptions,
     shieldsMap,
-  } = getTournamentSettings(tournament, user.id, strapiShieldsMap, participants.length)
+  } = getTournamentSettings(tournament, user.id, strapiShieldsMap, participantCountForLeague)
 
   const myParticipantId = participants.find((p) => p.user_id === user.id)?.id ?? null
 
@@ -139,7 +150,7 @@ function TournamentMatch() {
   }
 
   const handleBackToDashboard = () => {
-    setCurrentView('dashboard')
+    navigate(paths.home)
   }
 
   const renderRoundList = () => {

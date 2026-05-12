@@ -6,6 +6,13 @@ import { getTournamentStandings } from './matchService'
 
 type Match = Database['public']['Tables']['matches']['Insert']
 
+/** Rodadas da fase de pontos corridos no formato campeonato (igual ao UI). */
+export function campeonatoLeagueRoundCount(participantCount: number, hasReturnMatch: boolean): number {
+  if (participantCount <= 1) return 0
+  const baseCount = participantCount % 2 === 0 ? participantCount - 1 : participantCount
+  return hasReturnMatch ? baseCount * 2 : baseCount
+}
+
 /**
  * ============================================
  * TOURNAMENT MATCH GENERATION ENGINE
@@ -365,9 +372,24 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
     throw new Error('Torneio não encontrado')
   }
 
-  const settings = tournament.settings as { playoffCutoff?: number } | null
-  const cutoff = settings?.playoffCutoff ?? 2
+  const tournamentSettings = tournament.settings as TournamentSettings | null
+  const cutoff = tournamentSettings?.playoffCutoff ?? 2
   console.log('📊 Playoff cutoff:', cutoff)
+
+  const { count: participantCountRaw, error: participantCountError } = await supabase
+    .from('participants')
+    .select('*', { count: 'exact', head: true })
+    .eq('tournament_id', tournamentId)
+
+  if (participantCountError) {
+    throw new Error(`Falha ao contar participantes: ${participantCountError.message}`)
+  }
+
+  const participantCount = participantCountRaw ?? 0
+  const leagueRoundCount = campeonatoLeagueRoundCount(
+    participantCount,
+    tournamentSettings?.hasReturnMatch ?? false
+  )
 
   // 2. Buscar todas as partidas do torneio
   const { data: allMatches, error: matchesError } = await supabase
@@ -384,17 +406,18 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
   const maxRound = Math.max(...rounds, 0)
   console.log('📈 Rodada máxima atual:', maxRound)
 
-  // 3. Verificar se é para gerar semifinais (primeira vez)
-  const playoffMatches = allMatches?.filter(m => m.round && m.round > maxRound - 2) ?? []
+  // Playoff = rodadas depois da fase de pontos corridos (não usar maxRound-2: isso marcava as 2 últimas rodadas da liga como playoff)
+  const playoffMatches =
+    allMatches?.filter((m) => m.round !== null && m.round !== undefined && m.round > leagueRoundCount) ?? []
   const hasPlayoffMatches = playoffMatches.length > 0
-  
-  console.log('🎯 Partidas de playoff existentes:', playoffMatches.length)
+
+  console.log('🎯 Liga — última rodada:', leagueRoundCount, '| Partidas de playoff existentes:', playoffMatches.length)
 
   if (cutoff === 4 && !hasPlayoffMatches) {
     console.log('🚀 Gerando semifinais...')
     
     // Buscar classificação da liga para pegar os top 4
-    const standings = await getTournamentStandings(tournamentId)
+    const standings = await getTournamentStandings(tournamentId, { maxRound: leagueRoundCount })
     if (standings.length < 4) {
       throw new Error('São necessários pelo menos 4 participantes para gerar semifinais')
     }
@@ -402,20 +425,22 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
     const top4 = standings.slice(0, 4).map((s) => s.participant_id)
     console.log('🏅 Top 4 classificados:', top4)
 
+    const nextPlayoffRound = leagueRoundCount + 1
+
     // Criar semifinais: 1º vs 4º, 2º vs 3º
     const semifinalMatches = [
-      { 
-        tournament_id: tournamentId, 
-        home_participant_id: top4[0], 
-        away_participant_id: top4[3], 
-        round: maxRound + 1, 
+      {
+        tournament_id: tournamentId,
+        home_participant_id: top4[0],
+        away_participant_id: top4[3],
+        round: nextPlayoffRound,
         status: 'pending' as const
       },
-      { 
-        tournament_id: tournamentId, 
-        home_participant_id: top4[1], 
-        away_participant_id: top4[2], 
-        round: maxRound + 1, 
+      {
+        tournament_id: tournamentId,
+        home_participant_id: top4[1],
+        away_participant_id: top4[2],
+        round: nextPlayoffRound,
         status: 'pending' as const
       }
     ]
@@ -431,17 +456,20 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
 
   // 4. Verificar se é para gerar final (semifinais terminaram)
   if (cutoff === 4) {
-    const semifinalMatches = allMatches?.filter(m => m.round === maxRound && m.status === 'finished') ?? []
-    const finalExists = allMatches?.some(m => m.round === maxRound + 1) ?? false
-    
+    const semiRound = leagueRoundCount + 1
+    const finalRound = leagueRoundCount + 2
+    const semifinalMatches =
+      allMatches?.filter((m) => m.round === semiRound && m.status === 'finished') ?? []
+    const finalExists = allMatches?.some((m) => m.round === finalRound) ?? false
+
     console.log('🔍 Semifinais finalizadas:', semifinalMatches.length)
     console.log('🏆 Final já existe:', finalExists)
 
     if (semifinalMatches.length === 2 && !finalExists) {
       console.log('🎯 Gerando final com vencedores das semifinais...')
-      
+
       // Pegar vencedores das semifinais
-      const winners = semifinalMatches.map(match => {
+      const winners = semifinalMatches.map((match) => {
         if (match.home_score === null || match.away_score === null) {
           throw new Error(`Semifinal ${match.id} não tem resultado definido`)
         }
@@ -474,7 +502,7 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
         tournament_id: tournamentId,
         home_participant_id: winners[0],
         away_participant_id: winners[1],
-        round: maxRound + 1,
+        round: finalRound,
         status: 'pending' as const
       }]
 
@@ -493,7 +521,7 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
   if (cutoff === 2 && !hasPlayoffMatches) {
     console.log('🚀 Gerando final direta (top 2)...')
     
-    const standings = await getTournamentStandings(tournamentId)
+    const standings = await getTournamentStandings(tournamentId, { maxRound: leagueRoundCount })
     if (standings.length < 2) {
       throw new Error('São necessários pelo menos 2 participantes para gerar final')
     }
@@ -501,11 +529,13 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
     const top2 = standings.slice(0, 2).map((s) => s.participant_id)
     console.log('🏅 Top 2 classificados:', top2)
 
+    const nextPlayoffRound = leagueRoundCount + 1
+
     const finalMatch = [{
       tournament_id: tournamentId,
       home_participant_id: top2[0],
       away_participant_id: top2[1],
-      round: maxRound + 1,
+      round: nextPlayoffRound,
       status: 'pending' as const
     }]
 
@@ -518,5 +548,7 @@ export async function generatePlayoffMatches(tournamentId: string): Promise<void
     return
   }
 
-  console.log('ℹ️ Nenhuma ação necessária - playoff já configurado')
+  throw new Error(
+    'Não foi possível gerar a próxima fase: playoff já existe ou ainda faltam resultados (ex.: semifinais em empate ou incompletas).'
+  )
 }

@@ -100,8 +100,19 @@ export function useTournamentData(tournament: Tournament | null) {
         }
         hydratedFromCacheRef.current = true
 
-        // Pre-fetch standings
-        getTournamentStandings(tournament.id)
+        const ts = tournament.settings as TournamentSettings | null
+        const isCamp = ts?.format === 'campeonato'
+        const participantCount = (participantsData as ParticipantWithProfile[]).length
+        const leagueMaxRound =
+          isCamp && participantCount > 1
+            ? getRoundRobinRoundCount(participantCount, ts?.hasReturnMatch ?? false)
+            : undefined
+
+        // Pre-fetch standings (só jogos da liga no campeonato — evita misturar mata-mata na tabela)
+        getTournamentStandings(
+          tournament.id,
+          leagueMaxRound !== undefined ? { maxRound: leagueMaxRound } : undefined
+        )
           .then((standingsData) => {
             standingsCache.set(tournament.id, { standings: standingsData, matches: matchesData })
           })

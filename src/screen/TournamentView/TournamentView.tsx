@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import {
   activeTournamentAtom,
   myTournamentsAtom,
-  currentViewAtom,
   showConfigModalAtom,
   activeTournamentTabAtom,
 } from '../../atoms/tournamentAtoms'
+import { paths } from '../../app/navigation/paths'
 import { fetchMyTournaments, getTournamentParticipants, joinTournamentById, deleteTournament, cancelTournament, seedMockParticipants } from '../../lib/tournamentService'
 import { getTournamentMatches } from '../../lib/matchService'
-import { generatePlayoffMatches } from '../../lib/matchGenerationEngine'
+import { generatePlayoffMatches, campeonatoLeagueRoundCount } from '../../lib/matchGenerationEngine'
 import { logger } from '../../lib/logger'
 import { env } from '../../config/env'
 import type { Participant } from '../../atoms/tournamentAtoms'
@@ -38,7 +39,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   const tournament = useAtomValue(activeTournamentAtom)
   const setActiveTournament = useSetAtom(activeTournamentAtom)
   const setMyTournaments = useSetAtom(myTournamentsAtom)
-  const setCurrentView = useSetAtom(currentViewAtom)
+  const navigate = useNavigate()
   const setShowConfigModal = useSetAtom(showConfigModalAtom)
   const [activeTab, setActiveTab] = useAtom(activeTournamentTabAtom)
   const [participants, setParticipants] = useState<ParticipantWithProfile[]>([])
@@ -55,7 +56,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
 
   useEffect(() => {
     if (!tournament) {
-      setCurrentView('dashboard')
+      navigate(paths.home, { replace: true })
       return
     }
 
@@ -81,7 +82,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
     }
 
     loadData()
-  }, [tournament, setCurrentView, refreshKey])
+  }, [tournament, navigate, refreshKey])
 
   if (!tournament || !user) {
     return null
@@ -128,9 +129,17 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   const seedTargetTotal = Math.max(2, maxParticipants ?? (isCreatorAlreadyParticipant ? participantCount + 1 : participantCount + 2))
   const seedMissingCount = Math.max(0, seedTargetTotal - participantCount)
 
-  // Derivações de fase
-  const leagueMatches = matches.filter((m) => m.round === 1)
-  const playoffMatches = matches.filter((m) => m.round === 2)
+  const leagueRoundCount =
+    isCampeonato && participantCount > 0
+      ? campeonatoLeagueRoundCount(participantCount, tournamentSettings?.hasReturnMatch ?? false)
+      : 1
+
+  const leagueMatches = isCampeonato
+    ? matches.filter((m) => m.round !== null && m.round <= leagueRoundCount)
+    : matches.filter((m) => m.round === 1)
+  const playoffMatches = isCampeonato
+    ? matches.filter((m) => m.round !== null && m.round > leagueRoundCount)
+    : matches.filter((m) => m.round === 2)
   const hasPlayoffStarted = playoffMatches.length > 0
   const isLeagueFinished =
     isCampeonato &&
@@ -181,7 +190,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
       const updated = await fetchMyTournaments(user.id)
       setMyTournaments(updated)
       setActiveTournament(null)
-      setCurrentView('dashboard')
+      navigate(paths.home)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao excluir torneio')
     }
@@ -194,7 +203,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
       const updated = await fetchMyTournaments(user.id)
       setMyTournaments(updated)
       setActiveTournament(null)
-      setCurrentView('dashboard')
+      navigate(paths.home)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao cancelar torneio')
     }
@@ -266,7 +275,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <button className={styles.backBtn} onClick={() => setCurrentView('dashboard')}>
+        <button className={styles.backBtn} onClick={() => navigate(paths.home)}>
           ← Voltar
         </button>
         <div className={styles.headerContent}>

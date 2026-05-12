@@ -76,11 +76,19 @@ function StandingsTable({
     onDataUpdateRef.current = onDataUpdate
   }, [onDataUpdate])
 
-  // ✅ Filtrar matches apenas da fase de liga para cálculos
+  // ✅ Filtrar matches apenas da fase de liga para cálculos (ignorar round null)
   const leagueMatches = useMemo(() => {
     if (!isChampionshipFormat || leagueRoundCount === 0) return matches
-    return matches.filter(m => m.round <= leagueRoundCount)
+    return matches.filter(
+      (m) => m.round !== null && m.round !== undefined && m.round <= leagueRoundCount
+    )
   }, [matches, isChampionshipFormat, leagueRoundCount])
+
+  const standingsLeagueQuery = useMemo(
+    () =>
+      isChampionshipFormat && leagueRoundCount > 0 ? ({ maxRound: leagueRoundCount } as const) : undefined,
+    [isChampionshipFormat, leagueRoundCount]
+  )
 
   useEffect(() => {
     if (!tournament?.id) return
@@ -94,7 +102,7 @@ function StandingsTable({
         const updated = prev.map((m: any) => {
           if (m.id === matchId) {
             // ✅ Só atualiza se for match da fase de liga
-            if (isChampionshipFormat && leagueRoundCount > 0 && m.round > leagueRoundCount) {
+            if (isChampionshipFormat && leagueRoundCount > 0 && m.round != null && m.round > leagueRoundCount) {
               return m // Não atualiza matches do mata-mata
             }
             return { 
@@ -114,7 +122,7 @@ function StandingsTable({
       if (!isChampionshipFormat || leagueRoundCount === 0) {
         // Formato normal - recalcula sempre
         setStandings((prev) => {
-          getTournamentStandings(tournament.id).then((standingsData) => {
+          getTournamentStandings(tournament.id, standingsLeagueQuery).then((standingsData) => {
             standingsCache.set(tournament.id, { standings: standingsData, matches })
             setStandings(standingsData)
           })
@@ -124,8 +132,12 @@ function StandingsTable({
         // Formato campeonato - só recalcula se for da liga
         setMatches((currentMatches) => {
           const matchToUpdate = currentMatches.find((m: any) => m.id === matchId)
-          if (matchToUpdate && matchToUpdate.round <= leagueRoundCount) {
-            getTournamentStandings(tournament.id).then((standingsData) => {
+          if (
+            matchToUpdate &&
+            matchToUpdate.round != null &&
+            matchToUpdate.round <= leagueRoundCount
+          ) {
+            getTournamentStandings(tournament.id, standingsLeagueQuery).then((standingsData) => {
               standingsCache.set(tournament.id, { standings: standingsData, matches: currentMatches })
               setStandings(standingsData)
             })
@@ -137,7 +149,7 @@ function StandingsTable({
     
     window.addEventListener('bescore:match-updated', handler)
     return () => window.removeEventListener('bescore:match-updated', handler)
-  }, [tournament?.id, isChampionshipFormat, leagueRoundCount])
+  }, [tournament?.id, isChampionshipFormat, leagueRoundCount, standingsLeagueQuery])
 
   useEffect(() => {
     if (!tournament?.id) return
@@ -158,7 +170,7 @@ function StandingsTable({
       try {
         setError(null)
         const [standingsData, matchesData] = await Promise.all([
-          getTournamentStandings(tournament.id),
+          getTournamentStandings(tournament.id, standingsLeagueQuery),
           getTournamentMatches(tournament.id),
         ])
         if (isCancelled) return
@@ -198,8 +210,9 @@ function StandingsTable({
           },
           (payload) => {
             // ✅ Só recarrega se for match da liga ou se não for campeonato
-            const updatedMatch = payload.new as any
-            if (!isChampionshipFormat || !leagueRoundCount || updatedMatch.round <= leagueRoundCount) {
+            const updatedMatch = payload.new as { round?: number | null }
+            const r = updatedMatch?.round
+            if (!isChampionshipFormat || !leagueRoundCount || r == null || r <= leagueRoundCount) {
               loadStandings()
               onDataUpdateRef.current?.()
             }
@@ -217,7 +230,7 @@ function StandingsTable({
         supabase.removeChannel(channel)
       }
     }
-  }, [tournament?.id, isChampionshipFormat, leagueRoundCount])
+  }, [tournament?.id, isChampionshipFormat, leagueRoundCount, standingsLeagueQuery])
 
   if (loading) {
     return <div className={styles.container}>Carregando classificação...</div>
