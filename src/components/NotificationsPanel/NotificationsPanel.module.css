@@ -1,0 +1,87 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+.backBtn {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  color: var(--color-be);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.backBtn:hover {
+  text-decoration: underline;
+}
+
+.empty {
+  padding: 24px 12px;
+  text-align: center;
+}
+
+.emptyTitle {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-dark-100);
+}
+
+.emptyHint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-gray-300);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rowBtn {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--color-white);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.rowBtn:hover {
+  border-color: color-mix(in srgb, var(--color-be) 35%, transparent 65%);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-be) 12%, transparent 88%);
+}
+
+.rowTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-dark-100);
+}
+
+.rowScore {
+  font-size: 14px;
+  color: var(--color-dark-100);
+}
+
+.rowMeta {
+  font-size: 12px;
+  color: var(--color-gray-300);
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import {
@@ -46,6 +46,7 @@ function TournamentMatchContent({
   user: User | null
 }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const bumpRecentCarousel = useSetAtom(recentMatchesCarouselEpochAtom)
   const setSelectedMatch = useSetAtom(selectedMatchAtom)
   const selectedMatch = useAtomValue(selectedMatchAtom)
@@ -148,6 +149,36 @@ function TournamentMatchContent({
     setOpenRound(firstPending?.[0] ?? visibleRounds[0])
     setSelectedMatch(null)
   }, [filteredRoundEntries, openRound, setSelectedMatch])
+
+  // Deep-link da lista de notificações: focar partida após carregar jogos
+  useEffect(() => {
+    const focusId = (location.state as { focusMatchId?: string } | undefined)?.focusMatchId
+    if (!focusId || loading || matches.length === 0) return
+
+    const found = matches.find((m) => m.id === focusId)
+    if (!found) {
+      navigate('.', { replace: true, state: {} })
+      return
+    }
+
+    if (isCampeonato && found.round !== null && found.round > leagueRoundCount) {
+      setPhaseFilter('playoff')
+    }
+
+    setOpenRound(found.round)
+    setSelectedMatch(found)
+    navigate('.', { replace: true, state: {} })
+  }, [
+    loading,
+    matches,
+    location.state,
+    navigate,
+    setSelectedMatch,
+    setOpenRound,
+    isCampeonato,
+    leagueRoundCount,
+    setPhaseFilter,
+  ])
 
   const handleMatchResultUpdated = () => {
     setSelectedMatch(null)
@@ -468,6 +499,7 @@ function TournamentMatchContent({
           matches={matches}
           leagueRoundCount={leagueRoundCount}
           myParticipantId={myParticipantId}
+          participants={participants}
           onResultSaved={handleMatchResultUpdated}
         />
       </ScoreEntryDrawerBoundary>

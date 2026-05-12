@@ -16,6 +16,116 @@
   object-fit: contain;
 }
 
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.avatarWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.avatarBadge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--color-red);
+  color: var(--color-white);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+  border: 2px solid var(--color-white);
+  box-sizing: border-box;
+}
+
+.mobileBellBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid var(--color-be-100);
+  background: var(--color-white);
+  color: var(--color-dark-100);
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mobileBellBtn:hover {
+  border-color: color-mix(in srgb, var(--color-be) 45%, transparent 55%);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-be) 18%, transparent 82%);
+}
+
+.profileDrawerFlex {
+  min-height: 0;
+}
+
+.profileScroll {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.notifMenuRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--color-white);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-dark-100);
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.notifMenuRowHighlight {
+  background: color-mix(in srgb, var(--color-be) 8%, var(--color-white) 92%);
+  border-color: color-mix(in srgb, var(--color-be) 22%, transparent 78%);
+}
+
+.notifMenuRowInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.menuBellIcon {
+  color: var(--color-be);
+}
+
+.menuRowBadge {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--color-red);
+  color: var(--color-white);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 22px;
+  text-align: center;
+}
+
 .loginBtn {
   margin-left: auto;
   border: 1px solid var(--color-be-100);
@@ -210,7 +320,7 @@
   }
 
   .userTrigger {
-    margin-left: auto;
+    margin-left: 0;
     gap: 6px;
     padding: 4px 6px;
   }
@@ -223,5 +333,16 @@
   .avatarFallback {
     width: 34px;
     height: 34px;
+  }
+
+  .mobileBellBtn {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (min-width: 768px) {
+  .mobileBellBtn {
+    display: none;
   }
 }
