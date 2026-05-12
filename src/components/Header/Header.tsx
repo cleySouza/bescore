@@ -150,11 +150,6 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
     setIsMenuOpen(true)
   }
 
-  const openNotificationsDrawer = () => {
-    setDrawerView('notifications')
-    setIsMenuOpen(true)
-  }
-
   const handleOpenProposalFromPanel = (tournamentId: string, matchId: string) => {
     navigate(paths.tournamentMatches(tournamentId), { state: { focusMatchId: matchId } })
     closeDrawer()
@@ -170,14 +165,6 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
           </button>
         ) : (
           <div className={styles.headerRight}>
-            <button
-              type="button"
-              className={styles.mobileBellBtn}
-              onClick={openNotificationsDrawer}
-              aria-label="Abrir notificações"
-            >
-              <BellGlyph />
-            </button>
             <button
               type="button"
               className={styles.userTrigger}

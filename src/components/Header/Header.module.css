@@ -46,26 +46,6 @@
   box-sizing: border-box;
 }
 
-.mobileBellBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border-radius: 10px;
-  border: 1px solid var(--color-be-100);
-  background: var(--color-white);
-  color: var(--color-dark-100);
-  cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.mobileBellBtn:hover {
-  border-color: color-mix(in srgb, var(--color-be) 45%, transparent 55%);
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-be) 18%, transparent 82%);
-}
-
 .profileDrawerFlex {
   min-height: 0;
 }
@@ -333,16 +313,5 @@
   .avatarFallback {
     width: 34px;
     height: 34px;
-  }
-
-  .mobileBellBtn {
-    width: 36px;
-    height: 36px;
-  }
-}
-
-@media (min-width: 768px) {
-  .mobileBellBtn {
-    display: none;
   }
 }
