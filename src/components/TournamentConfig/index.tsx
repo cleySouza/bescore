@@ -3,6 +3,7 @@ import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import { activeTournamentAtom, globalToastAtom, showConfigModalAtom } from '../../atoms/tournamentAtoms'
 import { generateMatchesByFormat } from '../../lib/matchGenerationEngine'
+import { profileDisplayName } from '../../lib/profileService'
 import { updateParticipantTeamName } from '../../lib/tournamentService'
 import type { TournamentFormat, TournamentSettings } from '../../types/tournament'
 import styles from './TournamentConfig.module.css'
@@ -13,6 +14,7 @@ interface LobbyParticipant {
   user_id: string | null
   profile?: {
     nickname: string | null
+    name?: string | null
     avatar_url: string | null
     email: string
   } | null
@@ -166,10 +168,12 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
   const filteredParticipants = participantQueryNormalized
     ? participants.filter((p) => {
         const nickname = (p.profile?.nickname ?? '').toLowerCase()
+        const storedName = (p.profile?.name ?? '').toLowerCase()
         const email = (p.profile?.email ?? '').toLowerCase()
         const team = (editableNames[p.id] ?? '').toLowerCase()
         return (
           nickname.includes(participantQueryNormalized) ||
+          storedName.includes(participantQueryNormalized) ||
           email.includes(participantQueryNormalized) ||
           team.includes(participantQueryNormalized)
         )
@@ -177,7 +181,7 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
     : participants
 
   const pickerOpenName = pickerOpenFor
-    ? (participants.find((p) => p.id === pickerOpenFor)?.profile?.nickname ?? 'Jogador')
+    ? profileDisplayName(participants.find((p) => p.id === pickerOpenFor)?.profile ?? null)
     : ''
 
   const teamPickerQueryNormalized = teamPickerQuery.trim().toLowerCase()
@@ -315,7 +319,7 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
                       <div className={styles.lobbyAvatarPlaceholder}>👤</div>
                     )}
                     <span className={styles.lobbyNickname}>
-                      {p.profile?.nickname || p.profile?.email || 'Jogador'}
+                      {profileDisplayName(p.profile)}
                     </span>
                     <button
                       type="button"

@@ -9,6 +9,11 @@ interface RecentTimelineMatch {
   tournamentImage: string | null
   homePosition: number | null
   awayPosition: number | null
+  /** Participantes na mini-tabela da snapshot (para último lugar). */
+  snapshotTableSize?: number
+  tournamentFormat?: string | null
+  /** Só formato campeonato: top N para mata-mata (igual StandingsTable). */
+  playoffCutoff?: number | null
   home_participant_id: string | null
   away_participant_id: string | null
   home_score: number | null
@@ -54,6 +59,43 @@ function formatTimelineDate(input: string | null | undefined) {
   return `${day}/${month}`
 }
 
+type PositionTone = 'leader' | 'last' | 'classified' | 'default'
+
+/** Ordem: líder (1º) → último → zona de apuramento campeonato (top playoffCutoff), como na classificação. */
+function resolvePositionTone(
+  position: number | null,
+  snapshotTableSize: number | undefined,
+  tournamentFormat: string | null | undefined,
+  playoffCutoff: number | null | undefined
+): PositionTone {
+  if (position == null || position < 1) return 'default'
+  const n = snapshotTableSize ?? 0
+  if (n < 1) return 'default'
+  if (position === 1) return 'leader'
+  if (n >= 2 && position === n) return 'last'
+  if (
+    tournamentFormat === 'campeonato' &&
+    (playoffCutoff === 4 || playoffCutoff === 2) &&
+    position <= playoffCutoff
+  ) {
+    return 'classified'
+  }
+  return 'default'
+}
+
+function positionToneClassName(tone: PositionTone): string {
+  switch (tone) {
+    case 'leader':
+      return styles.recentPositionLeader
+    case 'last':
+      return styles.recentPositionLast
+    case 'classified':
+      return styles.recentPositionClassified
+    default:
+      return ''
+  }
+}
+
 const RecentTimeline = forwardRef<HTMLDivElement, RecentTimelineProps>(
   ({ matches, shieldsMap }, ref) => {
     if (matches.length === 0) return null
@@ -70,6 +112,21 @@ const RecentTimeline = forwardRef<HTMLDivElement, RecentTimelineProps>(
             const opponentScore = loggedIsHome ? match.away_score : match.home_score
             const myPosition = loggedIsHome ? match.homePosition : match.awayPosition
             const opponentPosition = loggedIsHome ? match.awayPosition : match.homePosition
+
+            const myTone = resolvePositionTone(
+              myPosition,
+              match.snapshotTableSize,
+              match.tournamentFormat,
+              match.playoffCutoff
+            )
+            const oppTone = resolvePositionTone(
+              opponentPosition,
+              match.snapshotTableSize,
+              match.tournamentFormat,
+              match.playoffCutoff
+            )
+            const myPosClass = positionToneClassName(myTone)
+            const oppPosClass = positionToneClassName(oppTone)
 
             const resultTone =
               myScore! > opponentScore!
@@ -102,7 +159,11 @@ const RecentTimeline = forwardRef<HTMLDivElement, RecentTimelineProps>(
                 </div>
 
                 <div className={styles.recentScoreWrap}>
-                  <span className={styles.recentPositionTag}>P{myPosition ?? '-'}</span>
+                  <span
+                    className={[styles.recentPositionTag, myPosClass].filter(Boolean).join(' ')}
+                  >
+                    P{myPosition ?? '-'}
+                  </span>
                   <TimelineCrest teamName={myTeam?.team_name} shieldsMap={shieldsMap} />
 
                   <span className={styles.recentScoreBox}>{myScore}</span>
@@ -110,7 +171,11 @@ const RecentTimeline = forwardRef<HTMLDivElement, RecentTimelineProps>(
                   <span className={styles.recentScoreBox}>{opponentScore}</span>
 
                   <TimelineCrest teamName={opponentTeam?.team_name} shieldsMap={shieldsMap} />
-                  <span className={styles.recentPositionTag}>P{opponentPosition ?? '-'}</span>
+                  <span
+                    className={[styles.recentPositionTag, oppPosClass].filter(Boolean).join(' ')}
+                  >
+                    P{opponentPosition ?? '-'}
+                  </span>
                 </div>
               </article>
             )

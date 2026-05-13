@@ -4,6 +4,7 @@ import { isScoreValidationEnabled } from '../types/tournament'
 import { validateKnockoutScoreSubmission, type KnockoutMatchCore } from './playoffKnockout'
 import { isTournamentRunComplete } from './tournamentCompletion'
 import { markTournamentFinishedIfStillActive } from './tournamentService'
+import { profileDisplayName } from './profileService'
 
 function leagueRoundCountCampeonato(participantCount: number, hasReturnMatch: boolean): number {
   if (participantCount <= 1) return 0
@@ -49,6 +50,7 @@ export async function getTournamentMatches(tournamentId: string): Promise<MatchW
         profile:user_id (
           id,
           nickname,
+          name,
           avatar_url,
           email
         )
@@ -60,6 +62,7 @@ export async function getTournamentMatches(tournamentId: string): Promise<MatchW
         profile:user_id (
           id,
           nickname,
+          name,
           avatar_url,
           email
         )
@@ -392,7 +395,9 @@ export async function getTournamentStandings(
         profile:user_id (
           id,
           nickname,
-          avatar_url
+          name,
+          avatar_url,
+          email
         )
       `
       )
@@ -423,7 +428,7 @@ export async function getTournamentStandings(
         participant_id: p.id,
         user_id: p.user_id,
         team_name: p.team_name || '',
-        user_nickname: p.profile?.nickname || 'Sem nome',
+        user_nickname: profileDisplayName(p.profile),
         user_avatar_url: p.profile?.avatar_url || null,
         total_matches: 0,
         wins: 0,

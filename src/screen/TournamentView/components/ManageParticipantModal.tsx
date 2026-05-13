@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { updateParticipantAdmin } from '../../../lib/matchService'
+import { profileDisplayName } from '../../../lib/profileService'
 import styles from './ManageParticipantModal.module.css'
 
 export interface ManagedParticipant {
@@ -9,6 +10,7 @@ export interface ManagedParticipant {
   penalty_reason?: string | null
   profile?: {
     nickname: string | null
+    name?: string | null
     avatar_url: string | null
     email: string
   } | null
@@ -37,8 +39,7 @@ function ManageParticipantModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const displayName =
-    participant.profile?.nickname || participant.profile?.email || 'Participante'
+  const displayName = profileDisplayName(participant.profile)
 
   const normalizedTeamOptions = useMemo(() => {
     const clean = teamOptions

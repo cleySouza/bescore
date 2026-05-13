@@ -4,6 +4,7 @@ import {
   resolveSingleLegKnockoutWinner,
   resolveTwoLegKnockoutWinner,
 } from '../../../lib/playoffKnockout'
+import { profileDisplayName } from '../../../lib/profileService'
 
 interface SideSummary {
   teamName: string
@@ -204,7 +205,7 @@ function getMatchSideSummary(match: MatchWithTeams, side: 'home' | 'away'): Side
   const team = side === 'home' ? match.homeTeam : match.awayTeam
   return {
     teamName: team?.team_name || 'A definir',
-    nickname: team?.profile?.nickname || '—',
+    nickname: profileDisplayName(team?.profile),
   }
 }
 

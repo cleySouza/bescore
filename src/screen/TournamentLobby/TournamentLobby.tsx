@@ -15,6 +15,7 @@ import {
   deleteTournament,
   seedMockParticipants,
 } from '../../lib/tournamentService'
+import { profileDisplayName } from '../../lib/profileService'
 import { env } from '../../config/env'
 import type { Participant } from '../../atoms/tournamentAtoms'
 import type { TournamentSettings } from '../../types/tournament'
@@ -25,6 +26,7 @@ import styles from './TournamentLobby.module.css'
 interface ParticipantWithProfile extends Participant {
   profile?: {
     nickname: string | null
+    name?: string | null
     avatar_url: string | null
     email: string
   } | null
@@ -152,7 +154,9 @@ function TournamentLobby() {
     }
     setShowConfigModal(false)
     navigate(paths.tournamentMatches(tournament.id))
-    fetchMyTournaments(user!.id).then(setMyTournaments).catch(() => {})
+    if (user) {
+      fetchMyTournaments(user.id).then(setMyTournaments).catch(() => {})
+    }
   }
 
   const handleDeleteTournament = async () => {
@@ -284,10 +288,7 @@ function TournamentLobby() {
           ) : (
             <div className={styles.participantsList}>
               {participants.map((p, index) => {
-                const displayName =
-                  p.profile?.nickname ||
-                  p.profile?.email ||
-                  getMockName(p.id, index)
+                const displayName = p.profile ? profileDisplayName(p.profile) : getMockName(p.id, index)
                 const teamName = (p.team_name ?? '').trim()
                 const showTeam = hasDrawnTeams && teamName.length > 0
                 const teamShield = showTeam ? teamShields[teamName] : ''

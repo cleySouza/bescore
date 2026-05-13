@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../../../atoms/sessionAtom'
 import { activeTournamentAtom, globalToastAtom, selectedMatchAtom } from '../../../../atoms/tournamentAtoms'
+import { useUserProfile } from '../../../../hooks/useUserProfile'
 import { updateMatchResult, type UpdateMatchPenaltyMode } from '../../../../lib/matchService'
+import { displayName } from '../../../../lib/profileService'
 import {
   castProposalVote,
   createMatchScoreProposal,
@@ -24,6 +26,7 @@ export interface ScoreDrawerParticipant {
   team_name: string | null
   profile?: {
     nickname: string | null
+    name?: string | null
     avatar_url: string | null
     email: string
   } | null
@@ -40,20 +43,25 @@ interface ScoreEntryDrawerProps {
 
 function getDisplayName(
   nickname: string | null | undefined,
+  storedName: string | null | undefined,
   email: string | null | undefined,
-  profileId: string | null | undefined,
+  participantUserId: string | null | undefined,
   currentUserId: string | undefined,
   currentUserName: string
 ) {
   if (typeof nickname === 'string' && nickname.trim()) {
-    return nickname
+    return nickname.trim()
+  }
+
+  if (typeof storedName === 'string' && storedName.trim()) {
+    return storedName.trim()
   }
 
   if (typeof email === 'string' && email.trim()) {
     return email.split('@')[0]
   }
 
-  if (profileId && currentUserId && profileId === currentUserId) {
+  if (participantUserId && currentUserId && participantUserId === currentUserId) {
     return currentUserName
   }
 
@@ -68,6 +76,7 @@ function ScoreEntryDrawer({
   participants = [],
 }: ScoreEntryDrawerProps) {
   const user = useAtomValue(userAtom)
+  const { profile } = useUserProfile(user)
   const tournament = useAtomValue(activeTournamentAtom)
   const [selectedMatch, setSelectedMatch] = useAtom(selectedMatchAtom)
   const setGlobalToast = useSetAtom(globalToastAtom)
@@ -525,21 +534,20 @@ function ScoreEntryDrawer({
 
   const homeTeamName = selectedMatch.homeTeam?.team_name || 'TBD'
   const awayTeamName = selectedMatch.awayTeam?.team_name || 'TBD'
-  const currentUserName =
-    typeof user?.user_metadata?.name === 'string' && user.user_metadata.name.trim()
-      ? user.user_metadata.name
-      : user?.email?.split('@')[0] ?? 'Usuario'
+  const currentUserName = displayName(user, profile)
   const homeNickname = getDisplayName(
     selectedMatch.homeTeam?.profile?.nickname,
+    selectedMatch.homeTeam?.profile?.name,
     selectedMatch.homeTeam?.profile?.email,
-    selectedMatch.homeTeam?.profile?.id,
+    selectedMatch.homeTeam?.user_id ?? null,
     user?.id,
     currentUserName
   )
   const awayNickname = getDisplayName(
     selectedMatch.awayTeam?.profile?.nickname,
+    selectedMatch.awayTeam?.profile?.name,
     selectedMatch.awayTeam?.profile?.email,
-    selectedMatch.awayTeam?.profile?.id,
+    selectedMatch.awayTeam?.user_id ?? null,
     user?.id,
     currentUserName
   )
@@ -878,6 +886,7 @@ function ScoreEntryDrawer({
                 const uid = p.user_id
                 const label = getDisplayName(
                   p.profile?.nickname,
+                  p.profile?.name,
                   p.profile?.email,
                   uid,
                   user?.id,

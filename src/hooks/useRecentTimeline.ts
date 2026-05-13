@@ -18,6 +18,9 @@ interface RecentTimelineMatch extends MatchWithTeams {
   tournamentImage: string | null
   homePosition: number | null
   awayPosition: number | null
+  snapshotTableSize: number
+  tournamentFormat: string | null
+  playoffCutoff: number | null
 }
 
 export function useRecentTimeline(userId: string | undefined) {
@@ -92,7 +95,15 @@ export function useRecentTimeline(userId: string | undefined) {
             const tournamentImage =
               typeof settings?.tournamentImage === 'string' ? settings.tournamentImage : null
 
-            return snapshotMatches.map(({ match, homePosition, awayPosition }) => {
+            const format = settings?.format ?? null
+            const playoffCutoff =
+              format === 'campeonato'
+                ? settings?.playoffCutoff === 4 || settings?.playoffCutoff === 2
+                  ? settings.playoffCutoff
+                  : 2
+                : null
+
+            return snapshotMatches.map(({ match, homePosition, awayPosition, snapshotTableSize }) => {
               const loggedIsHome = Boolean(
                 (match.home_participant_id && myParticipantIds.has(match.home_participant_id)) ||
                   match.homeTeam?.profile?.id === userId
@@ -117,6 +128,9 @@ export function useRecentTimeline(userId: string | undefined) {
                 tournamentImage,
                 homePosition,
                 awayPosition,
+                snapshotTableSize,
+                tournamentFormat: format,
+                playoffCutoff,
               } as RecentTimelineMatch
             })
           })

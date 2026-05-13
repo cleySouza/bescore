@@ -25,6 +25,7 @@ interface ParticipantWithProfile {
   team_name: string | null
   profile?: {
     nickname: string | null
+    name?: string | null
     avatar_url: string | null
     email: string
   } | null
