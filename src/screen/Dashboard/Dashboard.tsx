@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { getDefaultStore, useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import {
   myTournamentsAtom,
@@ -46,7 +46,8 @@ function Dashboard() {
 
     const load = async () => {
       if (userId) {
-        const hasCachedTournaments = myTournaments.length > 0
+        const cachedLen = getDefaultStore().get(myTournamentsAtom).length
+        const hasCachedTournaments = cachedLen > 0
         setLoading(!hasCachedTournaments)
         setError(null)
         try {
@@ -82,7 +83,8 @@ function Dashboard() {
     return () => {
       cancelled = true
     }
-    // `myTournaments.length` omitido de deps: atualização pós-fetch não deve recarregar.
+    // Só `userId` e setters: evita re-fetch em ciclo quando `setMyTournaments` atualiza o atom.
+    // Cache “tem dados?” lido via getDefaultStore no momento do load (valor atual, não closure velha).
   }, [userId, setMyTournaments, setLoading, setError])
 
   const displayList = user ? myTournaments : publicTournaments

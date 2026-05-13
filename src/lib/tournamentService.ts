@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { profileDisplayName } from './profileService'
 import { logger } from './logger'
 import type { Json, Tables } from '../types/supabase'
 import type { TournamentWithParticipants, Participant } from '../atoms/tournamentAtoms'
@@ -456,7 +457,7 @@ export async function getTournamentById(id: string, userId: string): Promise<Tou
 export async function getTournamentParticipants(
   tournamentId: string
 ): Promise<Array<Participant & {
-  profile?: { nickname: string | null; avatar_url: string | null; email: string } | null
+  profile?: { nickname: string | null; name: string | null; avatar_url: string | null; email: string } | null
 }>> {
   const { data, error } = await supabase
     .from('participants')
@@ -465,6 +466,7 @@ export async function getTournamentParticipants(
       *,
       profile:user_id (
         nickname,
+        name,
         avatar_url,
         email
       )
@@ -478,7 +480,7 @@ export async function getTournamentParticipants(
   }
 
   return (data || []) as Array<Participant & {
-    profile?: { nickname: string | null; avatar_url: string | null; email: string } | null
+    profile?: { nickname: string | null; name: string | null; avatar_url: string | null; email: string } | null
   }>
 }
 
@@ -548,8 +550,8 @@ export async function fetchRecentPlayers(
       created_at,
       user_a,
       user_b,
-      profile_a:user_a ( nickname, avatar_url ),
-      profile_b:user_b ( nickname, avatar_url )
+      profile_a:user_a ( nickname, name, avatar_url, email ),
+      profile_b:user_b ( nickname, name, avatar_url, email )
     `
     )
     .or(`user_a.eq.${userId},user_b.eq.${userId}`)
@@ -567,7 +569,7 @@ export async function fetchRecentPlayers(
     const profile = isA ? row.profile_b : row.profile_a
     return {
       id: otherId,
-      name: profile?.nickname || 'Jogador',
+      name: profileDisplayName(profile),
       avatar: profile?.avatar_url || null,
       lastPlayed: row.created_at,
     }

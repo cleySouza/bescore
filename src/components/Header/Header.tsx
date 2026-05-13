@@ -8,6 +8,9 @@ import { env } from '../../config/env'
 import { paths } from '../../app/navigation/paths'
 import { safeRedirectTarget } from '../../app/router/requireAuthPaths'
 import { useProposalNotifications } from '../../hooks/useProposalNotifications'
+import { useUserProfile } from '../../hooks/useUserProfile'
+import { displayAvatarUrl, displayName } from '../../lib/profileService'
+import { ProfileEditor } from '../ProfileEditor/ProfileEditor'
 import styles from './Header.module.css'
 
 type BeforeInstallPromptEvent = Event & {
@@ -49,7 +52,7 @@ function BellGlyph({ className }: { className?: string }) {
   )
 }
 
-type DrawerView = 'profile' | 'notifications'
+type DrawerView = 'profile' | 'profileEdit' | 'notifications'
 
 export const Header = ({ user, onLogout }: HeaderProps) => {
   const navigate = useNavigate()
@@ -57,20 +60,14 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [drawerView, setDrawerView] = useState<DrawerView>('profile')
   const { proposals, unreadCount, markNotificationsViewed } = useProposalNotifications(user?.id)
+  const { profile, refreshProfile } = useUserProfile(user)
+
+  const userName = useMemo(() => displayName(user, profile), [user, profile])
+
+  const avatarUrl = useMemo(() => displayAvatarUrl(user, profile), [user, profile])
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isInstalled, setIsInstalled] = useState(false)
   const [showInstallHelp, setShowInstallHelp] = useState(false)
-
-  const userName = useMemo(() => {
-    const metadataName = user?.user_metadata?.name
-    if (typeof metadataName === 'string' && metadataName.trim()) {
-      return metadataName
-    }
-    return user?.email ?? 'Usuario'
-  }, [user?.email, user?.user_metadata?.name])
-
-  const avatarUrl =
-    typeof user?.user_metadata?.avatar_url === 'string' ? user.user_metadata.avatar_url : ''
   const appVersion = env.appVersion
   const canInstallApp = !isInstalled
 
@@ -170,7 +167,7 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
               className={styles.userTrigger}
               onClick={openProfileDrawer}
               aria-label="Abrir menu do usuario"
-              aria-expanded={isMenuOpen && drawerView === 'profile'}
+              aria-expanded={isMenuOpen}
             >
               <span className={styles.avatarWrap}>
                 {avatarUrl ? (
@@ -199,8 +196,20 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
         <Drawer
           isOpen={isMenuOpen}
           onClose={closeDrawer}
-          ariaLabel={drawerView === 'profile' ? 'Menu do usuario' : 'Notificações'}
-          title={drawerView === 'profile' ? 'Minha conta' : 'Notificações'}
+          ariaLabel={
+            drawerView === 'notifications'
+              ? 'Notificações'
+              : drawerView === 'profileEdit'
+                ? 'Editar perfil'
+                : 'Menu do usuario'
+          }
+          title={
+            drawerView === 'notifications'
+              ? 'Notificações'
+              : drawerView === 'profileEdit'
+                ? 'Perfil'
+                : 'Minha conta'
+          }
           panelClassName={`${styles.profileDrawer} ${styles.profileDrawerFlex}`}
         >
           {drawerView === 'profile' ? (
@@ -214,7 +223,19 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
                   </div>
                 )}
                 <p className={styles.userNameFull}>{userName}</p>
+                {user.email ? <p className={styles.userEmail}>{user.email}</p> : null}
               </div>
+
+              <button
+                type="button"
+                className={styles.notifMenuRow}
+                onClick={() => setDrawerView('profileEdit')}
+              >
+                <span className={styles.notifMenuRowInner}>
+                  <span aria-hidden="true">👤</span>
+                  <span>Perfil</span>
+                </span>
+              </button>
 
               <button
                 type="button"
@@ -258,6 +279,17 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
                 Sair
               </button>
               <p className={styles.versionText}>v{appVersion}</p>
+            </div>
+          ) : drawerView === 'profileEdit' ? (
+            <div className={styles.profileScroll}>
+              <button
+                type="button"
+                className={styles.drawerBackRow}
+                onClick={() => setDrawerView('profile')}
+              >
+                ← Voltar
+              </button>
+              <ProfileEditor user={user} profile={profile} onSaved={refreshProfile} />
             </div>
           ) : (
             <NotificationsPanel

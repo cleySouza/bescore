@@ -66,6 +66,7 @@ export interface MatchWithTeams extends Match {
     profile?: {
       id?: string | null
       nickname: string | null
+      name?: string | null
       avatar_url: string | null
       email?: string | null
     }
@@ -77,6 +78,7 @@ export interface MatchWithTeams extends Match {
     profile?: {
       id?: string | null
       nickname: string | null
+      name?: string | null
       avatar_url: string | null
       email?: string | null
     }

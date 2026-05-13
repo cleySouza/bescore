@@ -10,6 +10,7 @@ import {
 } from '../../atoms/tournamentAtoms'
 import { paths } from '../../app/navigation/paths'
 import { fetchMyTournaments, getTournamentParticipants, joinTournamentById, deleteTournament, cancelTournament, seedMockParticipants } from '../../lib/tournamentService'
+import { profileDisplayName } from '../../lib/profileService'
 import { getTournamentMatches } from '../../lib/matchService'
 import { generatePlayoffMatches, campeonatoLeagueRoundCount } from '../../lib/matchGenerationEngine'
 import { logger } from '../../lib/logger'
@@ -26,6 +27,7 @@ import styles from './TournamentView.module.css'
 interface ParticipantWithProfile extends Participant {
   profile?: {
     nickname: string | null
+    name?: string | null
     avatar_url: string | null
     email: string
   } | null
@@ -357,7 +359,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                     {participant.profile?.avatar_url ? (
                       <img
                         src={participant.profile.avatar_url}
-                        alt={participant.profile.nickname || 'Avatar'}
+                        alt={profileDisplayName(participant.profile)}
                         className={styles.avatar}
                       />
                     ) : (
@@ -366,7 +368,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                     <div className={styles.participantInfo}>
                       <div className={styles.teamName}>{participant.team_name || 'Sem time'}</div>
                       <small className={styles.userName}>
-                        {participant.profile?.nickname || participant.profile?.email || 'Usuário'}
+                        {profileDisplayName(participant.profile)}
                       </small>
                     </div>
                     {participant.user_id === tournament.creator_id && (
@@ -659,7 +661,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                         {participants.map((p) => (
                           <div key={p.id} className={styles.adminParticipantRow}>
                             <span className={styles.adminParticipantName}>
-                              {p.team_name || p.profile?.nickname || 'Participante'}
+                              {p.team_name || profileDisplayName(p.profile)}
                             </span>
                             <button
                               className={styles.manageBtn}

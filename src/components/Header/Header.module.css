@@ -234,6 +234,31 @@
   word-break: break-word;
 }
 
+.userEmail {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-gray-300);
+  word-break: break-all;
+}
+
+.drawerBackRow {
+  align-self: flex-start;
+  margin: 0 0 4px;
+  padding: 6px 0;
+  border: none;
+  background: transparent;
+  color: var(--color-be);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.drawerBackRow:hover {
+  text-decoration: underline;
+}
+
 .logoutBtn {
   background: var(--color-red);
   color: var(--color-white);

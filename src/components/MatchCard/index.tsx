@@ -3,6 +3,7 @@ import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import { activeTournamentAtom, globalToastAtom } from '../../atoms/tournamentAtoms'
 import { updateMatchResult } from '../../lib/matchService'
+import { profileDisplayName } from '../../lib/profileService'
 import type { MatchWithTeams } from '../../types/tournament'
 import styles from './MatchCard.module.css'
 
@@ -29,8 +30,8 @@ function MatchCard({ match, onResultUpdated }: MatchCardProps) {
 
   const homeTeamName = match.homeTeam?.team_name || 'TBD'
   const awayTeamName = match.awayTeam?.team_name || 'TBD'
-  const homeNickname = match.homeTeam?.profile?.nickname || 'Equipe A'
-  const awayNickname = match.awayTeam?.profile?.nickname || 'Equipe B'
+  const homeNickname = profileDisplayName(match.homeTeam?.profile)
+  const awayNickname = profileDisplayName(match.awayTeam?.profile)
 
   const handleConfirm = async () => {
     setError(null)

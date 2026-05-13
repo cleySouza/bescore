@@ -9,6 +9,7 @@ import {
   selectedMatchAtom,
 } from '../../atoms/tournamentAtoms'
 import { paths } from '../../app/navigation/paths'
+import { profileDisplayName } from '../../lib/profileService'
 import { useTournamentData } from './hooks/useTournamentData'
 import { getTournamentSettings, getMatchesByPhase, getRoundLabel, effectiveParticipantCount } from './utils/tournamentHelpers'
 import { normalizeMatchForDrawer } from './utils/matchHelpers'
@@ -253,7 +254,7 @@ function TournamentMatchContent({
                         <div className={styles.matchTeamBlock}>
                           <span className={styles.matchClub}>{m.homeTeam?.team_name || 'TBD'}</span>
                           <span className={`${styles.matchBrand} ${m.homeTeam?.profile?.id === user?.id ? styles.matchBrandCurrentUser : ''}`}>
-                            {m.homeTeam?.profile?.nickname || 'csbeep'}
+                            {profileDisplayName(m.homeTeam?.profile)}
                           </span>
                         </div>
 
@@ -283,7 +284,7 @@ function TournamentMatchContent({
                         <div className={`${styles.matchTeamBlock} ${styles.matchTeamAway}`}>
                           <span className={styles.matchClub}>{m.awayTeam?.team_name || 'TBD'}</span>
                           <span className={`${styles.matchBrand} ${m.awayTeam?.profile?.id === user?.id ? styles.matchBrandCurrentUser : ''}`}>
-                            {m.awayTeam?.profile?.nickname || 'csbeep'}
+                            {profileDisplayName(m.awayTeam?.profile)}
                           </span>
                         </div>
                       </div>

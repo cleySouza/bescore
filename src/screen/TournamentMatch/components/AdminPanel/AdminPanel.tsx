@@ -3,6 +3,7 @@ import { useAtom } from 'jotai'
 import type { ManagedParticipant } from '../../../TournamentView/components/ManageParticipantModal'
 import { activeTournamentAtom } from '../../../../atoms/tournamentAtoms'
 import { mergeTournamentSettings } from '../../../../lib/tournamentService'
+import { profileDisplayName } from '../../../../lib/profileService'
 import { SCORE_PROPOSAL_DEFAULT_DEADLINE_MS } from '../../../../lib/scoreProposalConstants'
 import type { Json } from '../../../../types/supabase'
 import type { TournamentSettings } from '../../../../types/tournament'
@@ -14,6 +15,7 @@ interface ParticipantWithProfile {
   team_name: string | null
   profile?: {
     nickname: string | null
+    name?: string | null
     avatar_url: string | null
     email: string
   } | null
@@ -102,7 +104,7 @@ function AdminPanel({ participants, onClose, onManageParticipant, onCancelTourna
                       {p.team_name || 'Sem time definido'}
                     </span>
                     <span className={styles.adminParticipantNick}>
-                      {p.profile?.nickname || 'Sem nickname'}
+                      {profileDisplayName(p.profile)}
                     </span>
                   </div>
                 </div>
