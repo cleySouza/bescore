@@ -73,11 +73,13 @@ export function getMatchesWithSnapshotPositions(matches: MatchWithTeams[]) {
     })
 
     const positionByParticipant = new Map(ranking.map((row, index) => [row.participantId, index + 1]))
+    const snapshotTableSize = ranking.length
 
     return {
       match,
       homePosition: homeId ? positionByParticipant.get(homeId) ?? null : null,
       awayPosition: awayId ? positionByParticipant.get(awayId) ?? null : null,
+      snapshotTableSize,
     }
   })
 }
