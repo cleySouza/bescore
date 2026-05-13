@@ -25,6 +25,9 @@
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .backBtn:hover {
@@ -97,6 +100,8 @@
   color: var(--color-be);
   align-items: center;
   justify-content: center;
+  flex-direction: row;
+  gap: 10px;
 }
 
 .setupBtn:hover {
@@ -207,6 +212,10 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .copyBtn:hover {
@@ -296,6 +305,10 @@
   transition: all 0.15s ease;
   flex-shrink: 0;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .manageBtn:hover {
@@ -320,6 +333,9 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .adminParticipantList {

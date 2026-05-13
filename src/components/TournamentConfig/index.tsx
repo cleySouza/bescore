@@ -6,6 +6,7 @@ import { generateMatchesByFormat } from '../../lib/matchGenerationEngine'
 import { profileDisplayName } from '../../lib/profileService'
 import { updateParticipantTeamName } from '../../lib/tournamentService'
 import type { TournamentFormat, TournamentSettings } from '../../types/tournament'
+import { HiOutlineCog6Tooth, HiOutlineTrophy, HiOutlineXMark } from 'react-icons/hi2'
 import styles from './TournamentConfig.module.css'
 
 interface LobbyParticipant {
@@ -227,9 +228,12 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
-          <h2 className={styles.title}>⚙️ Montar Campeonato</h2>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Fechar">
-            ✕
+          <h2 className={styles.title}>
+            <HiOutlineCog6Tooth aria-hidden size={24} strokeWidth={2} />
+            Montar Campeonato
+          </h2>
+          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Fechar">
+            <HiOutlineXMark aria-hidden size={26} strokeWidth={2} />
           </button>
         </div>
 
@@ -373,13 +377,17 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
               <div className={styles.teamPickerOverlay} onClick={closeTeamPicker}>
                 <div className={styles.teamPickerPanel} onClick={(e) => e.stopPropagation()}>
                   <div className={styles.teamPickerHeader}>
-                    <span>🏆 Escolher Time - {pickerOpenName}</span>
+                    <span className={styles.teamPickerHeaderTitle}>
+                      <HiOutlineTrophy aria-hidden size={18} strokeWidth={2} />
+                      Escolher Time - {pickerOpenName}
+                    </span>
                     <button
                       type="button"
                       className={styles.teamPickerClose}
                       onClick={closeTeamPicker}
+                      aria-label="Fechar"
                     >
-                      ✕
+                      <HiOutlineXMark aria-hidden size={22} strokeWidth={2} />
                     </button>
                   </div>
                   <div className={styles.teamPickerSearchWrap}>

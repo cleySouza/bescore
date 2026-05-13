@@ -16,6 +16,7 @@ import { normalizeMatchForDrawer } from './utils/matchHelpers'
 import TournamentHeader from './components/TournamentHeader/TournamentHeader'
 import PhaseControls from './components/PhaseControls/PhaseControls'
 import AdminPanel from './components/AdminPanel/AdminPanel'
+import { HiOutlineCog6Tooth, HiOutlinePlay } from 'react-icons/hi2'
 import MatchesSection from './components/MatchesSection/MatchesSection'
 import FinalPhaseSection from './components/FinalPhaseSection/FinalPhaseSection'
 import StandingsSection from './components/StandingsSection/StandingsSection'
@@ -401,7 +402,8 @@ function TournamentMatchContent({
               className={`${styles.tab} ${activeTab === 'matches' ? styles.tabActive : ''}`}
               onClick={() => setActiveTab('matches')}
             >
-              🎮 Jogos {pendingCount > 0 && `(${pendingCount})`}
+              <HiOutlinePlay aria-hidden size={18} strokeWidth={2} />
+              Jogos {pendingCount > 0 && `(${pendingCount})`}
             </button>
             <button
               className={`${styles.tab} ${activeTab === 'standings' ? styles.tabActive : ''}`}
@@ -470,7 +472,8 @@ function TournamentMatchContent({
             className={styles.adminOpenBtn}
             onClick={() => setShowAdminModal(true)}
           >
-            ⚙️ Ajustes administrativos
+            <HiOutlineCog6Tooth aria-hidden size={18} strokeWidth={2} />
+            Ajustes administrativos
           </button>
         )}
       </main>

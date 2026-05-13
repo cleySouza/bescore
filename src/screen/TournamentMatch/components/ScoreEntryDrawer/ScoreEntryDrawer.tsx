@@ -18,6 +18,7 @@ import { isTwoLegAggregateTie } from '../../../../lib/playoffKnockout'
 import type { MatchWithTeams, TournamentSettings } from '../../../../types/tournament'
 import { isAdminOnlyScoring, isScoreValidationEnabled } from '../../../../types/tournament'
 import ScoreEntryTeamCrest from '../ScoreEntryTeamCrest/ScoreEntryTeamCrest'
+import { HiOutlineXMark } from 'react-icons/hi2'
 import './scoreEntry.css'
 
 export interface ScoreDrawerParticipant {
@@ -663,7 +664,7 @@ function ScoreEntryDrawer({
             </h3>
           </div>
           <button type="button" className="score-entry-close" onClick={closeDrawer} aria-label="Fechar painel">
-            ×
+            <HiOutlineXMark aria-hidden size={22} strokeWidth={2} />
           </button>
         </header>
 

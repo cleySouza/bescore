@@ -1,5 +1,6 @@
 import type { Tournament } from '../../../../atoms/tournamentAtoms'
 import type { TournamentSettings } from '../../../../types/tournament'
+import { HiOutlineArrowLeft } from 'react-icons/hi2'
 import styles from './TournamentHeader.module.css'
 
 interface TournamentHeaderProps {
@@ -43,7 +44,9 @@ function TournamentHeader({ tournament, tournamentSettings, onBack }: Tournament
   return (
     <header className={styles.header}>
       <button className={styles.backBtn} onClick={onBack}>
-        <span className={styles.backBtnIcon}>←</span>
+        <span className={styles.backBtnIcon}>
+          <HiOutlineArrowLeft aria-hidden size={18} strokeWidth={2} />
+        </span>
         <span>Voltar</span>
       </button>
 

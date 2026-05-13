@@ -86,6 +86,9 @@
   line-height: 1;
   cursor: pointer;
   transition: background 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .globalToastDismiss:hover {

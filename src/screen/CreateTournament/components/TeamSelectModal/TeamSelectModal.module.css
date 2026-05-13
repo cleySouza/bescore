@@ -49,6 +49,9 @@
   padding: 4px 0;
   white-space: nowrap;
   transition: color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .backBtn:hover {
@@ -83,6 +86,9 @@
   line-height: 1;
   padding: 4px;
   transition: color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .closeBtn:hover {

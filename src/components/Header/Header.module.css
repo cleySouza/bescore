@@ -94,6 +94,12 @@
 
 .menuBellIcon {
   color: var(--color-be);
+  flex-shrink: 0;
+}
+
+.menuRowLeadIcon {
+  color: var(--color-be);
+  flex-shrink: 0;
 }
 
 .menuRowBadge {
@@ -253,6 +259,9 @@
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .drawerBackRow:hover {

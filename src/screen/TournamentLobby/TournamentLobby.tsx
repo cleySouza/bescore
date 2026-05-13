@@ -21,6 +21,11 @@ import type { Participant } from '../../atoms/tournamentAtoms'
 import type { TournamentSettings } from '../../types/tournament'
 import TournamentConfig from '../../components/TournamentConfig'
 import ManageParticipantModal, { type ManagedParticipant } from '../TournamentView/components/ManageParticipantModal'
+import {
+  HiOutlineArrowLeft,
+  HiOutlineClipboardDocument,
+  HiOutlineCog6Tooth,
+} from 'react-icons/hi2'
 import styles from './TournamentLobby.module.css'
 
 interface ParticipantWithProfile extends Participant {
@@ -227,7 +232,9 @@ function TournamentLobby() {
     <div className={styles.container}>
       <header className={styles.header}>
         <button className={styles.backBtn} onClick={() => navigate(paths.home)}>
-          <span className={styles.backBtnIcon}>←</span>
+          <span className={styles.backBtnIcon}>
+            <HiOutlineArrowLeft aria-hidden size={16} strokeWidth={2} />
+          </span>
           <span>Voltar</span>
         </button>
 
@@ -254,7 +261,8 @@ function TournamentLobby() {
           </div>
           {isCreator && participantCount >= 2 && (
             <button className={styles.setupBtn} onClick={() => setShowConfigModal(true)}>
-              ⚙️ Configurar Partidas
+              <HiOutlineCog6Tooth aria-hidden size={18} strokeWidth={2} />
+              Configurar Partidas
             </button>
           )}
         </div>
@@ -282,7 +290,8 @@ function TournamentLobby() {
                 className={styles.copyBtn}
                 onClick={() => navigator.clipboard.writeText(tournament.invite_code)}
               >
-                📋 Copiar Código
+                <HiOutlineClipboardDocument aria-hidden size={16} strokeWidth={2} />
+                Copiar Código
               </button>
             </div>
           ) : (
@@ -339,7 +348,8 @@ function TournamentLobby() {
                       className={styles.manageBtn}
                       onClick={() => setManagedParticipant(p as ManagedParticipant)}
                     >
-                      ⚙️ Gerenciar
+                      <HiOutlineCog6Tooth aria-hidden size={14} strokeWidth={2} />
+                      Gerenciar
                     </button>
                   )}
                 </div>

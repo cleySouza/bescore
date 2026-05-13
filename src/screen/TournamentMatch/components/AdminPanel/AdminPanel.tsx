@@ -8,6 +8,10 @@ import { SCORE_PROPOSAL_DEFAULT_DEADLINE_MS } from '../../../../lib/scoreProposa
 import type { Json } from '../../../../types/supabase'
 import type { TournamentSettings } from '../../../../types/tournament'
 import { isScoreValidationEnabled } from '../../../../types/tournament'
+import {
+  HiOutlineCog6Tooth,
+  HiOutlineXMark,
+} from 'react-icons/hi2'
 import styles from './AdminPanel.module.css'
 
 interface ParticipantWithProfile {
@@ -62,12 +66,15 @@ function AdminPanel({ participants, onClose, onManageParticipant, onCancelTourna
             onClick={onClose}
             aria-label="Fechar ajustes administrativos"
           >
-            ✕
+            <HiOutlineXMark aria-hidden size={18} strokeWidth={2} />
           </button>
         </div>
 
         <div className={styles.adminPanel}>
-          <h4 className={styles.adminPanelTitle}>⚙️ Validação de placar</h4>
+          <h4 className={styles.adminPanelTitle}>
+            <HiOutlineCog6Tooth aria-hidden size={18} strokeWidth={2} />
+            Validação de placar
+          </h4>
           <p className={styles.adminSettingsHint}>
             Com votação ativa, participantes com conta aprovam propostas; quem propõe conta como um voto de
             aprovação. Prazo curto ({Math.round(SCORE_PROPOSAL_DEFAULT_DEADLINE_MS / 60000)} min) definido no servidor.
@@ -91,7 +98,10 @@ function AdminPanel({ participants, onClose, onManageParticipant, onCancelTourna
             {settingsSaving ? 'Salvando...' : 'Salvar configuração de placar'}
           </button>
 
-          <h4 className={styles.adminPanelTitle}>⚙️ Gerenciar Participantes</h4>
+          <h4 className={styles.adminPanelTitle}>
+            <HiOutlineCog6Tooth aria-hidden size={18} strokeWidth={2} />
+            Gerenciar Participantes
+          </h4>
           <div className={styles.adminParticipantList}>
             {participants.map((p) => (
               <div key={p.id} className={styles.adminParticipantRow}>
@@ -112,7 +122,8 @@ function AdminPanel({ participants, onClose, onManageParticipant, onCancelTourna
                   className={styles.manageBtn}
                   onClick={() => onManageParticipant(p as ManagedParticipant)}
                 >
-                  ⚙️ Gerenciar
+                  <HiOutlineCog6Tooth aria-hidden size={14} strokeWidth={2} />
+                  Gerenciar
                 </button>
               </div>
             ))}

@@ -17,6 +17,9 @@
   font-weight: 700;
   cursor: pointer;
   padding: 4px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .backBtn:hover {

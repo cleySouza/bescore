@@ -204,6 +204,10 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .copyBtn:hover {
@@ -388,6 +392,10 @@
   width: 100%;
   align-self: stretch;
   text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .manageBtn:hover {

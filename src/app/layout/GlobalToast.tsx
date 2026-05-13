@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { HiOutlineXMark } from 'react-icons/hi2'
 import { useAtom } from 'jotai'
 import { globalToastAtom } from '../../atoms/tournamentAtoms'
 import styles from '../../App.module.css'
@@ -37,7 +38,7 @@ export function GlobalToast() {
           onClick={() => setToast(null)}
           aria-label="Fechar notificação"
         >
-          ×
+          <HiOutlineXMark aria-hidden size={22} strokeWidth={2} />
         </button>
       </div>
     </div>

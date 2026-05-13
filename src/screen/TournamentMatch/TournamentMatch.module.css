@@ -128,6 +128,10 @@
   color: var(--color-gray-300);
   cursor: pointer;
   transition: all 0.18s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .tab:hover {
@@ -402,6 +406,10 @@
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .adminOpenBtn:hover {
