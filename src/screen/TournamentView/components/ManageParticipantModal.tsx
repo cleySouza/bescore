@@ -2,6 +2,11 @@ import { useMemo, useState } from 'react'
 import { updateParticipantAdmin } from '../../../lib/matchService'
 import { profileDisplayName } from '../../../lib/profileService'
 import styles from './ManageParticipantModal.module.css'
+import {
+  HiOutlineCog6Tooth,
+  HiOutlineShieldCheck,
+  HiOutlineXMark,
+} from 'react-icons/hi2'
 
 export interface ManagedParticipant {
   id: string
@@ -96,7 +101,9 @@ function ManageParticipantModal({
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <div className={styles.headerInfo}>
-            <span className={styles.headerIcon}>⚙️</span>
+            <span className={styles.headerIcon} aria-hidden>
+              <HiOutlineCog6Tooth size={22} strokeWidth={2} />
+            </span>
             <div>
               <h3 className={styles.title}>Gerenciar Participante</h3>
               <span className={styles.subtitle}>{displayName}</span>
@@ -106,7 +113,7 @@ function ManageParticipantModal({
             </div>
           </div>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Fechar">
-            ✕
+            <HiOutlineXMark aria-hidden size={22} strokeWidth={2} />
           </button>
         </div>
 
@@ -114,7 +121,10 @@ function ManageParticipantModal({
           {/* Troca de Time */}
           <div className={styles.group}>
             <label className={styles.label} htmlFor="teamName">
-              🛡️ Nome do Time
+              <span className={styles.labelWithIcon}>
+                <HiOutlineShieldCheck aria-hidden size={18} strokeWidth={2} />
+                Nome do Time
+              </span>
             </label>
             {canEditTeamAssignment ? (
               <select

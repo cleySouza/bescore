@@ -1,3 +1,4 @@
+import { HiOutlineTrophy } from 'react-icons/hi2'
 import styles from './PhaseControls.module.css'
 
 interface PhaseControlsProps {
@@ -38,7 +39,9 @@ function PhaseControls({
       {showPlayoffBanner && (
         <div className={styles.playoffBanner}>
           <div className={styles.playoffBannerContent}>
-            <span className={styles.playoffBannerIcon}>🏆</span>
+            <span className={styles.playoffBannerIcon} aria-hidden>
+              <HiOutlineTrophy size={28} strokeWidth={2} />
+            </span>
             <div>
               <strong>Liga Finalizada!</strong>
               <p>Os top {playoffCutoff} estão classificados para a Fase Final.</p>

@@ -70,6 +70,9 @@
   font-weight: 600;
   color: var(--color-dark);
   margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .adminPanelTitle + .adminPanelTitle {
@@ -193,6 +196,10 @@
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .manageBtn:hover {

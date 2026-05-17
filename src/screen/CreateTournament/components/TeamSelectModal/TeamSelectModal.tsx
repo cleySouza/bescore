@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAtomValue } from 'jotai'
+import { HiOutlineArrowLeft, HiOutlineXMark } from 'react-icons/hi2'
 import styles from './TeamSelectModal.module.css'
 import { fetchStrapiClubCatalog, type Continent, type League, type Club, type TeamDataMap } from '../../../../lib/strapiClubService'
 import { hasStrapiCatalogData, strapiCatalogAtom } from '../../../../atoms/catalogAtom'
@@ -114,14 +115,17 @@ export function TeamSelectModal({
         <div className={styles.header}>
           {step !== 'continents' && (
             <button className={styles.backBtn} type="button" onClick={handleBack}>
-              ← Voltar
+              <HiOutlineArrowLeft aria-hidden size={18} strokeWidth={2} />
+              Voltar
             </button>
           )}
           <h2 className={styles.headerTitle}>{headerTitle}</h2>
           <span className={`${styles.counter} ${selected.length > 0 ? styles.counterActive : ''}`}>
             {selected.length} / {maxTeams} selecionados
           </span>
-          <button className={styles.closeBtn} type="button" onClick={onClose} aria-label="Fechar">×</button>
+          <button className={styles.closeBtn} type="button" onClick={onClose} aria-label="Fechar">
+            <HiOutlineXMark aria-hidden size={22} strokeWidth={2} />
+          </button>
         </div>
 
         {/* ── Slides ── */}

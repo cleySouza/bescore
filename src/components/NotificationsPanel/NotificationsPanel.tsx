@@ -1,4 +1,5 @@
 import type { MatchScoreProposalStatus, ProposalNotificationRow } from '../../lib/scoreProposalService'
+import { HiOutlineArrowLeft } from 'react-icons/hi2'
 import styles from './NotificationsPanel.module.css'
 
 function formatProposalScore(row: ProposalNotificationRow): string {
@@ -50,7 +51,8 @@ export function NotificationsPanel({ proposals, onBack, onOpenProposal }: Notifi
   return (
     <div className={styles.root}>
       <button type="button" className={styles.backBtn} onClick={onBack}>
-        ← Voltar
+        <HiOutlineArrowLeft aria-hidden size={18} strokeWidth={2} />
+        Voltar
       </button>
 
       {proposals.length === 0 ? (

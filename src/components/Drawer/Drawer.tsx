@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
+import { HiOutlineXMark } from 'react-icons/hi2'
 import styles from './Drawer.module.css'
 
 interface DrawerProps {
@@ -61,7 +62,7 @@ export function Drawer({
             onClick={onClose}
             aria-label="Fechar drawer"
           >
-            x
+            <HiOutlineXMark aria-hidden size={20} strokeWidth={2} />
           </button>
         </header>
 

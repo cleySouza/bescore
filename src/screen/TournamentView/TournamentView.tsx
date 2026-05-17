@@ -22,6 +22,11 @@ import MatchCard from '../../components/MatchCard'
 import StandingsTable from '../../components/StandingsTable/StandingsTable'
 import ManageParticipantModal, { type ManagedParticipant } from './components/ManageParticipantModal'
 import { useTournamentFinishedSync } from '../TournamentMatch/hooks/useTournamentFinishedSync'
+import {
+  HiOutlineArrowLeft,
+  HiOutlineClipboardDocument,
+  HiOutlineCog6Tooth,
+} from 'react-icons/hi2'
 import styles from './TournamentView.module.css'
 
 interface ParticipantWithProfile extends Participant {
@@ -287,7 +292,8 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
     <div className={styles.container}>
       <header className={styles.header}>
         <button className={styles.backBtn} onClick={() => navigate(paths.home)}>
-          ← Voltar
+          <HiOutlineArrowLeft aria-hidden size={18} strokeWidth={2} />
+          Voltar
         </button>
         <div className={styles.headerContent}>
           <h1 className={styles.title}>{tournament.name}</h1>
@@ -318,7 +324,8 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
 
           {isCreator && isDraft && (
             <button className={styles.setupBtn} onClick={handleSetupMatches}>
-              ⚙️ Configurar Partidas
+              <HiOutlineCog6Tooth aria-hidden size={20} strokeWidth={2} />
+              Configurar Partidas
             </button>
           )}
         </div>
@@ -348,7 +355,8 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                       alert('Código copiado!')
                     }}
                   >
-                    📋 Copiar Código
+                    <HiOutlineClipboardDocument aria-hidden size={16} strokeWidth={2} />
+                    Copiar Código
                   </button>
                 </div>
               </div>
@@ -380,7 +388,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                         title="Gerenciar participante"
                         onClick={() => setManagedParticipant(participant as ManagedParticipant)}
                       >
-                        ⚙️
+                        <HiOutlineCog6Tooth aria-hidden size={18} strokeWidth={2} />
                       </button>
                     )}
                   </div>
@@ -656,7 +664,10 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                   {/* Painel de gerenciamento — apenas para o criador */}
                   {isCreator && participants.length > 0 && (
                     <div className={styles.adminPanel}>
-                      <h4 className={styles.adminPanelTitle}>⚙️ Ajustes Administrativos</h4>
+                      <h4 className={styles.adminPanelTitle}>
+                        <HiOutlineCog6Tooth aria-hidden size={16} strokeWidth={2} />
+                        Ajustes Administrativos
+                      </h4>
                       <div className={styles.adminParticipantList}>
                         {participants.map((p) => (
                           <div key={p.id} className={styles.adminParticipantRow}>
@@ -668,7 +679,8 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                               title="Gerenciar participante"
                               onClick={() => setManagedParticipant(p as ManagedParticipant)}
                             >
-                              ⚙️ Gerenciar
+                              <HiOutlineCog6Tooth aria-hidden size={14} strokeWidth={2} />
+                              Gerenciar
                             </button>
                           </div>
                         ))}

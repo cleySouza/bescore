@@ -11,6 +11,12 @@ import { useProposalNotifications } from '../../hooks/useProposalNotifications'
 import { useUserProfile } from '../../hooks/useUserProfile'
 import { displayAvatarUrl, displayName } from '../../lib/profileService'
 import { ProfileEditor } from '../ProfileEditor/ProfileEditor'
+import {
+  HiOutlineArrowLeft,
+  HiOutlineBell,
+  HiOutlineChevronDown,
+  HiOutlineUser,
+} from 'react-icons/hi2'
 import styles from './Header.module.css'
 
 type BeforeInstallPromptEvent = Event & {
@@ -27,29 +33,6 @@ declare global {
 interface HeaderProps {
   user: User | null
   onLogout: () => void
-}
-
-function BellGlyph({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      xmlns="http://www.w3.org/2000/svg"
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  )
 }
 
 type DrawerView = 'profile' | 'profileEdit' | 'notifications'
@@ -185,7 +168,7 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
               </span>
               <span className={styles.userNameLabel}>{userName}</span>
               <span className={styles.chevron} aria-hidden="true">
-                v
+                <HiOutlineChevronDown size={18} strokeWidth={2} />
               </span>
             </button>
           </div>
@@ -232,7 +215,7 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
                 onClick={() => setDrawerView('profileEdit')}
               >
                 <span className={styles.notifMenuRowInner}>
-                  <span aria-hidden="true">👤</span>
+                  <HiOutlineUser aria-hidden className={styles.menuRowLeadIcon} size={20} strokeWidth={2} />
                   <span>Perfil</span>
                 </span>
               </button>
@@ -243,7 +226,7 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
                 onClick={() => setDrawerView('notifications')}
               >
                 <span className={styles.notifMenuRowInner}>
-                  <BellGlyph className={styles.menuBellIcon} />
+                  <HiOutlineBell aria-hidden className={styles.menuBellIcon} size={22} strokeWidth={2} />
                   <span>Notificações</span>
                 </span>
                 {unreadCount > 0 ? (
@@ -287,7 +270,8 @@ export const Header = ({ user, onLogout }: HeaderProps) => {
                 className={styles.drawerBackRow}
                 onClick={() => setDrawerView('profile')}
               >
-                ← Voltar
+                <HiOutlineArrowLeft aria-hidden size={18} strokeWidth={2} />
+                Voltar
               </button>
               <ProfileEditor user={user} profile={profile} onSaved={refreshProfile} />
             </div>

@@ -11,6 +11,7 @@ import {
   joinTournament,
 } from '../../lib/tournamentService'
 import type { TournamentSettings } from '../../types/tournament'
+import { HiOutlineArrowLeft } from 'react-icons/hi2'
 import styles from './JoinByCode.module.css'
 
 type InviteTournament = Awaited<ReturnType<typeof getTournamentByCode>>
@@ -208,7 +209,8 @@ function JoinByCode() {
     <div className={styles.container}>
       <div className={styles.header}>
         <button className={styles.backBtn} onClick={handleBack} aria-label="Voltar">
-          ← Voltar
+          <HiOutlineArrowLeft aria-hidden size={18} strokeWidth={2} />
+          Voltar
         </button>
         <h1 className={styles.title}>Entrar em um Torneio</h1>
         <div style={{ width: '60px' }} />

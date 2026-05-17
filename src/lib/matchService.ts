@@ -50,7 +50,6 @@ export async function getTournamentMatches(tournamentId: string): Promise<MatchW
         profile:user_id (
           id,
           nickname,
-          name,
           avatar_url,
           email
         )
@@ -62,7 +61,6 @@ export async function getTournamentMatches(tournamentId: string): Promise<MatchW
         profile:user_id (
           id,
           nickname,
-          name,
           avatar_url,
           email
         )
@@ -395,7 +393,6 @@ export async function getTournamentStandings(
         profile:user_id (
           id,
           nickname,
-          name,
           avatar_url,
           email
         )

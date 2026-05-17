@@ -23,6 +23,9 @@
   padding: 8px;
   border-radius: 6px;
   transition: background 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .backBtn:hover {

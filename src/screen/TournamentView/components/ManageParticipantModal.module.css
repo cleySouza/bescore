@@ -45,7 +45,11 @@
 }
 
 .headerIcon {
-  font-size: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-be);
+  flex-shrink: 0;
 }
 
 .title {
@@ -70,6 +74,9 @@
   border-radius: 6px;
   line-height: 1;
   transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .closeBtn:hover {
@@ -98,6 +105,12 @@
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.labelWithIcon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .labelHint {

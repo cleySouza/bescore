@@ -199,7 +199,12 @@ export function useRecentTimeline(userId: string | undefined) {
 
       const nextIndex = (recentTimelineIndexRef.current + 1) % cards.length
       recentTimelineIndexRef.current = nextIndex
-      cards[nextIndex]?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' })
+      const card = cards[nextIndex]
+      if (!card) return
+      const listRect = timelineList.getBoundingClientRect()
+      const cardRect = card.getBoundingClientRect()
+      const delta = cardRect.left - listRect.left + timelineList.scrollLeft
+      timelineList.scrollTo({ left: Math.max(0, delta), behavior: 'smooth' })
     }
 
     const intervalId = window.setInterval(tick, AUTO_SCROLL_DELAY)

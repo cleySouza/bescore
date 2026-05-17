@@ -12,6 +12,12 @@ import { paths } from '../../app/navigation/paths'
 import { createTournament, fetchMyTournaments, getTournamentById, joinTournamentById } from '../../lib/tournamentService'
 import { PreviewCard, TeamSelectModal } from './components'
 import styles from './CreateTournament.module.css'
+import {
+  HiOutlineArrowLeft,
+  HiOutlineCheck,
+  HiOutlineClipboardDocument,
+} from 'react-icons/hi2'
+import { IoLogoWhatsapp } from 'react-icons/io5'
 
 function mapCreateFormatToTournamentFormat(format: string) {
   switch (format) {
@@ -321,7 +327,8 @@ function CreateTournament() {
     <div className={styles.container}>
       <div className={styles.header}>
         <button className={styles.backBtn} onClick={handleBack} aria-label="Voltar">
-          ← Voltar
+          <HiOutlineArrowLeft aria-hidden size={18} strokeWidth={2} />
+          Voltar
         </button>
         <h1 className={styles.title}>Criar Torneio</h1>
         <div style={{ width: '60px' }} />
@@ -345,7 +352,17 @@ function CreateTournament() {
               className={`${styles.actionBtn}${copied ? ` ${styles.actionBtnCopied}` : ''}`}
               onClick={handleCopy}
             >
-              {copied ? '✓ Copiado!' : '📋 Copiar código'}
+              {copied ? (
+                <>
+                  <HiOutlineCheck aria-hidden size={18} strokeWidth={2} />
+                  Copiado!
+                </>
+              ) : (
+                <>
+                  <HiOutlineClipboardDocument aria-hidden size={18} strokeWidth={2} />
+                  Copiar código
+                </>
+              )}
             </button>
             <a
               href={whatsappUrl}
@@ -354,7 +371,8 @@ function CreateTournament() {
               className={styles.whatsappBtn}
               onClick={handleShareClick}
             >
-              📲 Convidar pelo WhatsApp
+              <IoLogoWhatsapp aria-hidden size={20} />
+              Convidar pelo WhatsApp
             </a>
           </div>
 
