@@ -93,6 +93,11 @@ function TournamentMatchContent({
     shieldsMap,
   } = getTournamentSettings(tournament, user?.id ?? '', strapiShieldsMap, participantCountForLeague)
 
+  const isDraft = tournament.status === 'draft'
+  const isAutoTeamMode = (tournamentSettings?.teamAssignMode ?? 'auto') === 'auto'
+  const hasPredefinedTeams = managedTeamOptions.length > 0
+  const isAutoPredefined = hasPredefinedTeams && isAutoTeamMode
+
   const myParticipantId = user
     ? (participants.find((p) => p.user_id === user.id)?.id ?? null)
     : null
@@ -492,7 +497,12 @@ function TournamentMatchContent({
         <ManageParticipantModal
           participant={managedParticipant}
           showScoreAdjustments={true}
+          canEditTeamAssignment={!(isDraft && isAutoPredefined)}
           teamOptions={managedTeamOptions}
+          excludeCatalogTeamNames={participants
+            .filter((p) => p.id !== managedParticipant.id)
+            .map((p) => (p.team_name ?? '').trim())
+            .filter((n) => n.length > 0)}
           onClose={() => setManagedParticipant(null)}
           onSaved={() => setRefreshKey((prev) => prev + 1)}
         />

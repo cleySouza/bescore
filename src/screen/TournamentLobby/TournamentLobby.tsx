@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
@@ -10,16 +10,28 @@ import {
 import { paths } from '../../app/navigation/paths'
 import {
   fetchMyTournaments,
+  getTournamentById,
   getTournamentParticipants,
   joinTournamentById,
   deleteTournament,
   seedMockParticipants,
   removeParticipantFromTournament,
 } from '../../lib/tournamentService'
+import { updateParticipantAdmin } from '../../lib/matchService'
+import {
+  clearPendingCreatorTeamPickSession,
+  hasPendingCreatorTeamPickSession,
+} from '../../lib/pendingCreatorTeamPick'
+import { strapiShieldsMapAtom } from '../../atoms/catalogAtom'
 import { profileDisplayName } from '../../lib/profileService'
 import { env } from '../../config/env'
 import type { Participant } from '../../atoms/tournamentAtoms'
-import { type TournamentSettings, getTournamentBadgeInitials, getTournamentCoverImage } from '../../types/tournament'
+import {
+  type TournamentSettings,
+  getMergedTeamShieldsMap,
+  getTournamentBadgeInitials,
+  getTournamentCoverImage,
+} from '../../types/tournament'
 import TournamentConfig from '../../components/TournamentConfig'
 import ManageParticipantModal, { type ManagedParticipant } from '../TournamentView/components/ManageParticipantModal'
 import { CatalogTeamPickField, type CatalogClubPick } from '../../components/CatalogTeamPickField/CatalogTeamPickField'
@@ -77,6 +89,7 @@ function TournamentLobby() {
   const navigate = useNavigate()
   const location = useLocation()
   const setShowConfigModal = useSetAtom(showConfigModalAtom)
+  const strapiShieldsMap = useAtomValue(strapiShieldsMapAtom)
 
   const [participants, setParticipants] = useState<ParticipantWithProfile[]>([])
   const [loading, setLoading] = useState(true)
@@ -88,6 +101,13 @@ function TournamentLobby() {
   const [joinCatalogClub, setJoinCatalogClub] = useState<CatalogClubPick | null>(null)
   const [joinCodeError, setJoinCodeError] = useState<string | null>(null)
   const [joiningTournament, setJoiningTournament] = useState(false)
+
+  const suppressCreatorTeamPickModal = useRef(false)
+  const [showCreatorTeamPickModal, setShowCreatorTeamPickModal] = useState(false)
+  const [creatorPickJoinTeam, setCreatorPickJoinTeam] = useState('')
+  const [creatorPickCatalog, setCreatorPickCatalog] = useState<CatalogClubPick | null>(null)
+  const [creatorPickError, setCreatorPickError] = useState<string | null>(null)
+  const [creatorPickSaving, setCreatorPickSaving] = useState(false)
 
   useEffect(() => {
     if (!tournament) {
@@ -131,6 +151,50 @@ function TournamentLobby() {
     }
   }, [tournament, joinCatalogClub, participants])
 
+  useEffect(() => {
+    if (!showCreatorTeamPickModal || !tournament) return
+    setCreatorPickJoinTeam('')
+    setCreatorPickCatalog(null)
+    setCreatorPickError(null)
+  }, [showCreatorTeamPickModal, tournament])
+
+  /** Pós-criação com “Vou jogar”: abre escolha de time uma vez (sem bloco Entrar). */
+  useEffect(() => {
+    if (!tournament || !user || loading) return
+    if (suppressCreatorTeamPickModal.current) return
+    if (!hasPendingCreatorTeamPickSession(tournament.id)) return
+    if (user.id !== tournament.creator_id) {
+      clearPendingCreatorTeamPickSession(tournament.id)
+      return
+    }
+
+    const settings = tournament.settings as TournamentSettings | null
+    const pre = Array.isArray(settings?.selectedTeamNames)
+      ? settings.selectedTeamNames.filter(
+          (name): name is string => typeof name === 'string' && name.trim().length > 0
+        )
+      : []
+    const hasPre = pre.length > 0
+    const isAuto = (settings?.teamAssignMode ?? 'auto') === 'auto'
+    const isManualPre = hasPre && !isAuto
+    const isAutoPre = hasPre && isAuto
+    const isLivre = !hasPre
+
+    const me = participants.find((p) => p.user_id === user.id)
+    if (!me) return
+
+    const hasTeam = (me.team_name ?? '').trim().length > 0
+    const needsPick = (isManualPre || isLivre) && !hasTeam
+    if (isAutoPre || !needsPick) {
+      clearPendingCreatorTeamPickSession(tournament.id)
+      suppressCreatorTeamPickModal.current = false
+      setShowCreatorTeamPickModal(false)
+      return
+    }
+
+    setShowCreatorTeamPickModal(true)
+  }, [tournament, user, loading, participants])
+
   if (!tournament) return null
 
   const isCreator = !!user && tournament.creator_id === user.id
@@ -144,10 +208,7 @@ function TournamentLobby() {
       )
     : []
   const isAutoTeamMode = (tournamentSettings?.teamAssignMode ?? 'auto') === 'auto'
-  const teamShields =
-    typeof tournamentSettings?.selectedTeamShields === 'object' && tournamentSettings?.selectedTeamShields
-      ? (tournamentSettings.selectedTeamShields as Record<string, string>)
-      : {}
+  const teamShields = getMergedTeamShieldsMap(strapiShieldsMap, tournamentSettings)
   const isPrivate = tournamentSettings?.isPrivate ?? false
   const maxParticipants = tournamentSettings?.maxParticipants ?? null
   const isFull = maxParticipants !== null && participantCount >= maxParticipants
@@ -167,7 +228,8 @@ function TournamentLobby() {
   const availableJoinTeams = predefinedTeams.filter((name) => !usedTeams.has(name))
   const isParticipant =
     !!user && (tournament.isParticipant || participants.some((p) => p.user_id === user.id))
-  const isVisitor = !isCreator && !isParticipant
+  /** Inclui criador que marcou “Vou jogar” mas ainda não concluiu inscrição no lobby (mesmo bloco dos visitantes). */
+  const showJoinSection = !isParticipant
   const isMockSeedEnabled = env.features.enableMockSeed
   const isCreatorAlreadyParticipant = participants.some((p) => p.user_id === tournament.creator_id)
   const seedTargetTotal = Math.max(
@@ -240,6 +302,8 @@ function TournamentLobby() {
     setJoiningTournament(true)
     try {
       await joinTournamentById(tournament.id, user.id, joinTeamName)
+      const updated = await getTournamentById(tournament.id, user.id)
+      setActiveTournament(updated)
       setRefreshKey((prev) => prev + 1)
     } catch (err) {
       setJoinCodeError(err instanceof Error ? err.message : 'Erro ao entrar no torneio')
@@ -259,6 +323,58 @@ function TournamentLobby() {
       const msg = err instanceof Error ? err.message : 'Erro ao injetar participantes'
       alert('❌ Seed falhou: ' + msg)
     }
+  }
+
+  const creatorPickTakenNames = participants
+    .filter((p) => p.user_id !== user?.id)
+    .map((p) => (p.team_name ?? '').trim())
+    .filter((n) => n.length > 0)
+
+  const handleCreatorTeamPickConfirm = async () => {
+    if (!user) return
+
+    const me = participants.find((p) => p.user_id === user.id)
+    if (!me) {
+      setCreatorPickError('Participante não encontrado')
+      return
+    }
+
+    if (isManualPredefined) {
+      if (!creatorPickJoinTeam) {
+        setCreatorPickError('Selecione um time')
+        return
+      }
+    } else if (!hasPredefinedTeams) {
+      if (!creatorPickCatalog?.name.trim()) {
+        setCreatorPickError('Escolha um time no catálogo')
+        return
+      }
+    }
+
+    let teamResolved = ''
+    if (isManualPredefined) teamResolved = creatorPickJoinTeam
+    else teamResolved = creatorPickCatalog!.name.trim()
+
+    setCreatorPickError(null)
+    setCreatorPickSaving(true)
+    try {
+      await updateParticipantAdmin(me.id, { team_name: teamResolved || undefined })
+      clearPendingCreatorTeamPickSession(tournament.id)
+      setShowCreatorTeamPickModal(false)
+      setRefreshKey((prev) => prev + 1)
+      const updated = await getTournamentById(tournament.id, user.id)
+      setActiveTournament(updated)
+    } catch (err) {
+      setCreatorPickError(err instanceof Error ? err.message : 'Erro ao salvar time')
+    } finally {
+      setCreatorPickSaving(false)
+    }
+  }
+
+  const handleCreatorTeamPickClose = () => {
+    suppressCreatorTeamPickModal.current = true
+    clearPendingCreatorTeamPickSession(tournament.id)
+    setShowCreatorTeamPickModal(false)
   }
 
   return (
@@ -418,8 +534,8 @@ function TournamentLobby() {
             </div>
           )}
 
-          {/* Visitor: join */}
-          {isVisitor && (
+          {/* Quem ainda não é participante (visitante ou organizador antes de entrar). */}
+          {showJoinSection && (
             <div className={styles.joinSection}>
               {!user ? (
                 <>
@@ -562,6 +678,76 @@ function TournamentLobby() {
         </section>
       </main>
 
+      {showCreatorTeamPickModal && user && (
+        <div className={styles.creatorPickOverlay} onClick={handleCreatorTeamPickClose}>
+          <div
+            className={styles.creatorPickModal}
+            role="dialog"
+            aria-labelledby="creator-team-pick-title"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="creator-team-pick-title" className={styles.creatorPickTitle}>
+              Escolha seu time
+            </h3>
+            <p className={styles.creatorPickHint}>Finalize sua inscrição como organizador que vai jogar.</p>
+
+            {isManualPredefined && (
+              <div className={styles.joinCodeRow}>
+                <select
+                  className={`${styles.joinCodeInput} ${styles.joinTeamSelect}`}
+                  value={creatorPickJoinTeam}
+                  onChange={(e) => { setCreatorPickJoinTeam(e.target.value); setCreatorPickError(null) }}
+                  disabled={creatorPickSaving || availableJoinTeams.length === 0}
+                >
+                  <option value="">Selecione seu time...</option>
+                  {availableJoinTeams.map((team) => (
+                    <option key={team} value={team}>
+                      {team}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {!hasPredefinedTeams && (
+              <div className={styles.joinCodeRow}>
+                <CatalogTeamPickField
+                  value={creatorPickCatalog}
+                  onChange={(c) => { setCreatorPickCatalog(c); setCreatorPickError(null) }}
+                  takenTeamNames={creatorPickTakenNames}
+                  disabled={creatorPickSaving}
+                  triggerClassName={styles.joinCatalogTrigger}
+                  placeholder="Escolher clube no catálogo…"
+                />
+              </div>
+            )}
+            {creatorPickError && <span className={styles.joinError}>{creatorPickError}</span>}
+            <div className={styles.creatorPickActions}>
+              <button
+                type="button"
+                className={styles.creatorPickCancelBtn}
+                onClick={handleCreatorTeamPickClose}
+                disabled={creatorPickSaving}
+              >
+                Agora não
+              </button>
+              <button
+                type="button"
+                className={styles.joinBtn}
+                disabled={
+                  creatorPickSaving ||
+                  (isManualPredefined && !creatorPickJoinTeam) ||
+                  (!hasPredefinedTeams && !creatorPickCatalog)
+                }
+                onClick={() => void handleCreatorTeamPickConfirm()}
+              >
+                {creatorPickSaving ? 'Salvando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <TournamentConfig
         participantCount={participantCount}
         participants={participants.map((participant) => ({
@@ -577,7 +763,13 @@ function TournamentLobby() {
           participant={managedParticipant}
           showScoreAdjustments={false}
           teamOptions={managedTeamOptions}
-          canEditTeamAssignment={!isAutoTeamMode}
+          excludeCatalogTeamNames={participants
+            .filter((p) => p.id !== managedParticipant.id)
+            .map((p) => (p.team_name ?? '').trim())
+            .filter((n) => n.length > 0)}
+          canEditTeamAssignment={
+            !(tournament.status === 'draft' && isAutoPredefined)
+          }
           allowRemoveParticipant={
             !!user &&
             isCreator &&

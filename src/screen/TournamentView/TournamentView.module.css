@@ -227,9 +227,13 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 16px;
+  align-items: stretch;
 }
 
 .participantCard {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -238,6 +242,8 @@
   border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   transition: all 0.2s ease;
+  min-height: 88px;
+  overflow: hidden;
 }
 
 .participantCard:hover {
@@ -251,6 +257,7 @@
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--color-gray-200);
+  flex-shrink: 0;
 }
 
 .avatarPlaceholder {
@@ -277,6 +284,45 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.teamLine {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.teamText {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.teamCrest {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--color-gray-200);
+  border: 1px solid var(--color-gray-200);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-dark);
+  flex-shrink: 0;
+}
+
+.teamCrestImg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 5px;
 }
 
 .userName {
@@ -286,6 +332,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .creatorBadge {
@@ -420,6 +467,7 @@
 
   .participantCard {
     gap: 10px;
+    min-height: 80px;
   }
 
   .avatar,
