@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAtomValue } from 'jotai'
 import { HiOutlineArrowLeft, HiOutlineXMark } from 'react-icons/hi2'
 import styles from './TeamSelectModal.module.css'
@@ -8,6 +8,8 @@ import { hasStrapiCatalogData, strapiCatalogAtom } from '../../../../atoms/catal
 interface TeamSelectModalProps {
   selectedIds: string[]
   maxTeams: number
+  /** Club names already assigned in the tournament (trimmed exact match). */
+  excludedClubNames?: string[]
   onConfirm: (clubs: Club[]) => void
   onClose: () => void
 }
@@ -15,6 +17,7 @@ interface TeamSelectModalProps {
 export function TeamSelectModal({
   selectedIds: initialSelected,
   maxTeams,
+  excludedClubNames,
   onConfirm,
   onClose,
 }: TeamSelectModalProps) {
@@ -61,10 +64,22 @@ export function TeamSelectModal({
     return () => { cancelled = true }
   }, [catalogCache])
 
+  const excludedNameSet = useMemo(() => {
+    return new Set(
+      (excludedClubNames ?? [])
+        .map((n) => n.trim())
+        .filter((n) => n.length > 0)
+    )
+  }, [excludedClubNames])
+
   const isLimitReached = selected.length >= maxTeams
 
   const toggleClub = (clubId: string) => {
     setSelected((prev) => {
+      const allClubs = Object.values(teamData).flat()
+      const club = allClubs.find((c) => c.id === clubId)
+      if (club && excludedNameSet.has(club.name.trim())) return prev
+
       if (prev.includes(clubId)) return prev.filter((id) => id !== clubId)
       if (prev.length >= maxTeams) return prev
       return [...prev, clubId]
@@ -192,7 +207,8 @@ export function TeamSelectModal({
                 <div className={styles.clubGrid}>
                   {clubs.map((club) => {
                     const isSelected = selected.includes(club.id)
-                    const isDisabled = !isSelected && isLimitReached
+                    const isTaken = excludedNameSet.has(club.name.trim())
+                    const isDisabled = isTaken || (!isSelected && isLimitReached)
                     return (
                       <button
                         key={club.id}
@@ -201,6 +217,7 @@ export function TeamSelectModal({
                         onClick={() => toggleClub(club.id)}
                         disabled={isDisabled}
                         aria-pressed={isSelected}
+                        title={isTaken ? 'Time já escolhido neste torneio' : undefined}
                       >
                         <div className={styles.clubBadgeWrap}>
                           <LogoWithFallback

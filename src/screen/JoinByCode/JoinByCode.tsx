@@ -11,6 +11,7 @@ import {
   joinTournament,
 } from '../../lib/tournamentService'
 import type { TournamentSettings } from '../../types/tournament'
+import { CatalogTeamPickField, type CatalogClubPick } from '../../components/CatalogTeamPickField/CatalogTeamPickField'
 import { HiOutlineArrowLeft } from 'react-icons/hi2'
 import styles from './JoinByCode.module.css'
 
@@ -25,11 +26,12 @@ function JoinByCode() {
 
   const [formData, setFormData] = useState({
     code: '',
-    teamName: '',
   })
   const [previewTournament, setPreviewTournament] = useState<InviteTournament>(null)
   const [availableTeams, setAvailableTeams] = useState<string[]>([])
   const [selectedTeam, setSelectedTeam] = useState('')
+  const [takenTeamNamesForJoin, setTakenTeamNamesForJoin] = useState<string[]>([])
+  const [catalogJoinClub, setCatalogJoinClub] = useState<CatalogClubPick | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
@@ -43,13 +45,13 @@ function JoinByCode() {
   const hasPredefinedTeams = predefinedTeamNames.length > 0
   const isAutoPredefined = hasPredefinedTeams && (previewSettings?.teamAssignMode ?? 'auto') === 'auto'
   const isManualPredefined = hasPredefinedTeams && (previewSettings?.teamAssignMode ?? 'auto') === 'manual'
-  const shouldShowNicknameInput = !hasPredefinedTeams
+  const shouldPickFromCatalog = !hasPredefinedTeams
 
   const joinTeamName = useMemo(() => {
     if (isAutoPredefined) return ''
     if (isManualPredefined) return selectedTeam
-    return formData.teamName.trim()
-  }, [formData.teamName, isAutoPredefined, isManualPredefined, selectedTeam])
+    return catalogJoinClub?.name.trim() ?? ''
+  }, [catalogJoinClub, isAutoPredefined, isManualPredefined, selectedTeam])
 
   useEffect(() => {
     const inviteCode = formData.code.trim()
@@ -57,6 +59,8 @@ function JoinByCode() {
       setPreviewTournament(null)
       setAvailableTeams([])
       setSelectedTeam('')
+      setTakenTeamNamesForJoin([])
+      setCatalogJoinClub(null)
       return
     }
 
@@ -71,6 +75,8 @@ function JoinByCode() {
             setPreviewTournament(null)
             setAvailableTeams([])
             setSelectedTeam('')
+            setTakenTeamNamesForJoin([])
+            setCatalogJoinClub(null)
           }
           return
         }
@@ -84,29 +90,41 @@ function JoinByCode() {
           : []
         const isManual = (settings?.teamAssignMode ?? 'auto') === 'manual'
 
-        if (!isManual || selectedTeamNames.length === 0) {
-          setAvailableTeams([])
-          setSelectedTeam('')
-          return
+        let participants: Awaited<ReturnType<typeof getTournamentParticipants>> = []
+        try {
+          participants = await getTournamentParticipants(tournament.id)
+        } catch {
+          participants = []
         }
-
-        const participants = await getTournamentParticipants(tournament.id)
         if (cancelled) return
 
-        const taken = new Set(
-          participants
-            .map((p) => (p.team_name ?? '').trim())
-            .filter((name) => name.length > 0)
-        )
+        const taken = participants
+          .map((p) => (p.team_name ?? '').trim())
+          .filter((name) => name.length > 0)
+        const takenSet = new Set(taken)
 
-        const available = selectedTeamNames.filter((name) => !taken.has(name))
-        setAvailableTeams(available)
-        setSelectedTeam((current) => (available.includes(current) ? current : ''))
+        setTakenTeamNamesForJoin(taken)
+
+        if (isManual && selectedTeamNames.length > 0) {
+          const available = selectedTeamNames.filter((name) => !takenSet.has(name))
+          setAvailableTeams(available)
+          setSelectedTeam((current) => (available.includes(current) ? current : ''))
+        } else {
+          setAvailableTeams([])
+          setSelectedTeam('')
+        }
+
+        setCatalogJoinClub((current) => {
+          if (!current) return null
+          return takenSet.has(current.name.trim()) ? null : current
+        })
       } catch {
         if (!cancelled) {
           setPreviewTournament(null)
           setAvailableTeams([])
           setSelectedTeam('')
+          setTakenTeamNamesForJoin([])
+          setCatalogJoinClub(null)
         }
       } finally {
         if (!cancelled) setLoadingPreview(false)
@@ -135,17 +153,19 @@ function JoinByCode() {
     const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
-      [name]: name === 'code' ? value.toUpperCase() : value,
+      [name]: value.toUpperCase(),
     }))
     setLocalError(null)
   }
 
   const handleBack = () => {
     navigate(paths.home)
-    setFormData({ code: '', teamName: '' })
+    setFormData({ code: '' })
     setPreviewTournament(null)
     setAvailableTeams([])
     setSelectedTeam('')
+    setTakenTeamNamesForJoin([])
+    setCatalogJoinClub(null)
     setLocalError(null)
   }
 
@@ -180,8 +200,8 @@ function JoinByCode() {
         return
       }
 
-      if (shouldShowNicknameInput && !formData.teamName.trim()) {
-        setLocalError('Nome do time é obrigatório')
+      if (shouldPickFromCatalog && !catalogJoinClub?.name.trim()) {
+        setLocalError('Escolha um time no catálogo para participar')
         return
       }
 
@@ -278,23 +298,20 @@ function JoinByCode() {
           </div>
         )}
 
-        {shouldShowNicknameInput && (
+        {shouldPickFromCatalog && (
           <div className={styles.formGroup}>
-            <label htmlFor="teamName" className={styles.label}>
-              Nome do Time / Apelido
-            </label>
-            <input
-              id="teamName"
-              type="text"
-              name="teamName"
-              value={formData.teamName}
-              onChange={handleInputChange}
-              placeholder="Ex: TimeBrasileiro"
-              className={styles.input}
-              disabled={loading}
-              maxLength={50}
-              required
+            <span className={styles.label}>Escolha seu time</span>
+            <CatalogTeamPickField
+              value={catalogJoinClub}
+              onChange={setCatalogJoinClub}
+              takenTeamNames={takenTeamNamesForJoin}
+              disabled={loading || loadingPreview || !previewTournament}
+              triggerClassName={`${styles.input} ${styles.catalogPickTrigger}`}
+              placeholder="Abrir catálogo de clubes…"
             />
+            <small className={styles.hint}>
+              Escolha um clube do catálogo — o mesmo fluxo de “definir times” na criação.
+            </small>
           </div>
         )}
 
@@ -316,7 +333,7 @@ function JoinByCode() {
               loading ||
               loadingPreview ||
               !formData.code.trim() ||
-              (shouldShowNicknameInput && !formData.teamName.trim()) ||
+              (shouldPickFromCatalog && !catalogJoinClub) ||
               (isManualPredefined && !selectedTeam)
             }
           >
