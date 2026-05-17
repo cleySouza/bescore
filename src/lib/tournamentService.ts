@@ -629,10 +629,8 @@ export async function updateParticipantTeamName(
   }
 }
 
-// ─── DEV ONLY ────────────────────────────────────────────────────────────────
 /**
- * Popula um torneio com 5 participantes fictícios para testes em desenvolvimento.
- * Os user_id são UUIDs fixos dedicados ao mock — não são usuários reais.
+ * Popula um torneio com participantes fictícios para testes (UI só se {@link env.features.enableMockSeed}).
  */
 export async function seedMockParticipants(
   tournamentId: string,
@@ -667,7 +665,6 @@ export async function seedMockParticipants(
   while (latestTotal < targetTotal && attempts < maxAttempts) {
     attempts += 1
 
-    // Usa RPC com SECURITY DEFINER para contornar RLS (user_id fictícios não existem em auth.users)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any).rpc('seed_mock_participants', { p_tournament_id: tournamentId })
 
@@ -729,10 +726,7 @@ export async function seedMockParticipants(
 
     if (removable.length > 0) {
       const idsToDelete = removable.map((row) => row.id)
-      const { error: deleteError } = await supabase
-        .from('participants')
-        .delete()
-        .in('id', idsToDelete)
+      const { error: deleteError } = await supabase.from('participants').delete().in('id', idsToDelete)
 
       if (deleteError) {
         console.error('Erro ao remover excedente de seed mock:', deleteError.message)
@@ -743,8 +737,6 @@ export async function seedMockParticipants(
     }
   }
 
-  // Regra do fluxo de draft: nomes/clubes so aparecem apos sorteio.
-  // Portanto, apos seed mock, garantimos que nenhum participante fique com team_name preenchido.
   const { error: clearTeamsError } = await supabase
     .from('participants')
     .update({ team_name: null })
@@ -756,10 +748,13 @@ export async function seedMockParticipants(
   }
 
   if (latestTotal < targetTotal) {
-    logger.warn(
-      '[seedMockParticipants] Seed parcial. Meta não alcançada.',
-      { tournamentId, currentTotal, latestTotal, targetTotal, attempts }
-    )
+    logger.warn('[seedMockParticipants] Seed parcial. Meta não alcançada.', {
+      tournamentId,
+      currentTotal,
+      latestTotal,
+      targetTotal,
+      attempts,
+    })
   }
 
   return {
@@ -768,7 +763,6 @@ export async function seedMockParticipants(
     targetTotal,
   }
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Exclui permanentemente um torneio em rascunho.

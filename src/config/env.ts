@@ -1,3 +1,10 @@
+/**
+ * Configuração derivada de variáveis de ambiente.
+ *
+ * **Importante (Vite):** chaves `VITE_*` são resolvidas em **tempo de build** (`vite` / `vite build`),
+ * não no browser em runtime. Alterar no painel (Vercel, Railway, etc.) só reflete após **novo deploy**.
+ * Lista canónica e defaults: `.env.example`.
+ */
 function readEnv(name: string): string | undefined {
   const value = import.meta.env[name]
   if (typeof value !== 'string') return undefined
@@ -33,6 +40,14 @@ export const env = {
   strapiApiToken: getOptionalEnv('VITE_STRAPI_API_TOKEN'),
   appVersion: __APP_VERSION__,
   features: {
-    enableMockSeed: readBooleanEnv('VITE_FEATURE_ENABLE_MOCK_SEED', false),
+    /**
+     * Botão “Injetar participantes”.
+     * Em desenvolvimento (`vite`): basta `VITE_FEATURE_ENABLE_MOCK_SEED`.
+     * Em build de produção (`vite build`): mesmo com a flag acima, o botão só aparece se
+     * `VITE_MOCK_SEED_ALLOW_PRODUCTION=true` — evita banner em prod por CI/host com env antigo.
+     */
+    enableMockSeed:
+      readBooleanEnv('VITE_FEATURE_ENABLE_MOCK_SEED', false) &&
+      (!import.meta.env.PROD || readBooleanEnv('VITE_MOCK_SEED_ALLOW_PRODUCTION', false)),
   },
 }

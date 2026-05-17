@@ -213,7 +213,10 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
         })
       )
 
-      await generateMatchesByFormat(tournament.id, format, settings)
+      await generateMatchesByFormat(tournament.id, format, {
+        ...(savedSettings ?? {}),
+        ...settings,
+      })
       onMatchesGenerated?.()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao gerar partidas'

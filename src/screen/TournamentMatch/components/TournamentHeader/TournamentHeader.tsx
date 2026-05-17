@@ -1,5 +1,9 @@
 import type { Tournament } from '../../../../atoms/tournamentAtoms'
-import type { TournamentSettings } from '../../../../types/tournament'
+import {
+  type TournamentSettings,
+  getTournamentBadgeInitials,
+  getTournamentCoverImage,
+} from '../../../../types/tournament'
 import { HiOutlineArrowLeft } from 'react-icons/hi2'
 import styles from './TournamentHeader.module.css'
 
@@ -7,16 +11,6 @@ interface TournamentHeaderProps {
   tournament: Tournament
   tournamentSettings: TournamentSettings | null
   onBack: () => void
-}
-
-function getTournamentInitials(name: string | null | undefined) {
-  if (!name) return 'TR'
-  return name
-    .split(/[\s\-_&]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((chunk) => chunk[0]?.toUpperCase() ?? '')
-    .join('') || 'TR'
 }
 
 function getStatusLabel(status: string | null | undefined) {
@@ -35,10 +29,8 @@ function getStatusLabel(status: string | null | undefined) {
 }
 
 function TournamentHeader({ tournament, tournamentSettings, onBack }: TournamentHeaderProps) {
-  const tournamentImage = typeof tournamentSettings?.tournamentImage === 'string'
-    ? tournamentSettings.tournamentImage
-    : null
-  const tournamentInitials = getTournamentInitials(tournament.name)
+  const tournamentImage = getTournamentCoverImage(tournamentSettings)
+  const tournamentInitials = getTournamentBadgeInitials(tournament.name)
   const tournamentStatusLabel = getStatusLabel(tournament.status)
 
   return (

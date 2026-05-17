@@ -18,7 +18,7 @@ import {
 import { profileDisplayName } from '../../lib/profileService'
 import { env } from '../../config/env'
 import type { Participant } from '../../atoms/tournamentAtoms'
-import type { TournamentSettings } from '../../types/tournament'
+import { type TournamentSettings, getTournamentBadgeInitials, getTournamentCoverImage } from '../../types/tournament'
 import TournamentConfig from '../../components/TournamentConfig'
 import ManageParticipantModal, { type ManagedParticipant } from '../TournamentView/components/ManageParticipantModal'
 import {
@@ -113,6 +113,8 @@ function TournamentLobby() {
   const isCreator = !!user && tournament.creator_id === user.id
   const participantCount = participants.length
   const tournamentSettings = tournament.settings as TournamentSettings | null
+  const tournamentCoverUrl = getTournamentCoverImage(tournamentSettings)
+  const tournamentBadgeInitials = getTournamentBadgeInitials(tournament.name)
   const managedTeamOptions = Array.isArray(tournamentSettings?.selectedTeamNames)
     ? tournamentSettings.selectedTeamNames.filter(
         (name): name is string => typeof name === 'string' && name.trim().length > 0
@@ -145,7 +147,10 @@ function TournamentLobby() {
   const isVisitor = !isCreator && !isParticipant
   const isMockSeedEnabled = env.features.enableMockSeed
   const isCreatorAlreadyParticipant = participants.some((p) => p.user_id === tournament.creator_id)
-  const seedTargetTotal = Math.max(2, maxParticipants ?? (isCreatorAlreadyParticipant ? participantCount + 1 : participantCount + 2))
+  const seedTargetTotal = Math.max(
+    2,
+    maxParticipants ?? (isCreatorAlreadyParticipant ? participantCount + 1 : participantCount + 2)
+  )
   const seedMissingCount = Math.max(0, seedTargetTotal - participantCount)
   const hasDrawnTeams =
     participants.length > 0 &&
@@ -213,7 +218,6 @@ function TournamentLobby() {
     }
   }
 
-  // ─── DEV ONLY ──────────────────────────────────────────────────────────────
   const handleSeedParticipants = async () => {
     if (!user) return
     try {
@@ -226,7 +230,6 @@ function TournamentLobby() {
       alert('❌ Seed falhou: ' + msg)
     }
   }
-  // ──────────────────────────────────────────────────────────────────────────
 
   return (
     <div className={styles.container}>
@@ -239,6 +242,13 @@ function TournamentLobby() {
         </button>
 
         <div className={styles.headerContent}>
+          <div className={styles.headerThumb} aria-hidden>
+            {tournamentCoverUrl ? (
+              <img src={tournamentCoverUrl} alt="" className={styles.headerThumbImg} />
+            ) : (
+              <span className={styles.headerThumbFallback}>{tournamentBadgeInitials}</span>
+            )}
+          </div>
           <div className={styles.headerTextBlock}>
             <h1 className={styles.title}>{tournament.name}</h1>
             <span className={styles.gameType}>{tournament.game_type}</span>
@@ -358,10 +368,10 @@ function TournamentLobby() {
             </div>
           )}
 
-          {/* Seed (feature-flag): preenche o lobby até o limite configurado */}
           {isMockSeedEnabled && isCreator && seedMissingCount > 0 && (
             <div style={{ textAlign: 'center', margin: '1rem 0' }}>
               <button
+                type="button"
                 onClick={handleSeedParticipants}
                 style={{
                   padding: '0.5rem 1rem',

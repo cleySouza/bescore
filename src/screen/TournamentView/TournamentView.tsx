@@ -9,7 +9,14 @@ import {
   activeTournamentTabAtom,
 } from '../../atoms/tournamentAtoms'
 import { paths } from '../../app/navigation/paths'
-import { fetchMyTournaments, getTournamentParticipants, joinTournamentById, deleteTournament, cancelTournament, seedMockParticipants } from '../../lib/tournamentService'
+import {
+  fetchMyTournaments,
+  getTournamentParticipants,
+  joinTournamentById,
+  deleteTournament,
+  cancelTournament,
+  seedMockParticipants,
+} from '../../lib/tournamentService'
 import { profileDisplayName } from '../../lib/profileService'
 import { getTournamentMatches } from '../../lib/matchService'
 import { generatePlayoffMatches, campeonatoLeagueRoundCount } from '../../lib/matchGenerationEngine'
@@ -142,7 +149,10 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   const availableJoinTeams = predefinedTeams.filter((name) => !usedTeams.has(name))
   const isMockSeedEnabled = env.features.enableMockSeed
   const isCreatorAlreadyParticipant = participants.some((p) => p.user_id === tournament.creator_id)
-  const seedTargetTotal = Math.max(2, maxParticipants ?? (isCreatorAlreadyParticipant ? participantCount + 1 : participantCount + 2))
+  const seedTargetTotal = Math.max(
+    2,
+    maxParticipants ?? (isCreatorAlreadyParticipant ? participantCount + 1 : participantCount + 2)
+  )
   const seedMissingCount = Math.max(0, seedTargetTotal - participantCount)
 
   const leagueRoundCount =
@@ -225,24 +235,21 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
     }
   }
 
-  // ─── DEV ONLY ──────────────────────────────────────────────────────────────
   const handleSeedParticipants = async () => {
-     logger.log('[DEV] seedMockParticipants → tournament.id:', tournament.id)
+    logger.log('[DEV] seedMockParticipants → tournament.id:', tournament.id)
     try {
       const result = await seedMockParticipants(tournament.id, seedTargetTotal, tournament.creator_id)
-       logger.log('[DEV] Seed concluído com sucesso', result)
-      // Atualiza a lista de participantes na view e o atom do Dashboard
+      logger.log('[DEV] Seed concluído com sucesso', result)
       const updated = await fetchMyTournaments(user.id)
       setMyTournaments(updated)
       setRefreshKey((prev) => prev + 1)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro ao injetar participantes'
-       logger.error('[DEV] Seed falhou:', err)
+      logger.error('[DEV] Seed falhou:', err)
       alert('❌ Seed falhou: ' + msg)
       setError(msg)
     }
   }
-  // ──────────────────────────────────────────────────────────────────────────
 
   const handleJoin = async () => {
     if (!user) return
@@ -396,10 +403,10 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
               </div>
             )}
 
-            {/* Seed (feature-flag): preenche o lobby até o limite configurado */}
             {isMockSeedEnabled && isCreator && isDraft && seedMissingCount > 0 && (
               <div style={{ textAlign: 'center', margin: '1rem 0' }}>
                 <button
+                  type="button"
                   onClick={handleSeedParticipants}
                   style={{
                     padding: '0.5rem 1rem',
