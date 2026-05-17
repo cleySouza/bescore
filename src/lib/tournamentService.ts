@@ -307,6 +307,26 @@ export async function getTournamentByCode(code: string): Promise<Tournament | nu
 }
 
 /**
+ * Remove um participante do torneio (criador ou o próprio utilizador — ver RLS).
+ * Tipicamente usado pelo organizador no rascunho para cancelar uma inscrição.
+ */
+export async function removeParticipantFromTournament(
+  tournamentId: string,
+  participantId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('participants')
+    .delete()
+    .eq('id', participantId)
+    .eq('tournament_id', tournamentId)
+
+  if (error) {
+    console.error('Erro ao remover participante:', error.message)
+    throw new Error(`Falha ao remover participante: ${error.message}`)
+  }
+}
+
+/**
  * Permite que um usuário se junte a um torneio usando o invite_code
  */
 export async function joinTournament(
