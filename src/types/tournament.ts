@@ -32,6 +32,20 @@ export function getTournamentCoverImage(settings: unknown): string | null {
   return t.length > 0 ? t : null
 }
 
+/**
+ * Escudos por nome do clube: cache do catálogo Strapi + `selectedTeamShields` no torneio.
+ * Valores em settings substituem o catálogo quando a chave coincide.
+ */
+export function getMergedTeamShieldsMap(
+  catalogShields: Record<string, string>,
+  settings: unknown
+): Record<string, string> {
+  if (!settings || typeof settings !== 'object') return { ...catalogShields }
+  const raw = (settings as TournamentSettings).selectedTeamShields
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ...catalogShields }
+  return { ...catalogShields, ...(raw as Record<string, string>) }
+}
+
 /** Iniciais para avatar placeholder no cabeçalho (2 letras). */
 export function getTournamentBadgeInitials(name: string | null | undefined): string {
   if (!name) return 'TR'

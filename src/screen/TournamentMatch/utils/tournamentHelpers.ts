@@ -1,5 +1,9 @@
 import type { Tournament } from '../../../atoms/tournamentAtoms'
-import type { MatchWithTeams, TournamentSettings } from '../../../types/tournament'
+import {
+  type MatchWithTeams,
+  type TournamentSettings,
+  getMergedTeamShieldsMap,
+} from '../../../types/tournament'
 import {
   resolveSingleLegKnockoutWinner,
   resolveTwoLegKnockoutWinner,
@@ -48,10 +52,7 @@ export function getTournamentSettings(
       )
     : []
 
-  const shieldsMap: Record<string, string> = {
-    ...strapiShieldsMap,
-    ...(tournamentSettings?.selectedTeamShields ?? {}),
-  }
+  const shieldsMap = getMergedTeamShieldsMap(strapiShieldsMap, tournamentSettings)
 
   // Calcular leagueRoundCount baseado nos participantes
   const leagueRoundCount = isCampeonato 

@@ -11,6 +11,8 @@ interface CatalogTeamPickFieldProps {
   disabled?: boolean
   triggerClassName?: string
   placeholder?: string
+  /** Rótulo no botão quando `value` é null mas já existe nome (ex.: vindo só do BD). */
+  pendingNameFallback?: string | null
 }
 
 export function CatalogTeamPickField({
@@ -20,8 +22,13 @@ export function CatalogTeamPickField({
   disabled = false,
   triggerClassName = '',
   placeholder = 'Escolher time no catálogo…',
+  pendingNameFallback = null,
 }: CatalogTeamPickFieldProps) {
   const [open, setOpen] = useState(false)
+  const label =
+    value?.name?.trim() ||
+    pendingNameFallback?.trim() ||
+    ''
 
   return (
     <>
@@ -31,7 +38,7 @@ export function CatalogTeamPickField({
         disabled={disabled}
         onClick={() => setOpen(true)}
       >
-        {value ? value.name : placeholder}
+        {label || placeholder}
       </button>
       {open && (
         <TeamSelectModal

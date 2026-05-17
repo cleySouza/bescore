@@ -1,6 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { updateParticipantAdmin } from '../../../lib/matchService'
 import { profileDisplayName } from '../../../lib/profileService'
+import {
+  CatalogTeamPickField,
+  type CatalogClubPick,
+} from '../../../components/CatalogTeamPickField/CatalogTeamPickField'
 import styles from './ManageParticipantModal.module.css'
 import {
   HiOutlineCog6Tooth,
@@ -29,6 +33,8 @@ interface ManageParticipantModalProps {
   showScoreAdjustments?: boolean
   teamOptions?: string[]
   canEditTeamAssignment?: boolean
+  /** Times já usados por outros participantes — exclusão na escolha do catálogo (modo livre). */
+  excludeCatalogTeamNames?: string[]
   /** Organizador pode remover inscrição (ex.: torneio em rascunho). */
   allowRemoveParticipant?: boolean
   onRemoveParticipant?: () => Promise<void>
@@ -41,10 +47,13 @@ function ManageParticipantModal({
   showScoreAdjustments = true,
   teamOptions = [],
   canEditTeamAssignment = true,
+  excludeCatalogTeamNames,
   allowRemoveParticipant = false,
   onRemoveParticipant,
 }: ManageParticipantModalProps) {
+  const presetTeamNames = teamOptions ?? []
   const [teamName, setTeamName] = useState(participant.team_name ?? '')
+  const [catalogClub, setCatalogClub] = useState<CatalogClubPick | null>(null)
   const [penaltyPoints, setPenaltyPoints] = useState<number>(participant.penalty_points ?? 0)
   const [penaltyReason, setPenaltyReason] = useState(participant.penalty_reason ?? '')
   const [loading, setLoading] = useState(false)
@@ -53,8 +62,13 @@ function ManageParticipantModal({
 
   const displayName = profileDisplayName(participant.profile)
 
+  useEffect(() => {
+    setTeamName(participant.team_name ?? '')
+    setCatalogClub(null)
+  }, [participant.id, participant.team_name])
+
   const normalizedTeamOptions = useMemo(() => {
-    const clean = teamOptions
+    const clean = presetTeamNames
       .filter((name): name is string => typeof name === 'string')
       .map((name) => name.trim())
       .filter((name) => name.length > 0)
@@ -66,9 +80,15 @@ function ManageParticipantModal({
     }
 
     return unique
-  }, [teamOptions, teamName])
+  }, [presetTeamNames, teamName])
+
+  const catalogPickMode =
+    canEditTeamAssignment && presetTeamNames.length === 0
 
   const hasEditableFields = canEditTeamAssignment || showScoreAdjustments
+
+  const catalogTakenTeams = excludeCatalogTeamNames ??
+    ([] as string[])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,7 +103,21 @@ function ManageParticipantModal({
       }
 
       if (canEditTeamAssignment) {
-        updates.team_name = teamName.trim() || undefined
+        let resolvedTeam = ''
+        if (catalogPickMode) {
+          resolvedTeam =
+            catalogClub?.name.trim() ||
+            teamName.trim() ||
+            (participant.team_name ?? '').trim() ||
+            ''
+          if (!resolvedTeam) {
+            setError('Escolha um time no catálogo')
+            return
+          }
+        } else {
+          resolvedTeam = teamName.trim()
+        }
+        updates.team_name = resolvedTeam ? resolvedTeam : undefined
       }
 
       if (showScoreAdjustments) {
@@ -158,20 +192,35 @@ function ManageParticipantModal({
               </span>
             </label>
             {canEditTeamAssignment ? (
-              <select
-                id="teamName"
-                className={styles.input}
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-                disabled={busy}
-              >
-                <option value="">Selecionar time...</option>
-                {normalizedTeamOptions.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
+              catalogPickMode ? (
+                <CatalogTeamPickField
+                  value={catalogClub}
+                  onChange={(c) => {
+                    setCatalogClub(c)
+                    if (c?.name) setTeamName(c.name)
+                  }}
+                  takenTeamNames={catalogTakenTeams}
+                  disabled={busy}
+                  pendingNameFallback={catalogClub ? null : teamName.trim() || participant.team_name}
+                  triggerClassName={styles.input}
+                  placeholder="Escolher clube no catálogo…"
+                />
+              ) : (
+                <select
+                  id="teamName"
+                  className={styles.input}
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                  disabled={busy}
+                >
+                  <option value="">Selecionar time...</option>
+                  {normalizedTeamOptions.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              )
             ) : (
               <input
                 id="teamName"

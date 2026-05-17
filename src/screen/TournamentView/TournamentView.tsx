@@ -8,9 +8,11 @@ import {
   showConfigModalAtom,
   activeTournamentTabAtom,
 } from '../../atoms/tournamentAtoms'
+import { strapiShieldsMapAtom } from '../../atoms/catalogAtom'
 import { paths } from '../../app/navigation/paths'
 import {
   fetchMyTournaments,
+  getTournamentById,
   getTournamentParticipants,
   joinTournamentById,
   deleteTournament,
@@ -25,12 +27,14 @@ import { logger } from '../../lib/logger'
 import { env } from '../../config/env'
 import type { Participant } from '../../atoms/tournamentAtoms'
 import type { MatchWithTeams, TournamentSettings } from '../../types/tournament'
+import { getMergedTeamShieldsMap } from '../../types/tournament'
 import TournamentConfig from '../../components/TournamentConfig'
 import MatchCard from '../../components/MatchCard'
 import StandingsTable from '../../components/StandingsTable/StandingsTable'
 import ManageParticipantModal, { type ManagedParticipant } from './components/ManageParticipantModal'
 import { CatalogTeamPickField, type CatalogClubPick } from '../../components/CatalogTeamPickField/CatalogTeamPickField'
 import { useTournamentFinishedSync } from '../TournamentMatch/hooks/useTournamentFinishedSync'
+import { getTeamInitials } from '../TournamentMatch/components/teamInitials'
 import {
   HiOutlineArrowLeft,
   HiOutlineClipboardDocument,
@@ -59,6 +63,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   const navigate = useNavigate()
   const setShowConfigModal = useSetAtom(showConfigModalAtom)
   const [activeTab, setActiveTab] = useAtom(activeTournamentTabAtom)
+  const strapiShieldsMap = useAtomValue(strapiShieldsMapAtom)
   const [participants, setParticipants] = useState<ParticipantWithProfile[]>([])
   const [matches, setMatches] = useState<MatchWithTeams[]>([])
   const [loading, setLoading] = useState(true)
@@ -150,9 +155,10 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   const isCampeonato = tournamentSettings?.format === 'campeonato'
   const playoffCutoff = isCampeonato ? (tournamentSettings?.playoffCutoff ?? 2) : undefined
 
+  const teamShieldsMap = getMergedTeamShieldsMap(strapiShieldsMap, tournamentSettings)
+
   // Governance: papéis e controle de acesso
   const isParticipant = tournament.isParticipant ?? participants.some((p) => p.user_id === user.id)
-  const isVisitor = !isCreator && !isParticipant
   const isPrivate = tournamentSettings?.isPrivate ?? false
   const maxParticipants = tournamentSettings?.maxParticipants ?? null
   const isFull = maxParticipants !== null && participantCount >= maxParticipants
@@ -308,6 +314,8 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
     setJoiningTournament(true)
     try {
       await joinTournamentById(tournament.id, user.id, joinTeamName)
+      const updated = await getTournamentById(tournament.id, user.id)
+      setActiveTournament(updated)
       setRefreshKey((prev) => prev + 1)
     } catch (err) {
       setJoinCodeError(err instanceof Error ? err.message : 'Erro ao entrar no torneio')
@@ -399,7 +407,10 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
               </div>
             ) : (
               <div className={styles.participantsList}>
-                {participants.map((participant) => (
+                {participants.map((participant) => {
+                  const teamName = (participant.team_name ?? '').trim()
+                  const teamShield = teamName ? teamShieldsMap[teamName] : ''
+                  return (
                   <div key={participant.id} className={styles.participantCard}>
                     {participant.profile?.avatar_url ? (
                       <img
@@ -411,7 +422,29 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                       <div className={styles.avatarPlaceholder}>👤</div>
                     )}
                     <div className={styles.participantInfo}>
-                      <div className={styles.teamName}>{participant.team_name || 'Sem time'}</div>
+                      <div className={styles.teamName}>
+                        {teamName ? (
+                          <span className={styles.teamLine}>
+                            {teamShield ? (
+                              <span className={styles.teamCrest}>
+                                <img
+                                  src={teamShield}
+                                  alt={teamName}
+                                  className={styles.teamCrestImg}
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none'
+                                  }}
+                                />
+                              </span>
+                            ) : (
+                              <span className={styles.teamCrest}>{getTeamInitials(teamName)}</span>
+                            )}
+                            <span className={styles.teamText}>{teamName}</span>
+                          </span>
+                        ) : (
+                          'Sem time'
+                        )}
+                      </div>
                       <small className={styles.userName}>
                         {profileDisplayName(participant.profile)}
                       </small>
@@ -429,7 +462,8 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                       </button>
                     )}
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
 
@@ -463,8 +497,8 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
               </div>
             )}
 
-            {/* Join section: only for visitors in draft status */}
-            {isDraft && isVisitor && (
+            {/* Join section: draft e ainda não inscrito (visitante ou organizador). */}
+            {isDraft && !isParticipant && (
               <div className={styles.joinSection}>
                 {isFull ? (
                   <span className={styles.fullBadge}>🔒 Torneio Lotado</span>
@@ -779,7 +813,11 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
           participant={managedParticipant}
           showScoreAdjustments={!isDraft}
           teamOptions={managedTeamOptions}
-          canEditTeamAssignment={!(isDraft && isAutoTeamMode)}
+          excludeCatalogTeamNames={participants
+            .filter((p) => p.id !== managedParticipant.id)
+            .map((p) => (p.team_name ?? '').trim())
+            .filter((n) => n.length > 0)}
+          canEditTeamAssignment={!(isDraft && isAutoPredefined)}
           allowRemoveParticipant={
             !!user &&
             isCreator &&

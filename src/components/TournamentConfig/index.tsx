@@ -5,7 +5,9 @@ import { activeTournamentAtom, globalToastAtom, showConfigModalAtom } from '../.
 import { generateMatchesByFormat } from '../../lib/matchGenerationEngine'
 import { profileDisplayName } from '../../lib/profileService'
 import { updateParticipantTeamName } from '../../lib/tournamentService'
+import { strapiShieldsMapAtom } from '../../atoms/catalogAtom'
 import type { TournamentFormat, TournamentSettings } from '../../types/tournament'
+import { getMergedTeamShieldsMap } from '../../types/tournament'
 import { HiOutlineCog6Tooth, HiOutlineTrophy, HiOutlineXMark } from 'react-icons/hi2'
 import styles from './TournamentConfig.module.css'
 
@@ -48,10 +50,18 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
   const user = useAtomValue(userAtom)
   const tournament = useAtomValue(activeTournamentAtom)
   const showModal = useAtomValue(showConfigModalAtom)
+  const strapiShieldsMap = useAtomValue(strapiShieldsMapAtom)
   const setGlobalToast = useSetAtom(globalToastAtom)
 
   const savedSettings = tournament?.settings as TournamentSettings | null
   const isAutoAssignment = (savedSettings?.teamAssignMode ?? 'auto') === 'auto'
+  const selectedTeamNames = Array.isArray(savedSettings?.selectedTeamNames)
+    ? savedSettings.selectedTeamNames.filter(
+        (name): name is string => typeof name === 'string' && name.trim().length > 0
+      )
+    : []
+  /** Sorteio no modal só faz sentido com lista pré-definida (adminDraft + clubes). */
+  const needsOrganizerDraw = isAutoAssignment && selectedTeamNames.length > 0
   const initialFormat: TournamentFormat = savedSettings?.format ?? 'roundRobin'
   const [format] = useState<TournamentFormat>(initialFormat)
   const [settings] = useState<TournamentSettings>({
@@ -79,11 +89,22 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
         (name) => (name ?? '').trim().length > 0
       )
 
-      if (!hasLocalAssignments) {
-        setEditableNames(
-          Object.fromEntries(
-            participants.map((p) => [p.id, isAutoAssignment ? '' : (p.team_name ?? '')])
+      if (needsOrganizerDraw) {
+        if (!hasLocalAssignments) {
+          setEditableNames(Object.fromEntries(participants.map((p) => [p.id, ''])))
+        }
+      } else if (!isAutoAssignment) {
+        if (!hasLocalAssignments) {
+          setEditableNames(
+            Object.fromEntries(
+              participants.map((p) => [p.id, (p.team_name ?? '').trim()])
+            )
           )
+        }
+      } else {
+        /* AUTO sem lista pré-definida: times vindos das escolhas no lobby — sempre refl. os dados atuais */
+        setEditableNames(
+          Object.fromEntries(participants.map((p) => [p.id, (p.team_name ?? '').trim()]))
         )
       }
 
@@ -94,7 +115,7 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
     }
 
     wasModalOpenRef.current = showModal
-  }, [showModal, participants, isAutoAssignment, editableNames])
+  }, [showModal, participants, needsOrganizerDraw, isAutoAssignment, editableNames])
 
   if (!user || !tournament || !showModal) {
     return null
@@ -109,17 +130,8 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
   // Bloqueia configuração se o torneio não está mais em rascunho
   const isDraft = tournament.status === 'draft'
 
-  const selectedTeamNames = Array.isArray(savedSettings?.selectedTeamNames)
-    ? savedSettings.selectedTeamNames.filter(
-        (name): name is string => typeof name === 'string' && name.trim().length > 0
-      )
-    : []
-
   const teamPool = selectedTeamNames.length > 0 ? selectedTeamNames : FALLBACK_CLUBS
-  const teamShields =
-    typeof savedSettings?.selectedTeamShields === 'object' && savedSettings?.selectedTeamShields
-      ? (savedSettings.selectedTeamShields as Record<string, string>)
-      : {}
+  const teamShields = getMergedTeamShieldsMap(strapiShieldsMap, savedSettings)
 
   const closeTeamPicker = () => {
     setPickerOpenFor(null)
@@ -264,7 +276,7 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
               <div className={styles.lobbyHeader}>
                 <span className={styles.lobbyTitle}>🏟️ Atribuição de Times</span>
                 <div className={styles.lobbyActions}>
-                  {isAutoAssignment && (
+                  {needsOrganizerDraw && (
                     <button
                       type="button"
                       className={styles.randomizeBtn}
@@ -274,6 +286,7 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
                       🎲 Sortear Times
                     </button>
                   )}
+                  {(needsOrganizerDraw || !isAutoAssignment) && (
                   <button
                     type="button"
                     className={styles.secondaryActionBtn}
@@ -282,13 +295,16 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
                   >
                     🧹 Limpar
                   </button>
+                  )}
                 </div>
               </div>
 
               <div className={styles.modeHint}>
-                {isAutoAssignment
-                  ? 'Modo AUTO: times so podem ser definidos pelo sorteio automatico.'
-                  : 'Modo MANUAL: o criador escolhe individualmente o time de cada participante.'}
+                {needsOrganizerDraw
+                  ? 'Modo AUTO com clubes pré-definidos: use Sortear ou deixe vazio até sortear.'
+                  : !isAutoAssignment
+                  ? 'Modo MANUAL: o criador escolhe individualmente o time de cada participante.'
+                  : 'Os jogadores escolhem o time ao entrar; confira antes de gerar as partidas.'}
               </div>
 
               <div className={styles.lobbyProgressCard}>
@@ -355,8 +371,12 @@ function TournamentConfig({ participantCount, participants, onClose, onMatchesGe
                           </span>
                           <span className={styles.teamChoiceText}>{editableNames[p.id]}</span>
                         </span>
+                      ) : needsOrganizerDraw ? (
+                        'Aguardando sorteio...'
+                      ) : !isAutoAssignment ? (
+                        'Escolher time...'
                       ) : (
-                        isAutoAssignment ? 'Aguardando sorteio...' : 'Escolher time...'
+                        'Sem time'
                       )}
                     </button>
                   </div>

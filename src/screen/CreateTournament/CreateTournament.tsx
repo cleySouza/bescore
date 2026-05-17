@@ -9,7 +9,13 @@ import {
   recentPlayersAtom,
 } from '../../atoms/tournamentAtoms'
 import { paths } from '../../app/navigation/paths'
-import { createTournament, fetchMyTournaments, getTournamentById, joinTournamentById } from '../../lib/tournamentService'
+import {
+  createTournament,
+  fetchMyTournaments,
+  getTournamentById,
+  joinTournamentById,
+} from '../../lib/tournamentService'
+import { setPendingCreatorTeamPickSession } from '../../lib/pendingCreatorTeamPick'
 import { PreviewCard, TeamSelectModal } from './components'
 import styles from './CreateTournament.module.css'
 import {
@@ -235,6 +241,13 @@ function CreateTournament() {
     setLoading(true)
 
     try {
+      const createSnapshot = {
+        willPlay: formData.willPlay,
+        adminDraft: formData.adminDraft,
+        autoTeams: formData.autoTeams,
+        predefinedCount: selectedTeamsPreview.length,
+      }
+
       // Criar torneio
       const newTournament = await createTournament(formData.name, user.id, formData.gameType, {
         isPrivate: formData.isPrivate,
@@ -259,18 +272,21 @@ function CreateTournament() {
           : {}),
       })
 
-      // Inscrever o criador como participante se ele optou por jogar
-      if (formData.willPlay) {
-        await joinTournamentById(
-          newTournament.id,
-          user.id,
-          user.email?.split('@')[0] ?? 'Organizador'
-        )
-      }
-
       setSuccessData({ name: formData.name, inviteCode: newTournament.invite_code ?? '' })
       setSuccess(true)
       lastCreatedTournamentIdRef.current = newTournament.id
+
+      const hasPredefinedTeamsSnap =
+        createSnapshot.adminDraft && createSnapshot.predefinedCount > 0
+      const isAutoPredefinedSnap =
+        hasPredefinedTeamsSnap && createSnapshot.autoTeams
+
+      if (createSnapshot.willPlay) {
+        await joinTournamentById(newTournament.id, user.id, '')
+        if (!isAutoPredefinedSnap) {
+          setPendingCreatorTeamPickSession(newTournament.id)
+        }
+      }
 
       // Recarregar lista de torneios
       const tournaments = await fetchMyTournaments(user.id)
@@ -376,7 +392,7 @@ function CreateTournament() {
             </a>
           </div>
 
-          <small className={styles.redirectHint}>Entrando no torneio em instantes…</small>
+          <small className={styles.redirectHint}>Redirecionando ao lobby em instantes…</small>
         </div>
       ) : (
         <div className={styles.contentMain}>

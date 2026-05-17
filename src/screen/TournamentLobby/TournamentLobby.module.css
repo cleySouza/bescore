@@ -282,27 +282,35 @@
 
 .participantsList {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  gap: 10px;
+  align-items: stretch;
 }
 
 .participantCard {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 8px;
-  padding: 8px;
+  padding: 10px;
   background: var(--color-gray-100);
   border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   transition: all 0.2s ease;
-  min-height: 58px;
+  min-height: 124px;
+  overflow: hidden;
 }
 
 .participantTopRow {
   display: flex;
   align-items: flex-start;
   gap: 8px;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
 }
 
 .participantCard:hover {
@@ -347,6 +355,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .teamLine {
@@ -393,11 +402,10 @@
   color: var(--color-dark-100);
   line-height: 1.2;
   display: block;
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .creatorBadge {
@@ -416,12 +424,15 @@
   color: var(--color-gray-300);
   transition: all 0.15s ease;
   width: 100%;
+  min-height: 34px;
+  flex-shrink: 0;
   align-self: stretch;
   text-align: center;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
+  box-sizing: border-box;
 }
 
 .manageBtn:hover {
@@ -641,6 +652,61 @@
 .dangerBtn:hover {
   background: var(--color-red);
   color: var(--color-white);
+}
+
+.creatorPickOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(22, 24, 34, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.creatorPickModal {
+  background: var(--color-white);
+  border-radius: 14px;
+  padding: 22px 20px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.22);
+}
+
+.creatorPickTitle {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-dark);
+}
+
+.creatorPickHint {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--color-gray-600);
+  line-height: 1.35;
+}
+
+.creatorPickActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.creatorPickCancelBtn {
+  padding: 9px 14px;
+  background: transparent;
+  border: 1px solid var(--color-gray-300);
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--color-dark);
+}
+
+.creatorPickCancelBtn:hover:not(:disabled) {
+  border-color: var(--color-gray-500);
 }
 
 @media (max-width: 768px) {
