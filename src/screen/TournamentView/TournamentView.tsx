@@ -29,6 +29,7 @@ import TournamentConfig from '../../components/TournamentConfig'
 import MatchCard from '../../components/MatchCard'
 import StandingsTable from '../../components/StandingsTable/StandingsTable'
 import ManageParticipantModal, { type ManagedParticipant } from './components/ManageParticipantModal'
+import { CatalogTeamPickField, type CatalogClubPick } from '../../components/CatalogTeamPickField/CatalogTeamPickField'
 import { useTournamentFinishedSync } from '../TournamentMatch/hooks/useTournamentFinishedSync'
 import {
   HiOutlineArrowLeft,
@@ -67,6 +68,7 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
   const [managedParticipant, setManagedParticipant] = useState<ManagedParticipant | null>(null)
   const [joinCode, setJoinCode] = useState('')
   const [joinTeam, setJoinTeam] = useState('')
+  const [joinCatalogClub, setJoinCatalogClub] = useState<CatalogClubPick | null>(null)
   const [joinCodeError, setJoinCodeError] = useState<string | null>(null)
   const [joiningTournament, setJoiningTournament] = useState(false)
 
@@ -99,6 +101,26 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
 
     loadData()
   }, [tournament, navigate, refreshKey])
+
+  useEffect(() => {
+    if (!tournament) return
+    if (!joinCatalogClub) return
+    const settings = tournament.settings as TournamentSettings | null
+    const pre = Array.isArray(settings?.selectedTeamNames)
+      ? settings.selectedTeamNames.filter(
+          (name): name is string => typeof name === 'string' && name.trim().length > 0
+        )
+      : []
+    if (pre.length > 0) return
+    const used = new Set(
+      participants
+        .map((p) => (p.team_name ?? '').trim())
+        .filter((name) => name.length > 0)
+    )
+    if (used.has(joinCatalogClub.name.trim())) {
+      setJoinCatalogClub(null)
+    }
+  }, [tournament, joinCatalogClub, participants])
 
   useTournamentFinishedSync(
     tournament ?? undefined,
@@ -269,11 +291,18 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
       return
     }
 
+    if (!hasPredefinedTeams) {
+      if (!joinCatalogClub?.name.trim()) {
+        setJoinCodeError('Escolha um time no catálogo para participar')
+        return
+      }
+    }
+
     const joinTeamName = isAutoPredefined
       ? ''
       : isManualPredefined
         ? joinTeam
-        : user.email?.split('@')[0] ?? 'Jogador'
+        : joinCatalogClub!.name.trim()
 
     setJoinCodeError(null)
     setJoiningTournament(true)
@@ -465,6 +494,18 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                     {isAutoPredefined && (
                       <p className={styles.joinHint}>Os times serão atribuídos automaticamente pelo organizador.</p>
                     )}
+                    {!hasPredefinedTeams && (
+                      <div className={styles.joinCodeRow}>
+                        <CatalogTeamPickField
+                          value={joinCatalogClub}
+                          onChange={(c) => { setJoinCatalogClub(c); setJoinCodeError(null) }}
+                          takenTeamNames={Array.from(usedTeams)}
+                          disabled={joiningTournament}
+                          triggerClassName={styles.joinCatalogTrigger}
+                          placeholder="Escolher clube no catálogo…"
+                        />
+                      </div>
+                    )}
                     <div className={styles.joinCodeRow}>
                       <input
                         className={styles.joinCodeInput}
@@ -478,7 +519,8 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                         disabled={
                           joinCode.trim().length === 0 ||
                           joiningTournament ||
-                          (isManualPredefined && !joinTeam)
+                          (isManualPredefined && !joinTeam) ||
+                          (!hasPredefinedTeams && !joinCatalogClub)
                         }
                         onClick={handleJoin}
                       >
@@ -513,10 +555,26 @@ function TournamentView({ onBackToDashboard: _onBackToDashboard }: TournamentVie
                     {isAutoPredefined && (
                       <p className={styles.joinHint}>Os times serão atribuídos automaticamente pelo organizador.</p>
                     )}
+                    {!hasPredefinedTeams && (
+                      <div className={styles.joinCodeRow}>
+                        <CatalogTeamPickField
+                          value={joinCatalogClub}
+                          onChange={(c) => { setJoinCatalogClub(c); setJoinCodeError(null) }}
+                          takenTeamNames={Array.from(usedTeams)}
+                          disabled={joiningTournament}
+                          triggerClassName={styles.joinCatalogTrigger}
+                          placeholder="Escolher clube no catálogo…"
+                        />
+                      </div>
+                    )}
                     {joinCodeError && <span className={styles.joinError}>{joinCodeError}</span>}
                     <button
                       className={styles.joinBtn}
-                      disabled={joiningTournament || (isManualPredefined && !joinTeam)}
+                      disabled={
+                        joiningTournament ||
+                        (isManualPredefined && !joinTeam) ||
+                        (!hasPredefinedTeams && !joinCatalogClub)
+                      }
                       onClick={handleJoin}
                     >
                       {joiningTournament ? 'Entrando...' : '🎮 Entrar no Torneio'}

@@ -542,6 +542,32 @@
   letter-spacing: normal;
 }
 
+.joinCatalogTrigger {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--color-gray-200);
+  background: var(--color-gray-100);
+  color: var(--color-dark);
+  font-size: 15px;
+  letter-spacing: normal;
+  text-transform: none;
+  outline: none;
+  transition: border-color 0.2s;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.joinCatalogTrigger:focus {
+  border-color: var(--color-be);
+}
+
+.joinCatalogTrigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .joinBtn {
   padding: 10px 20px;
   border-radius: 8px;

@@ -511,6 +511,34 @@
   letter-spacing: normal;
 }
 
+.joinCatalogTrigger {
+  flex: 1;
+  width: 100%;
+  max-width: 320px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--color-text-primary, #f1f5f9);
+  font-size: 15px;
+  letter-spacing: normal;
+  text-transform: none;
+  outline: none;
+  transition: border-color 0.2s;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.joinCatalogTrigger:focus {
+  border-color: rgba(99, 102, 241, 0.6);
+}
+
+.joinCatalogTrigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .joinBtn {
   padding: 10px 20px;
   border-radius: 8px;
