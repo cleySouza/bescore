@@ -322,10 +322,10 @@ function compareMiniLeague(
   return aId.localeCompare(bId)
 }
 
-/** Critério: pontos (só jogos) → vitórias → saldo → gols pró → confronto direto entre empatados */
+/** Critério: pontos totais (jogos + penalty_points) → vitórias → saldo → gols pró → confronto direto entre empatados */
 function sortStandingsWithCriteria(rows: StandingsAccumulator[], matches: FinishedMatchLite[]): StandingsAccumulator[] {
   const primaryCmp = (a: StandingsAccumulator, b: StandingsAccumulator): number => {
-    if (b.match_points !== a.match_points) return b.match_points - a.match_points
+    if (b.points !== a.points) return b.points - a.points
     if (b.wins !== a.wins) return b.wins - a.wins
     if (b.goal_difference !== a.goal_difference) return b.goal_difference - a.goal_difference
     if (b.goals_for !== a.goals_for) return b.goals_for - a.goals_for
@@ -335,7 +335,7 @@ function sortStandingsWithCriteria(rows: StandingsAccumulator[], matches: Finish
   const sorted = [...rows].sort(primaryCmp)
 
   const sameBucket = (a: StandingsAccumulator, b: StandingsAccumulator) =>
-    a.match_points === b.match_points &&
+    a.points === b.points &&
     a.wins === b.wins &&
     a.goal_difference === b.goal_difference &&
     a.goals_for === b.goals_for
@@ -363,7 +363,7 @@ function sortStandingsWithCriteria(rows: StandingsAccumulator[], matches: Finish
 
 /**
  * Calcula a classificação a partir dos jogos finalizados.
- * Ordenação: pontos (jogos) → vitórias → saldo → gols pró → confronto direto.
+ * Ordenação: pontos totais (jogos + penalty_points) → vitórias → saldo → gols pró → confronto direto.
  */
 export async function getTournamentStandings(
   tournamentId: string,
