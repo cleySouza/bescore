@@ -23,6 +23,23 @@ export interface TournamentSettings {
   teamAssignMode?: 'auto' | 'manual' // Como os times são atribuídos no lobby
 }
 
+/** URL da capa do torneio em `settings` (data URL ou https). */
+export function getTournamentCoverImage(settings: unknown): string | null {
+  if (!settings || typeof settings !== 'object') return null
+  const raw = (settings as TournamentSettings).tournamentImage
+  if (typeof raw !== 'string') return null
+  const t = raw.trim()
+  return t.length > 0 ? t : null
+}
+
+/** Iniciais para avatar placeholder no cabeçalho (2 letras). */
+export function getTournamentBadgeInitials(name: string | null | undefined): string {
+  if (!name) return 'TR'
+  const parts = name.split(/[\s\-_&]+/).filter(Boolean).slice(0, 2)
+  const s = parts.map((chunk) => chunk[0]?.toUpperCase() ?? '').join('')
+  return s || 'TR'
+}
+
 /** true = só criador registra placar; false = jogadores na própria partida. Aceita JSON estrito ou string acidental. */
 export function isAdminOnlyScoring(settings: unknown): boolean {
   const raw = (settings as { adminScores?: unknown } | null)?.adminScores

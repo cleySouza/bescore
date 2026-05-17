@@ -1,7 +1,7 @@
 import { supabase } from './supabaseClient'
-import type { Database } from '../types/supabase'
+import type { Database, Json } from '../types/supabase'
 import type { TournamentSettings, TournamentFormat } from '../types/tournament'
-import { validateSettingsForFormat } from '../types/tournament'
+import { validateSettingsForFormat, getTournamentCoverImage } from '../types/tournament'
 import { getTournamentStandings } from './matchService'
 import {
   canAdvanceFromSemifinalsToFinal,
@@ -117,16 +117,17 @@ export async function generateMatchesByFormat(
   const mergedSettings = {
     ...(existingSettings ?? {}),
     ...formatSettings,
-    // Modal de formato não altera quem lança placar — preservar sempre do torneio
     adminScores: existingSettings?.adminScores ?? true,
     scoreValidation: existingSettings?.scoreValidation ?? false,
-  }
+  } as TournamentSettings
+  const cover = getTournamentCoverImage(existingSettings)
+  if (cover) mergedSettings.tournamentImage = cover
 
   const { error: updateError } = await supabase
     .from('tournaments')
     .update({
       status: 'active',
-      settings: mergedSettings,
+      settings: mergedSettings as unknown as Json,
     })
     .eq('id', tournamentId)
 
