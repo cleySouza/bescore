@@ -14,6 +14,7 @@ import {
   joinTournamentById,
   deleteTournament,
   seedMockParticipants,
+  removeParticipantFromTournament,
 } from '../../lib/tournamentService'
 import { profileDisplayName } from '../../lib/profileService'
 import { env } from '../../config/env'
@@ -519,6 +520,18 @@ function TournamentLobby() {
           showScoreAdjustments={false}
           teamOptions={managedTeamOptions}
           canEditTeamAssignment={!isAutoTeamMode}
+          allowRemoveParticipant={
+            !!user &&
+            isCreator &&
+            tournament.status === 'draft' &&
+            !!managedParticipant.user_id &&
+            managedParticipant.user_id !== tournament.creator_id
+          }
+          onRemoveParticipant={async () => {
+            await removeParticipantFromTournament(tournament.id, managedParticipant.id)
+            const updated = await fetchMyTournaments(user!.id)
+            setMyTournaments(updated)
+          }}
           onClose={() => setManagedParticipant(null)}
           onSaved={() => setRefreshKey((prev) => prev + 1)}
         />

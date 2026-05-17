@@ -10,6 +10,7 @@ import {
 
 export interface ManagedParticipant {
   id: string
+  user_id?: string | null
   team_name: string | null
   penalty_points?: number | null
   penalty_reason?: string | null
@@ -28,6 +29,9 @@ interface ManageParticipantModalProps {
   showScoreAdjustments?: boolean
   teamOptions?: string[]
   canEditTeamAssignment?: boolean
+  /** Organizador pode remover inscrição (ex.: torneio em rascunho). */
+  allowRemoveParticipant?: boolean
+  onRemoveParticipant?: () => Promise<void>
 }
 
 function ManageParticipantModal({
@@ -37,11 +41,14 @@ function ManageParticipantModal({
   showScoreAdjustments = true,
   teamOptions = [],
   canEditTeamAssignment = true,
+  allowRemoveParticipant = false,
+  onRemoveParticipant,
 }: ManageParticipantModalProps) {
   const [teamName, setTeamName] = useState(participant.team_name ?? '')
   const [penaltyPoints, setPenaltyPoints] = useState<number>(participant.penalty_points ?? 0)
   const [penaltyReason, setPenaltyReason] = useState(participant.penalty_reason ?? '')
   const [loading, setLoading] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const displayName = profileDisplayName(participant.profile)
@@ -96,6 +103,30 @@ function ManageParticipantModal({
     }
   }
 
+  const handleRemoveParticipant = async () => {
+    if (!onRemoveParticipant) return
+    if (
+      !window.confirm(
+        'Remover este jogador do torneio? Ele deixa de constar como participante (inscrição cancelada).'
+      )
+    ) {
+      return
+    }
+    setRemoving(true)
+    setError(null)
+    try {
+      await onRemoveParticipant()
+      onSaved()
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao remover')
+    } finally {
+      setRemoving(false)
+    }
+  }
+
+  const busy = loading || removing
+
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -132,7 +163,7 @@ function ManageParticipantModal({
                 className={styles.input}
                 value={teamName}
                 onChange={(e) => setTeamName(e.target.value)}
-                disabled={loading}
+                disabled={busy}
               >
                 <option value="">Selecionar time...</option>
                 {normalizedTeamOptions.map((name) => (
@@ -163,7 +194,7 @@ function ManageParticipantModal({
                   type="button"
                   className={styles.penaltyStep}
                   onClick={() => setPenaltyPoints((v) => v - 1)}
-                  disabled={loading}
+                  disabled={busy}
                 >
                   −
                 </button>
@@ -173,13 +204,13 @@ function ManageParticipantModal({
                   className={styles.penaltyInput}
                   value={penaltyPoints}
                   onChange={(e) => setPenaltyPoints(Number(e.target.value))}
-                  disabled={loading}
+                  disabled={busy}
                 />
                 <button
                   type="button"
                   className={styles.penaltyStep}
                   onClick={() => setPenaltyPoints((v) => v + 1)}
-                  disabled={loading}
+                  disabled={busy}
                 >
                   +
                 </button>
@@ -208,24 +239,40 @@ function ManageParticipantModal({
                 onChange={(e) => setPenaltyReason(e.target.value)}
                 placeholder="Ex: Escalação irregular na rodada 3"
                 maxLength={120}
-                disabled={loading}
+                disabled={busy}
               />
             </div>
           )}
 
           {error && <div className={styles.error}>⚠️ {error}</div>}
 
+          {allowRemoveParticipant && onRemoveParticipant && (
+            <div className={styles.removeSection}>
+              <button
+                type="button"
+                className={styles.removeBtn}
+                onClick={() => void handleRemoveParticipant()}
+                disabled={busy}
+              >
+                {removing ? 'Removendo…' : 'Remover inscrição deste jogador'}
+              </button>
+              <p className={styles.removeHint}>
+                Apenas enquanto o torneio está em rascunho; use para cancelar a participação de quem entrou por engano.
+              </p>
+            </div>
+          )}
+
           <div className={styles.actions}>
             <button
               type="button"
               className={styles.cancelBtn}
               onClick={onClose}
-              disabled={loading}
+              disabled={busy}
             >
               {hasEditableFields ? 'Cancelar' : 'Fechar'}
             </button>
             {hasEditableFields && (
-              <button type="submit" className={styles.saveBtn} disabled={loading}>
+              <button type="submit" className={styles.saveBtn} disabled={busy}>
                 {loading ? 'Salvando...' : showScoreAdjustments ? '💾 Salvar' : '💾 Salvar time'}
               </button>
             )}
