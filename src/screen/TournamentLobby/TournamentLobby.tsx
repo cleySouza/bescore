@@ -401,7 +401,16 @@ function TournamentLobby() {
           </div>
         </div>
 
-        <span className={styles.statusBadge}>Rascunho</span>
+        <span className={styles.statusBadge}>
+          {tournament.status === 'draft' && '📝 Rascunho'}
+          {tournament.status === 'active' && '🔴 Ativo'}
+          {tournament.status === 'finished' && '✅ Finalizado'}
+          {tournament.status === 'cancelled' && '⛔ Cancelado'}
+          {tournament.status &&
+            !['draft', 'active', 'finished', 'cancelled'].includes(tournament.status) &&
+            tournament.status}
+          {(tournament.status == null || tournament.status === '') && '—'}
+        </span>
       </header>
 
       <main className={styles.main}>

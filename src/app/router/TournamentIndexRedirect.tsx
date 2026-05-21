@@ -4,7 +4,7 @@ import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import { activeTournamentAtom } from '../../atoms/tournamentAtoms'
 import { getTournamentByIdForViewer } from '../../lib/tournamentService'
-import { paths } from '../navigation/paths'
+import { paths, tournamentEntryPath } from '../navigation/paths'
 import { RouteSpinner } from '../layout/RouteSpinner'
 
 /** /tournaments/:id → redireciona para lobby ou partidas conforme status */
@@ -23,10 +23,7 @@ export function TournamentIndexRedirect() {
       .then((t) => {
         if (cancelled) return
         setActive(t)
-        navigate(
-          t.status === 'active' ? paths.tournamentMatches(tournamentId) : paths.tournamentLobby(tournamentId),
-          { replace: true }
-        )
+        navigate(tournamentEntryPath(tournamentId, t.status), { replace: true })
       })
       .catch(() => {
         if (!cancelled) navigate(paths.home, { replace: true })

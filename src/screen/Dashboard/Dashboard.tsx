@@ -11,7 +11,7 @@ import {
 import type { TournamentWithParticipants } from '../../atoms/tournamentAtoms'
 import { fetchMyTournaments, fetchPublicTournaments } from '../../lib/tournamentService'
 import TournamentCard from '../../components/TournamentCard'
-import { paths } from '../../app/navigation/paths'
+import { paths, tournamentEntryPath } from '../../app/navigation/paths'
 import styles from './Dashboard.module.css'
 
 function matchesFilter(t: TournamentWithParticipants, q: string): boolean {
@@ -99,11 +99,7 @@ function Dashboard() {
     if (!tournament) return
 
     setActiveTournament(tournament)
-    navigate(
-      tournament.status === 'active'
-        ? paths.tournamentMatches(tournament.id)
-        : paths.tournamentLobby(tournament.id)
-    )
+    navigate(tournamentEntryPath(tournament.id, tournament.status))
   }
 
   const toggleBuscar = () => {
