@@ -4,7 +4,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { userAtom } from '../../atoms/sessionAtom'
 import { activeTournamentAtom, tournamentsErrorAtom } from '../../atoms/tournamentAtoms'
 import { getTournamentByCode, getTournamentById } from '../../lib/tournamentService'
-import { paths } from '../navigation/paths'
+import { paths, tournamentEntryPath } from '../navigation/paths'
 
 /**
  * Links antigos (?invite=CODE na home ou outras páginas) abrem o torneio diretamente.
@@ -39,12 +39,7 @@ export function InviteDeepLinkHandler() {
         lastHandledInviteRef.current = inviteCode
         setActiveTournament(detailed)
 
-        const target =
-          detailed.status === 'active'
-            ? paths.tournamentMatches(detailed.id)
-            : paths.tournamentLobby(detailed.id)
-
-        navigate(target, { replace: true })
+        navigate(tournamentEntryPath(detailed.id, detailed.status), { replace: true })
       } catch (error) {
         if (cancelled) return
         const message = error instanceof Error ? error.message : 'Convite inválido'

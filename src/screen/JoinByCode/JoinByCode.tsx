@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { userAtom } from '../../atoms/sessionAtom'
 import { activeTournamentAtom, tournamentsErrorAtom } from '../../atoms/tournamentAtoms'
-import { paths } from '../../app/navigation/paths'
+import { paths, tournamentEntryPath } from '../../app/navigation/paths'
 import {
   getTournamentByCode,
   getTournamentById,
@@ -214,7 +214,7 @@ function JoinByCode() {
       const detailedTournament = await getTournamentById(tournament.id, user.id)
       setActiveTournament(detailedTournament)
 
-      navigate(paths.tournamentLobby(detailedTournament.id))
+      navigate(tournamentEntryPath(detailedTournament.id, detailedTournament.status))
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao entrar no torneio'
       setLocalError(message)
